@@ -2,7 +2,7 @@
   "name": "killfeed",
   "version": "1.0.0",
   "description": "zKillboard bot for Eve Online",
-  "main": "index.ts",
+  "main": "src/Bot.ts",
   "scripts": {
     "start": "ts-node src/Bot.ts",
     "test": "echo \"Error: no test specified\" && exit 1"
