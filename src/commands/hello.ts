@@ -11,5 +11,8 @@ export const Hello: Command = {
             ephemeral: true,
             content
         });
+
+        console.log("here");
+
     }
 };
