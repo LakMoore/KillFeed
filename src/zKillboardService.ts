@@ -1,6 +1,9 @@
 import axios from "axios";
 import { Client } from "discord.js";
 import { Config } from "./Config";
+import { EmbeddedFormat } from "./feedformats/EmbeddedFormat";
+import { InsightFormat } from "./feedformats/InsightFormat";
+import { ZKillLinkFormat } from "./feedformats/ZKillLinkFormat";
 import { Package } from "./zKillboard";
 
 export async function pollzKillboardOnce(client: Client) {
@@ -15,36 +18,81 @@ export async function pollzKillboardOnce(client: Client) {
     if (data && data.package) {
       // We have a non-null response from zk
 
-      const interestedChannelIDs = new Set<string>();
+      const lossmailChannelIDs = new Set<string>();
+      const killmailChannelIDs = new Set<string>();
+
+      Config.getInstance().testRequests.forEach((v) => {
+        lossmailChannelIDs.add(v);
+      });
+      Config.getInstance().testRequests.clear();
+
       let temp = Config.getInstance().matchedAlliances.get(
         data.package.killmail.victim.alliance_id
       );
       if (temp) {
-        temp.forEach((v) => interestedChannelIDs.add(v));
+        temp.forEach((v) => lossmailChannelIDs.add(v));
       }
+      temp = Config.getInstance().matchedCorporations.get(
+        data.package.killmail.victim.corporation_id
+      );
+      if (temp) {
+        temp.forEach((v) => lossmailChannelIDs.add(v));
+      }
+      temp = Config.getInstance().matchedCharacters.get(
+        data.package.killmail.victim.character_id
+      );
+      if (temp) {
+        temp.forEach((v) => lossmailChannelIDs.add(v));
+      }
+
       data.package.killmail.attackers.forEach((attacker) => {
         temp = Config.getInstance().matchedAlliances.get(attacker.alliance_id);
         if (temp) {
-          temp.forEach((v) => interestedChannelIDs.add(v));
+          temp.forEach((v) => {
+            if (!lossmailChannelIDs.has(v)) killmailChannelIDs.add(v);
+          });
         }
         temp = Config.getInstance().matchedCorporations.get(
           attacker.corporation_id
         );
         if (temp) {
-          temp.forEach((v) => interestedChannelIDs.add(v));
+          temp.forEach((v) => {
+            if (!lossmailChannelIDs.has(v)) killmailChannelIDs.add(v);
+          });
         }
         temp = Config.getInstance().matchedCharacters.get(
           attacker.character_id
         );
         if (temp) {
-          temp.forEach((v) => interestedChannelIDs.add(v));
+          temp.forEach((v) => {
+            if (!lossmailChannelIDs.has(v)) killmailChannelIDs.add(v);
+          });
         }
       });
 
-      interestedChannelIDs.forEach((channelId) => {
+      lossmailChannelIDs.forEach((channelId) => {
         let channel = client.channels.cache.find((c) => c.id === channelId);
         if (channel?.isTextBased()) {
-          channel.send(`https://zkillboard.com/kill/${data.package.killID}/`);
+          // TODO: Look up the desired message format for this channel
+
+          // Generate the message
+          let msg = InsightFormat.getMessage(data, false);
+
+          // send the message
+          channel.send(msg);
+        }
+      });
+
+      killmailChannelIDs.forEach((channelId) => {
+        let channel = client.channels.cache.find((c) => c.id === channelId);
+        if (channel?.isTextBased()) {
+          // TODO: Look up the desired message format for this channel
+
+          // Generate the message
+          let msg = InsightFormat.getMessage(data, true);
+
+          // send the message
+          channel.send(msg);
         }
       });
     }

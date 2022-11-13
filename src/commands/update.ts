@@ -1,7 +1,7 @@
 import { CommandInteraction, Client } from "discord.js";
-import { updateGuild } from "../Servers";
 import { Command } from "../Command";
 import { Config } from "../Config";
+import { updateChannel } from "../Channels";
 
 export const Update: Command = {
   name: "update",
@@ -9,40 +9,42 @@ export const Update: Command = {
   run: async (client: Client, interaction: CommandInteraction) => {
     let content = "Unable to find your Server ID!!!";
 
-    if (interaction.guildId) {
-      updateGuild(client, interaction.guildId);
+    if (interaction.channel) {
+      updateChannel(client, interaction.channel.id);
 
-      let gs = Config.getInstance().guildSettings.get(interaction.guildId);
+      let thisChannel = Config.getInstance().registeredChannels.get(
+        interaction.channelId
+      );
 
-      if (!gs) {
+      if (!thisChannel) {
         content =
-          "The server was not updated correctly.  Please check the format on the pinned message";
+          "The channel settings were not updated correctly.  Please check the format on the pinned message";
       } else {
         content = "Updated settings. Listening for:\n";
-        if (gs.Alliances.size > 0) {
+        if (thisChannel.Alliances.size > 0) {
           content +=
             "Alliances: " +
-            Array.from(gs.Alliances)
+            Array.from(thisChannel.Alliances)
               .map((v) => {
                 return v.toString();
               })
               .join(", ") +
             "\n";
         }
-        if (gs.Corporations.size > 0) {
+        if (thisChannel.Corporations.size > 0) {
           content +=
             "Corporations: " +
-            Array.from(gs.Corporations)
+            Array.from(thisChannel.Corporations)
               .map((v) => {
                 return v.toString();
               })
               .join(", ") +
             "\n";
         }
-        if (gs.Characters.size > 0) {
+        if (thisChannel.Characters.size > 0) {
           content +=
             "Characters: " +
-            Array.from(gs.Characters)
+            Array.from(thisChannel.Characters)
               .map((v) => {
                 return v.toString();
               })
