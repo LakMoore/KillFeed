@@ -9,7 +9,7 @@ export function updateGuild(client: Client<boolean>, guildId: string) {
       // This is an async "foreach"
       return Promise.all(
         c.map((chn) => {
-          if (chn && chn.isTextBased() && !chn.isVoiceBased()) {
+          if (chn && chn.isTextBased() && !chn.isVoiceBased() && chn.viewable) {
             return updateChannel(client, chn.id);
           }
         })

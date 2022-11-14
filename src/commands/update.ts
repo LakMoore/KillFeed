@@ -10,7 +10,7 @@ export const Update: Command = {
     let content = "Unable to find your Server ID!!!";
 
     if (interaction.channel) {
-      updateChannel(client, interaction.channel.id);
+      await updateChannel(client, interaction.channel.id);
 
       let thisChannel = Config.getInstance().registeredChannels.get(
         interaction.channelId

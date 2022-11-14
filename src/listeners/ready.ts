@@ -25,9 +25,7 @@ export default (client: Client): void => {
           })
         );
       })
-      .then(() =>
-        console.log("Finished Looping Guilds")
-      )
+      .then(() => console.log("Finished Looping Guilds"))
       .then(() => {
         console.log("Starting Poll");
         pollLoop(client);
@@ -35,14 +33,18 @@ export default (client: Client): void => {
   });
 };
 
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
 async function pollLoop(client: Client) {
   let i = 0;
-  try {
-    while (true) {
-      await pollzKillboardOnce(client);
+  while (true) {
+    try {
       console.log("loop " + i++);
+      await pollzKillboardOnce(client);
+    } catch (error) {
+      console.log(error);
+      // if there was an error, we can afford to slow things down a lot!
+      await sleep(30000);
     }
-  } catch (error) {
-    console.log(error);
   }
 }

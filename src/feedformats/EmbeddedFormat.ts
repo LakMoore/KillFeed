@@ -8,7 +8,7 @@ const colours = {
 };
 
 export const EmbeddedFormat: BaseFormat = {
-  getMessage: (data: Package, kill: boolean) => {
+  getMessage: async (data: Package, kill: boolean) => {
     return {
       embeds: [
         new EmbedBuilder()

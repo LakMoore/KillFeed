@@ -72,14 +72,16 @@ export async function pollzKillboardOnce(client: Client) {
 
       lossmailChannelIDs.forEach((channelId) => {
         let channel = client.channels.cache.find((c) => c.id === channelId);
-        if (channel?.isTextBased()) {
+        if (channel && channel.isTextBased()) {
           // TODO: Look up the desired message format for this channel
 
           // Generate the message
-          let msg = InsightFormat.getMessage(data, false);
-
-          // send the message
-          channel.send(msg);
+          InsightFormat.getMessage(data, false).then((msg) => {
+            if (channel && channel.isTextBased()) {
+              // send the message
+              channel.send(msg);
+            }
+          });
         }
       });
 
@@ -89,10 +91,12 @@ export async function pollzKillboardOnce(client: Client) {
           // TODO: Look up the desired message format for this channel
 
           // Generate the message
-          let msg = InsightFormat.getMessage(data, true);
-
-          // send the message
-          channel.send(msg);
+          InsightFormat.getMessage(data, true).then((msg) => {
+            if (channel && channel.isTextBased()) {
+              // send the message
+              channel.send(msg);
+            }
+          });
         }
       });
     }

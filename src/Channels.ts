@@ -54,62 +54,67 @@ export function updateChannel(client: Client<boolean>, channelId: string) {
       Config.getInstance().registeredChannels.set(channel.id, thisChannel);
 
       // fetch all pinned messages on this channel
-      return channel.messages.fetchPinned(false).then((pinned) => {
-        // async "foreach"
-        return Promise.all(
-          pinned.map((message, key) => {
-            // Due to Discord "Intents", only the messages where
-            // the bot is tagged will have content
-            if (message.content) {
-              // config messages should be in the format:
-              // alliance/99011699/
-              // corporation/98725503/
-              // character/418245524/
-              message.content.split("\n").forEach((line) => {
-                console.log(line);
+      return channel.messages
+        .fetchPinned(false)
+        .then((pinned) => {
+          // async "foreach"
+          return Promise.all(
+            pinned.map((message, key) => {
+              // Due to Discord "Intents", only the messages where
+              // the bot is tagged will have content
+              if (message.content) {
+                // config messages should be in the format:
+                // alliance/99011699/
+                // corporation/98725503/
+                // character/418245524/
+                message.content.split("\n").forEach((line) => {
+                  console.log(line);
 
-                // ignore any lines that start with #
-                if (!line.startsWith("#")) {
-                  // tokenise the lines on /
-                  const instruction = line.split("/");
+                  // ignore any lines that start with #
+                  if (!line.startsWith("#")) {
+                    // tokenise the lines on /
+                    const instruction = line.split("/");
 
-                  // if this looks like a config line
-                  if (instruction.length > 1) {
-                    let inst = instruction[0].toLowerCase();
-                    let id = Number.parseInt(instruction[1]);
-                    let matcher = null;
+                    // if this looks like a config line
+                    if (instruction.length > 1) {
+                      let inst = instruction[0].toLowerCase();
+                      let id = Number.parseInt(instruction[1]);
+                      let matcher = null;
 
-                    // if this still looks like a config line
-                    if (id.toString() === instruction[1]) {
-                      console.log(id);
+                      // if this still looks like a config line
+                      if (id.toString() === instruction[1]) {
+                        console.log(id);
 
-                      if (inst == "alliance") {
-                        matcher = Config.getInstance().matchedAlliances;
-                        thisChannel?.Alliances.add(id);
-                      } else if (inst == "corporation") {
-                        matcher = Config.getInstance().matchedCorporations;
-                        thisChannel?.Corporations.add(id);
-                      } else if (inst == "character") {
-                        matcher = Config.getInstance().matchedCharacters;
-                        thisChannel?.Characters.add(id);
-                      }
-
-                      if (matcher) {
-                        let s = matcher.get(id);
-                        if (!s) {
-                          s = new Set<string>();
+                        if (inst == "alliance") {
+                          matcher = Config.getInstance().matchedAlliances;
+                          thisChannel?.Alliances.add(id);
+                        } else if (inst == "corporation") {
+                          matcher = Config.getInstance().matchedCorporations;
+                          thisChannel?.Corporations.add(id);
+                        } else if (inst == "character") {
+                          matcher = Config.getInstance().matchedCharacters;
+                          thisChannel?.Characters.add(id);
                         }
-                        s.add(channel.id);
-                        matcher.set(id, s);
+
+                        if (matcher) {
+                          let s = matcher.get(id);
+                          if (!s) {
+                            s = new Set<string>();
+                          }
+                          s.add(channel.id);
+                          matcher.set(id, s);
+                        }
                       }
                     }
                   }
-                }
-              });
-            }
-          })
-        );
-      });
+                });
+              }
+            })
+          );
+        })
+        .catch((err) => {
+          console.log(err);
+        });
     }
   });
 }
