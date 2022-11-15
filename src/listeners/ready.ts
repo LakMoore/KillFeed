@@ -20,7 +20,7 @@ export default (client: Client): void => {
         return Promise.all(
           guilds.map((guild, guildId) => {
             console.log("Guild: " + guild.name);
-            // run the /update command on this guild
+            // update this guild
             return updateGuild(client, guildId);
           })
         );

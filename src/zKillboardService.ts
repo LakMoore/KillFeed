@@ -1,10 +1,12 @@
 import axios from "axios";
-import { Client } from "discord.js";
+import { Client, SelectMenuOptionBuilder } from "discord.js";
 import { Config } from "./Config";
 import { EmbeddedFormat } from "./feedformats/EmbeddedFormat";
 import { InsightFormat } from "./feedformats/InsightFormat";
 import { ZKillLinkFormat } from "./feedformats/ZKillLinkFormat";
 import { Package } from "./zKillboard";
+
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 export async function pollzKillboardOnce(client: Client) {
   try {
@@ -18,6 +20,8 @@ export async function pollzKillboardOnce(client: Client) {
     if (data && data.package) {
       // We have a non-null response from zk
 
+      console.log("Kill ID: " + data.package.killID);
+
       const lossmailChannelIDs = new Set<string>();
       const killmailChannelIDs = new Set<string>();
 
@@ -29,45 +33,33 @@ export async function pollzKillboardOnce(client: Client) {
       let temp = Config.getInstance().matchedAlliances.get(
         data.package.killmail.victim.alliance_id
       );
-      if (temp) {
-        temp.forEach((v) => lossmailChannelIDs.add(v));
-      }
+      temp?.forEach((v) => lossmailChannelIDs.add(v));
       temp = Config.getInstance().matchedCorporations.get(
         data.package.killmail.victim.corporation_id
       );
-      if (temp) {
-        temp.forEach((v) => lossmailChannelIDs.add(v));
-      }
+      temp?.forEach((v) => lossmailChannelIDs.add(v));
       temp = Config.getInstance().matchedCharacters.get(
         data.package.killmail.victim.character_id
       );
-      if (temp) {
-        temp.forEach((v) => lossmailChannelIDs.add(v));
-      }
+      temp?.forEach((v) => lossmailChannelIDs.add(v));
 
       data.package.killmail.attackers.forEach((attacker) => {
         temp = Config.getInstance().matchedAlliances.get(attacker.alliance_id);
-        if (temp) {
-          temp.forEach((v) => {
-            if (!lossmailChannelIDs.has(v)) killmailChannelIDs.add(v);
-          });
-        }
+        temp?.forEach((v) => {
+          if (!lossmailChannelIDs.has(v)) killmailChannelIDs.add(v);
+        });
         temp = Config.getInstance().matchedCorporations.get(
           attacker.corporation_id
         );
-        if (temp) {
-          temp.forEach((v) => {
-            if (!lossmailChannelIDs.has(v)) killmailChannelIDs.add(v);
-          });
-        }
+        temp?.forEach((v) => {
+          if (!lossmailChannelIDs.has(v)) killmailChannelIDs.add(v);
+        });
         temp = Config.getInstance().matchedCharacters.get(
           attacker.character_id
         );
-        if (temp) {
-          temp.forEach((v) => {
-            if (!lossmailChannelIDs.has(v)) killmailChannelIDs.add(v);
-          });
-        }
+        temp?.forEach((v) => {
+          if (!lossmailChannelIDs.has(v)) killmailChannelIDs.add(v);
+        });
       });
 
       lossmailChannelIDs.forEach((channelId) => {
@@ -77,11 +69,13 @@ export async function pollzKillboardOnce(client: Client) {
 
           // Generate the message
           InsightFormat.getMessage(data, false).then((msg) => {
-            if (channel && channel.isTextBased()) {
+            if (channel?.isTextBased()) {
               // send the message
               channel.send(msg);
             }
           });
+        } else {
+          console.log("Couldn't find the channel for lossmail");
         }
       });
 
@@ -92,18 +86,26 @@ export async function pollzKillboardOnce(client: Client) {
 
           // Generate the message
           InsightFormat.getMessage(data, true).then((msg) => {
-            if (channel && channel.isTextBased()) {
+            if (channel?.isTextBased()) {
               // send the message
               channel.send(msg);
             }
           });
+        } else {
+          console.log("Couldn't find the channel for killmail");
         }
       });
     }
   } catch (error) {
     if (axios.isAxiosError(error)) {
-      console.log("AxiosError");
+      console.log(
+        `AxiosError ${error.response?.status} ${error.response?.statusText} ${error.config?.url}`
+      );
+    } else {
+      console.log(error);
     }
-    console.log(error);
+
+    // if there was an error then take a break
+    await sleep(30000);
   }
 }

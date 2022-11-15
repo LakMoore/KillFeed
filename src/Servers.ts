@@ -1,4 +1,4 @@
-import { Client, TextChannel } from "discord.js";
+import { Client } from "discord.js";
 import { updateChannel } from "./Channels";
 
 export function updateGuild(client: Client<boolean>, guildId: string) {
@@ -9,7 +9,12 @@ export function updateGuild(client: Client<boolean>, guildId: string) {
       // This is an async "foreach"
       return Promise.all(
         c.map((chn) => {
-          if (chn && chn.isTextBased() && !chn.isVoiceBased() && chn.viewable) {
+          if (
+            chn &&
+            chn.isTextBased() &&
+            !chn.isVoiceBased()
+            //&& chn.viewable  // viewable doesn't quite work how we need it
+          ) {
             return updateChannel(client, chn.id);
           }
         })

@@ -1,4 +1,4 @@
-import { Client, TextChannel } from "discord.js";
+import { Client, DiscordAPIError, TextChannel } from "discord.js";
 import { Config } from "./Config";
 
 export function updateChannel(client: Client<boolean>, channelId: string) {
@@ -12,6 +12,7 @@ export function updateChannel(client: Client<boolean>, channelId: string) {
       // mess of the message collection (below)
       channel instanceof TextChannel
     ) {
+      console.log("Found a channel");
       let thisChannel = Config.getInstance().registeredChannels.get(channel.id);
       if (thisChannel !== undefined) {
         // If we already had a config loaded for this channel
@@ -43,16 +44,6 @@ export function updateChannel(client: Client<boolean>, channelId: string) {
         });
       }
 
-      // reset config for this server
-      thisChannel = {
-        Channel: channel,
-        ResponseFormat: "zKill",
-        Alliances: new Set<number>(),
-        Corporations: new Set<number>(),
-        Characters: new Set<number>(),
-      };
-      Config.getInstance().registeredChannels.set(channel.id, thisChannel);
-
       // fetch all pinned messages on this channel
       return channel.messages
         .fetchPinned(false)
@@ -63,6 +54,21 @@ export function updateChannel(client: Client<boolean>, channelId: string) {
               // Due to Discord "Intents", only the messages where
               // the bot is tagged will have content
               if (message.content) {
+                // found a pinned message in this channel
+
+                // reset config for this channel
+                thisChannel = {
+                  Channel: channel,
+                  ResponseFormat: "zKill",
+                  Alliances: new Set<number>(),
+                  Corporations: new Set<number>(),
+                  Characters: new Set<number>(),
+                };
+                Config.getInstance().registeredChannels.set(
+                  channel.id,
+                  thisChannel
+                );
+
                 // config messages should be in the format:
                 // alliance/99011699/
                 // corporation/98725503/
@@ -113,7 +119,13 @@ export function updateChannel(client: Client<boolean>, channelId: string) {
           );
         })
         .catch((err) => {
-          console.log(err);
+          if (err instanceof DiscordAPIError && err.code === 50001) {
+            // 50001 == insufficient permissions to view pinned messages
+            // TODO: check permissions before attempt
+            // for now we ignore this error and move on
+          } else {
+            console.log(err);
+          }
         });
     }
   });

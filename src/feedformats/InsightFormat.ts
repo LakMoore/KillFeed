@@ -46,6 +46,13 @@ export const InsightFormat: BaseFormat = {
       } else {
         attackerShipName = "a " + attackerShipName;
       }
+      let attackerName = "";
+      if (data.package.zkb.npc) {
+        attackerName = "an NPC";
+      } else {
+        attackerName = `**[${attackerNames.character}](https://zkillboard.com/character/${attacker.character_id}/)(${attackerNames.corporation})**`;
+      }
+
       return {
         embeds: [
           new EmbedBuilder()
@@ -58,7 +65,7 @@ export const InsightFormat: BaseFormat = {
               url: `https://zkillboard.com/kill/${data.package.killID}/`,
             })
             .setDescription(
-              `**[${victimNames.character}](https://zkillboard.com/character/${data.package.killmail.victim.character_id}/)(${victimNames.corporation})** lost their ${victimNames.ship} to **[${attackerNames.character}](https://zkillboard.com/character/${attacker.character_id}/)(${attackerNames.corporation})** flying ${attackerShipName} ` +
+              `**[${victimNames.character}](https://zkillboard.com/character/${data.package.killmail.victim.character_id}/)(${victimNames.corporation})** lost their ${victimNames.ship} to ${attackerName} flying ${attackerShipName} ` +
                 (data.package.killmail.attackers.length === 1
                   ? "solo."
                   : ` and ${data.package.killmail.attackers.length - 1} other${
