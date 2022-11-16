@@ -50,7 +50,6 @@ export function getCharacterNames(
       names.forEach((name) => {
         CachedESI.addItem(name);
       });
-      return;
     })
     .then(() => {
       return {

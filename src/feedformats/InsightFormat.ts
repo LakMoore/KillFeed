@@ -47,10 +47,14 @@ export const InsightFormat: BaseFormat = {
         attackerShipName = "a " + attackerShipName;
       }
       let attackerName = "";
-      if (data.package.zkb.npc) {
-        attackerName = "an NPC";
-      } else {
+      if (attackerNames.character) {
         attackerName = `**[${attackerNames.character}](https://zkillboard.com/character/${attacker.character_id}/)(${attackerNames.corporation})**`;
+      } else {
+        if (attackerNames.corporation) {
+          attackerName = `an NPC(${attackerNames.corporation})`;
+        } else {
+          attackerName = "an NPC";
+        }
       }
 
       return {
