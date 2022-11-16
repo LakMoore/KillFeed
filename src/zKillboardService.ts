@@ -20,7 +20,11 @@ export async function pollzKillboardOnce(client: Client) {
     if (data && data.package) {
       // We have a non-null response from zk
 
-      console.log("Kill ID: " + data.package.killID);
+      console.log(
+        `Kill ID: ${data.package.killID} data: ${data.package.zkb.labels.join(
+          ","
+        )}`
+      );
 
       const lossmailChannelIDs = new Set<string>();
       const killmailChannelIDs = new Set<string>();
