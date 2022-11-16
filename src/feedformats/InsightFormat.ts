@@ -1,6 +1,5 @@
 import { EmbedBuilder } from "@discordjs/builders";
 import { getCharacterNames } from "../esi/get";
-import { fetchESINames } from "../esi/fetch";
 import { Package } from "../zKillboard";
 import { BaseFormat } from "./Fomat";
 

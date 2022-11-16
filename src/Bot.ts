@@ -1,18 +1,22 @@
 import dotenv from "dotenv";
-import { Client } from "discord.js";
+import { Client, IntentsBitField } from "discord.js";
 import ready from "./listeners/ready";
 import interactionCreate from "./listeners/interactionCreate";
+import guild from "./listeners/guild";
+import channel from "./listeners/channel";
 
 async function main() {
   dotenv.config();
   console.log("Bot is starting...");
 
   const client = new Client({
-    intents: [],
+    intents: [IntentsBitField.Flags.Guilds],
   });
 
   ready(client);
   interactionCreate(client);
+  guild(client);
+  channel(client);
 
   client.login(process.env.SECRET_TOKEN);
 

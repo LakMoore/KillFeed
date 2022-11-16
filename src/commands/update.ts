@@ -2,12 +2,13 @@ import { CommandInteraction, Client } from "discord.js";
 import { Command } from "../Command";
 import { Config } from "../Config";
 import { updateChannel } from "../Channels";
+import { updateGuild } from "../Servers";
 
 export const Update: Command = {
   name: "update",
   description: "KillFeed will check your pinned message for new settings",
   run: async (client: Client, interaction: CommandInteraction) => {
-    let content = "Unable to find your Server ID!!!";
+    let content = "KillFeed is not able to view this channel!";
 
     if (interaction.channel) {
       await updateChannel(client, interaction.channel.id);

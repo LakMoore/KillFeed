@@ -1,5 +1,5 @@
 import { Client, DiscordAPIError, TextChannel } from "discord.js";
-import { Config } from "./Config";
+import { ChannelSettings, Config } from "./Config";
 
 export function updateChannel(client: Client<boolean>, channelId: string) {
   return client.channels.fetch(channelId, { cache: true }).then((channel) => {
@@ -17,35 +17,7 @@ export function updateChannel(client: Client<boolean>, channelId: string) {
       if (thisChannel !== undefined) {
         // If we already had a config loaded for this channel
         // we need to clear this channel out of the all listeners
-
-        thisChannel.Alliances.forEach((allianceId) => {
-          Config.getInstance()
-            .matchedAlliances.get(allianceId)
-            ?.delete(channel.id);
-          console.log(
-            `Deleted alliance ${allianceId} from server ${channel.id}`
-          );
-        });
-        thisChannel.Corporations.forEach((allianceId) => {
-          Config.getInstance()
-            .matchedCorporations.get(allianceId)
-            ?.delete(channel.id);
-          console.log(
-            `Deleted corporation ${allianceId} from server ${channel.id}`
-          );
-        });
-        thisChannel.Characters.forEach((allianceId) => {
-          Config.getInstance()
-            .matchedCharacters.get(allianceId)
-            ?.delete(channel.id);
-          console.log(
-            `Deleted character ${allianceId} from server ${channel.id}`
-          );
-        });
-        thisChannel.Ships.forEach((shipId) => {
-          Config.getInstance().matchedShips.get(shipId)?.delete(channel.id);
-          console.log(`Deleted ship ${shipId} from server ${channel.id}`);
-        });
+        clearChannel(thisChannel, channel);
       }
 
       // fetch all pinned messages on this channel
@@ -142,5 +114,31 @@ export function updateChannel(client: Client<boolean>, channelId: string) {
           }
         });
     }
+  });
+}
+
+// Go through all listeners registered to this channel
+// and remove that registration
+export function clearChannel(
+  thisChannelConfig: ChannelSettings,
+  channel: TextChannel
+) {
+  thisChannelConfig.Alliances.forEach((allianceId) => {
+    Config.getInstance().matchedAlliances.get(allianceId)?.delete(channel.id);
+    console.log(`Deleted alliance ${allianceId} from server ${channel.id}`);
+  });
+  thisChannelConfig.Corporations.forEach((allianceId) => {
+    Config.getInstance()
+      .matchedCorporations.get(allianceId)
+      ?.delete(channel.id);
+    console.log(`Deleted corporation ${allianceId} from server ${channel.id}`);
+  });
+  thisChannelConfig.Characters.forEach((allianceId) => {
+    Config.getInstance().matchedCharacters.get(allianceId)?.delete(channel.id);
+    console.log(`Deleted character ${allianceId} from server ${channel.id}`);
+  });
+  thisChannelConfig.Ships.forEach((shipId) => {
+    Config.getInstance().matchedShips.get(shipId)?.delete(channel.id);
+    console.log(`Deleted ship ${shipId} from server ${channel.id}`);
   });
 }

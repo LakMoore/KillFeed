@@ -1,5 +1,5 @@
 import axios from "axios";
-import { Client } from "discord.js";
+import { Client, DiscordAPIError } from "discord.js";
 import { Config } from "./Config";
 import { EmbeddedFormat } from "./feedformats/EmbeddedFormat";
 import { InsightFormat } from "./feedformats/InsightFormat";
@@ -11,8 +11,14 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 export async function pollzKillboardOnce(client: Client) {
   try {
     // zKillboard could return immediately or could make us wait up to 10 seconds
+    // don't need to use axios-retry as the queue is managed on the zk server
     const { data } = await axios.get<Package>(
-      "https://redisq.zkillboard.com/listen.php"
+      "https://redisq.zkillboard.com/listen.php",
+      {
+        "axios-retry": {
+          retries: 0,
+        },
+      }
     );
 
     // null and empty packages are normal, if there is no kill feed activity
@@ -80,16 +86,16 @@ export async function pollzKillboardOnce(client: Client) {
         });
       });
 
-      lossmailChannelIDs.forEach((channelId) => {
+      lossmailChannelIDs.forEach(async (channelId) => {
         let channel = client.channels.cache.find((c) => c.id === channelId);
         if (channel && channel.isTextBased()) {
           // TODO: Look up the desired message format for this channel
 
           // Generate the message
-          InsightFormat.getMessage(data, false).then((msg) => {
+          await InsightFormat.getMessage(data, false).then(async (msg) => {
             if (channel?.isTextBased()) {
               // send the message
-              channel.send(msg);
+              await channel.send(msg);
             }
           });
         } else {
@@ -97,16 +103,16 @@ export async function pollzKillboardOnce(client: Client) {
         }
       });
 
-      killmailChannelIDs.forEach((channelId) => {
+      killmailChannelIDs.forEach(async (channelId) => {
         let channel = client.channels.cache.find((c) => c.id === channelId);
         if (channel?.isTextBased()) {
           // TODO: Look up the desired message format for this channel
 
           // Generate the message
-          InsightFormat.getMessage(data, true).then((msg) => {
+          await InsightFormat.getMessage(data, true).then(async (msg) => {
             if (channel?.isTextBased()) {
               // send the message
-              channel.send(msg);
+              await channel.send(msg);
             }
           });
         } else {
@@ -119,7 +125,12 @@ export async function pollzKillboardOnce(client: Client) {
       console.log(
         `AxiosError ${error.response?.status} ${error.response?.statusText} ${error.config?.url}`
       );
+    } else if (error instanceof DiscordAPIError) {
+      console.log(
+        `Discord Error while sending message [${error.code}]${error.message}`
+      );
     } else {
+      console.log("Error sending message");
       console.log(error);
     }
 

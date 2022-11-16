@@ -1,4 +1,5 @@
-import axios from "axios";
+import axios, { AxiosError } from "axios";
+import axiosRetry from "axios-retry";
 
 export interface Name {
   category: string;
@@ -74,11 +75,39 @@ const url = "https://esi.evetech.net/latest";
 export function fetchESINames(ids: number[]) {
   const path = "/universe/names/";
 
-  return axios.post<Name[]>(url + path, ids).then((response) => response.data);
+  axiosRetry(axios, { retries: 99, retryDelay: axiosRetry.exponentialDelay });
+
+  return axios
+    .post<Name[]>(url + path, ids)
+    .then((response) => response.data)
+    .catch((err: Error) => {
+      if (err instanceof AxiosError) {
+        console.log(
+          `Axios error fetching Names from ESI: [${err.code}]${err.message}`
+        );
+      } else {
+        console.log("General error fetcing Names from ESI: " + err.message);
+      }
+      return <Name[]>[];
+    });
 }
 
 export function fetchESIIDs(names: string[]) {
   const path = "/universe/ids/";
 
-  return axios.post<IDs>(url + path, names).then((response) => response.data);
+  axiosRetry(axios, { retries: 99, retryDelay: axiosRetry.exponentialDelay });
+
+  return axios
+    .post<IDs>(url + path, names)
+    .then((response) => response.data)
+    .catch((err: Error) => {
+      if (err instanceof AxiosError) {
+        console.log(
+          `Axios error fetching IDs from ESI: [${err.code}]${err.message}`
+        );
+      } else {
+        console.log("General error fetcing IDs from ESI: " + err.message);
+      }
+      return <IDs>{};
+    });
 }
