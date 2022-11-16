@@ -30,6 +30,12 @@ export async function pollzKillboardOnce(client: Client) {
       });
       Config.getInstance().testRequests.clear();
 
+      Array.from(Config.getInstance().registeredChannels.values())
+        .filter((chan) => chan.FullTest)
+        .forEach((chan) => {
+          lossmailChannelIDs.add(chan.Channel.id);
+        });
+
       let temp = Config.getInstance().matchedAlliances.get(
         data.package.killmail.victim.alliance_id
       );

@@ -64,6 +64,7 @@ export function updateChannel(client: Client<boolean>, channelId: string) {
                 thisChannel = {
                   Channel: channel,
                   ResponseFormat: "zKill",
+                  FullTest: false,
                   Alliances: new Set<number>(),
                   Corporations: new Set<number>(),
                   Characters: new Set<number>(),
@@ -78,11 +79,13 @@ export function updateChannel(client: Client<boolean>, channelId: string) {
                 // alliance/99011699/
                 // corporation/98725503/
                 // character/418245524/
+                // ship/xxxxxx/
+                // fulltest/1
                 message.content.split("\n").forEach((line) => {
                   console.log(line);
 
                   // ignore any lines that start with #
-                  if (!line.startsWith("#")) {
+                  if (thisChannel && !line.startsWith("#")) {
                     // tokenise the lines on /
                     const instruction = line.split("/");
 
@@ -96,18 +99,21 @@ export function updateChannel(client: Client<boolean>, channelId: string) {
                       if (id.toString() === instruction[1]) {
                         console.log(id);
 
+                        if (inst == "fulltest") {
+                          thisChannel.FullTest = true;
+                        }
                         if (inst == "alliance") {
                           matcher = Config.getInstance().matchedAlliances;
-                          thisChannel?.Alliances.add(id);
+                          thisChannel.Alliances.add(id);
                         } else if (inst == "corporation") {
                           matcher = Config.getInstance().matchedCorporations;
-                          thisChannel?.Corporations.add(id);
+                          thisChannel.Corporations.add(id);
                         } else if (inst == "character") {
                           matcher = Config.getInstance().matchedCharacters;
-                          thisChannel?.Characters.add(id);
+                          thisChannel.Characters.add(id);
                         } else if (inst == "ship") {
                           matcher = Config.getInstance().matchedShips;
-                          thisChannel?.Ships.add(id);
+                          thisChannel.Ships.add(id);
                         }
 
                         if (matcher) {

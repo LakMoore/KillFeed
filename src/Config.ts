@@ -3,6 +3,7 @@ import { TextChannel } from "discord.js";
 export interface ChannelSettings {
   Channel: TextChannel;
   ResponseFormat: "zKill" | "Embed";
+  FullTest: boolean;
   Alliances: Set<number>;
   Corporations: Set<number>;
   Characters: Set<number>;
