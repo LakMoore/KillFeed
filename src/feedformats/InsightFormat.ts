@@ -48,10 +48,10 @@ export const InsightFormat: BaseFormat = {
       }
       let attackerName = "";
       if (attackerNames.character) {
-        attackerName = `**[${attackerNames.character}](https://zkillboard.com/character/${attacker.character_id}/)(${attackerNames.corporation})**`;
+        attackerName = `**[${attackerNames.character}](https://zkillboard.com/character/${attacker.character_id}/) (${attackerNames.corporation})**`;
       } else {
         if (attackerNames.corporation) {
-          attackerName = `an NPC(${attackerNames.corporation})`;
+          attackerName = `an NPC (${attackerNames.corporation})`;
         } else {
           attackerName = "an NPC";
         }
@@ -69,7 +69,7 @@ export const InsightFormat: BaseFormat = {
               url: `https://zkillboard.com/kill/${data.package.killID}/`,
             })
             .setDescription(
-              `**[${victimNames.character}](https://zkillboard.com/character/${data.package.killmail.victim.character_id}/)(${victimNames.corporation})** lost their ${victimNames.ship} to ${attackerName} flying ${attackerShipName} ` +
+              `**[${victimNames.character}](https://zkillboard.com/character/${data.package.killmail.victim.character_id}/) (${victimNames.corporation})** lost their ${victimNames.ship} to ${attackerName} flying ${attackerShipName} ` +
                 (data.package.killmail.attackers.length === 1
                   ? "solo."
                   : ` and ${data.package.killmail.attackers.length - 1} other${
