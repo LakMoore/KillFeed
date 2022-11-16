@@ -56,7 +56,23 @@ export const InsightFormat: BaseFormat = {
           attackerName = "an NPC";
         }
       }
+      let victimName = "";
+      if (victimNames.character) {
+        victimName = `**[${victimNames.character}](https://zkillboard.com/character/${data.package.killmail.victim.character_id}/) (${victimNames.corporation})**`;
+      } else {
+        // structures don't have a character name!
+        victimName = `**[${victimNames.corporation}](https://zkillboard.com/character/${data.package.killmail.victim.corporation_id}/)**`;
+      }
 
+      let fleetPhrase = ", solo";
+      if (data.package.killmail.attackers.length > 1) {
+        fleetPhrase = ` and ${
+          data.package.killmail.attackers.length - 1
+        } other`;
+        if (data.package.killmail.attackers.length > 2) {
+          fleetPhrase += "s";
+        }
+      }
       return {
         embeds: [
           new EmbedBuilder()
@@ -69,12 +85,7 @@ export const InsightFormat: BaseFormat = {
               url: `https://zkillboard.com/kill/${data.package.killID}/`,
             })
             .setDescription(
-              `**[${victimNames.character}](https://zkillboard.com/character/${data.package.killmail.victim.character_id}/) (${victimNames.corporation})** lost their ${victimNames.ship} to ${attackerName} flying ${attackerShipName} ` +
-                (data.package.killmail.attackers.length === 1
-                  ? "solo."
-                  : ` and ${data.package.killmail.attackers.length - 1} other${
-                      data.package.killmail.attackers.length > 2 ? "s" : ""
-                    }.`)
+              `${victimName} lost their ${victimNames.ship} to ${attackerName} flying ${attackerShipName}${fleetPhrase}.`
             )
             .setThumbnail(
               `https://images.evetech.net/types/${data.package.killmail.victim.ship_type_id}/render?size=64`
