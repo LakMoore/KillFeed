@@ -51,6 +51,16 @@ export const Update: Command = {
               .join(", ") +
             "\n";
         }
+        if (thisChannel.Ships.size > 0) {
+          content +=
+            "Ships: " +
+            Array.from(thisChannel.Ships)
+              .map((v) => {
+                return v.toString();
+              })
+              .join(", ") +
+            "\n";
+        }
       }
     }
 

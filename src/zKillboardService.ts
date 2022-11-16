@@ -1,5 +1,5 @@
 import axios from "axios";
-import { Client, SelectMenuOptionBuilder } from "discord.js";
+import { Client } from "discord.js";
 import { Config } from "./Config";
 import { EmbeddedFormat } from "./feedformats/EmbeddedFormat";
 import { InsightFormat } from "./feedformats/InsightFormat";
@@ -42,6 +42,10 @@ export async function pollzKillboardOnce(client: Client) {
         data.package.killmail.victim.character_id
       );
       temp?.forEach((v) => lossmailChannelIDs.add(v));
+      temp = Config.getInstance().matchedShips.get(
+        data.package.killmail.victim.ship_type_id
+      );
+      temp?.forEach((v) => lossmailChannelIDs.add(v));
 
       data.package.killmail.attackers.forEach((attacker) => {
         temp = Config.getInstance().matchedAlliances.get(attacker.alliance_id);
@@ -57,6 +61,10 @@ export async function pollzKillboardOnce(client: Client) {
         temp = Config.getInstance().matchedCharacters.get(
           attacker.character_id
         );
+        temp?.forEach((v) => {
+          if (!lossmailChannelIDs.has(v)) killmailChannelIDs.add(v);
+        });
+        temp = Config.getInstance().matchedShips.get(attacker.ship_type_id);
         temp?.forEach((v) => {
           if (!lossmailChannelIDs.has(v)) killmailChannelIDs.add(v);
         });

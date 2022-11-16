@@ -42,6 +42,10 @@ export function updateChannel(client: Client<boolean>, channelId: string) {
             `Deleted character ${allianceId} from server ${channel.id}`
           );
         });
+        thisChannel.Ships.forEach((shipId) => {
+          Config.getInstance().matchedShips.get(shipId)?.delete(channel.id);
+          console.log(`Deleted ship ${shipId} from server ${channel.id}`);
+        });
       }
 
       // fetch all pinned messages on this channel
@@ -63,6 +67,7 @@ export function updateChannel(client: Client<boolean>, channelId: string) {
                   Alliances: new Set<number>(),
                   Corporations: new Set<number>(),
                   Characters: new Set<number>(),
+                  Ships: new Set<number>(),
                 };
                 Config.getInstance().registeredChannels.set(
                   channel.id,
@@ -100,6 +105,9 @@ export function updateChannel(client: Client<boolean>, channelId: string) {
                         } else if (inst == "character") {
                           matcher = Config.getInstance().matchedCharacters;
                           thisChannel?.Characters.add(id);
+                        } else if (inst == "ship") {
+                          matcher = Config.getInstance().matchedShips;
+                          thisChannel?.Ships.add(id);
                         }
 
                         if (matcher) {

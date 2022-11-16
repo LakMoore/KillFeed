@@ -6,6 +6,7 @@ export interface ChannelSettings {
   Alliances: Set<number>;
   Corporations: Set<number>;
   Characters: Set<number>;
+  Ships: Set<number>;
 }
 
 export class Config {
@@ -18,6 +19,7 @@ export class Config {
   public matchedAlliances = new Map<number, Set<string>>();
   public matchedCorporations = new Map<number, Set<string>>();
   public matchedCharacters = new Map<number, Set<string>>();
+  public matchedShips = new Map<number, Set<string>>();
 
   // a set of channels that have requested a test killmail
   public testRequests = new Set<string>();
