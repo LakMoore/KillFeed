@@ -2,7 +2,6 @@ import { CommandInteraction, Client } from "discord.js";
 import { Command } from "../Command";
 import { Config } from "../Config";
 import { updateChannel } from "../Channels";
-import { updateGuild } from "../Servers";
 
 export const Update: Command = {
   name: "update",

@@ -8,4 +8,4 @@ RUN npm i
 
 COPY . .
 
-CMD [ "npm", "run", "start"]
+CMD ["npm", "run", "start"]
