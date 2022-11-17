@@ -8,8 +8,4 @@ RUN npm i
 
 COPY . .
 
-FROM base as production
-
-ENV NODE_PATH=./dist
-
-RUN npm run start
+CMD [ "npm", "run", "start"]
