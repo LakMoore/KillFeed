@@ -1,4 +1,9 @@
-import { Client, DiscordAPIError, TextChannel } from "discord.js";
+import {
+  Client,
+  DiscordAPIError,
+  PermissionsBitField,
+  TextChannel,
+} from "discord.js";
 import { ChannelSettings, Config } from "./Config";
 
 export function updateChannel(client: Client<boolean>, channelId: string) {
@@ -6,11 +11,11 @@ export function updateChannel(client: Client<boolean>, channelId: string) {
     // If this is a purely text based channel
     if (
       channel &&
-      channel.isTextBased() &&
-      !channel.isVoiceBased() &&
-      // didn't want to restrict it to TextChannel, but removing this makes a
-      // mess of the message collection (below)
-      channel instanceof TextChannel
+      channel instanceof TextChannel &&
+      channel.guild.members.me &&
+      channel
+        .permissionsFor(channel.guild.members.me)
+        .has(PermissionsBitField.Flags.SendMessages)
     ) {
       console.log("Found a channel");
       let thisChannel = Config.getInstance().registeredChannels.get(channel.id);

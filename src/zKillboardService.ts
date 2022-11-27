@@ -1,5 +1,10 @@
 import axios from "axios";
-import { Client, DiscordAPIError } from "discord.js";
+import {
+  Client,
+  DiscordAPIError,
+  PermissionsBitField,
+  TextChannel,
+} from "discord.js";
 import { Config } from "./Config";
 import { EmbeddedFormat } from "./feedformats/EmbeddedFormat";
 import { InsightFormat } from "./feedformats/InsightFormat";
@@ -88,7 +93,14 @@ export async function pollzKillboardOnce(client: Client) {
 
       lossmailChannelIDs.forEach(async (channelId) => {
         let channel = client.channels.cache.find((c) => c.id === channelId);
-        if (channel && channel.isTextBased()) {
+        if (
+          channel &&
+          channel instanceof TextChannel &&
+          channel.guild.members.me &&
+          channel
+            .permissionsFor(channel.guild.members.me)
+            .has(PermissionsBitField.Flags.SendMessages)
+        ) {
           // TODO: Look up the desired message format for this channel
 
           // Generate the message
