@@ -21,7 +21,5 @@ export const Help: Command = {
       ephemeral: true,
       content,
     });
-
-    console.log("here");
   },
 };
