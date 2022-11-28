@@ -6,5 +6,15 @@ import { Init } from "./commands/init";
 import { Test } from "./commands/test";
 import { Info } from "./commands/info";
 import { Remove } from "./commands/remove";
+import { FullTest } from "./commands/fulltest";
 
-export const Commands: Command[] = [Hello, Info, Test, Help, Init, Add, Remove];
+export const Commands: Command[] = [
+  Hello,
+  Info,
+  Test,
+  Help,
+  Init,
+  Add,
+  Remove,
+  FullTest,
+];
