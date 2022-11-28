@@ -1,5 +1,6 @@
 import { Client } from "discord.js";
 import { updateChannel } from "./Channels";
+import { canUseChannel } from "./helpers/DiscordHelper";
 
 export function updateGuild(client: Client<boolean>, guildId: string) {
   // Fetch the guild/server by ID
@@ -9,12 +10,7 @@ export function updateGuild(client: Client<boolean>, guildId: string) {
       // This is an async "foreach"
       return Promise.all(
         c.map((chn) => {
-          if (
-            chn &&
-            chn.isTextBased() &&
-            !chn.isVoiceBased()
-            //&& chn.viewable  // viewable doesn't quite work how we need it
-          ) {
+          if (canUseChannel(chn)) {
             return updateChannel(client, chn.id);
           }
         })

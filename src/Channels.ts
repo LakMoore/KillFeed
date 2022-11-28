@@ -1,125 +1,53 @@
-import {
-  Client,
-  DiscordAPIError,
-  PermissionsBitField,
-  TextChannel,
-} from "discord.js";
+import { Client, TextChannel } from "discord.js";
 import { ChannelSettings, Config } from "./Config";
+import { canUseChannel, getConfigMessage } from "./helpers/DiscordHelper";
+import { addMatcherEntry, parseConfigMessage } from "./helpers/KillFeedHelpers";
 
-export function updateChannel(client: Client<boolean>, channelId: string) {
-  return client.channels.fetch(channelId, { cache: true }).then((channel) => {
-    // If this is a purely text based channel
-    if (
-      channel &&
-      channel instanceof TextChannel &&
-      channel.guild.members.me &&
-      channel
-        .permissionsFor(channel.guild.members.me)
-        .has(PermissionsBitField.Flags.SendMessages)
-    ) {
-      console.log("Found a channel");
-      let thisChannel = Config.getInstance().registeredChannels.get(channel.id);
-      if (thisChannel !== undefined) {
-        // If we already had a config loaded for this channel
-        // we need to clear this channel out of the all listeners
-        clearChannel(thisChannel, channel);
-      }
-
-      // fetch all pinned messages on this channel
-      return channel.messages
-        .fetchPinned(false)
-        .then((pinned) => {
-          // async "foreach"
-          return Promise.all(
-            pinned.map((message, key) => {
-              // Due to Discord "Intents", only the messages where
-              // the bot is tagged will have content
-              if (message.content) {
-                // found a pinned message in this channel
-
-                // reset config for this channel
-                thisChannel = {
-                  Channel: channel,
-                  ResponseFormat: "zKill",
-                  FullTest: false,
-                  Alliances: new Set<number>(),
-                  Corporations: new Set<number>(),
-                  Characters: new Set<number>(),
-                  Ships: new Set<number>(),
-                };
-                Config.getInstance().registeredChannels.set(
-                  channel.id,
-                  thisChannel
-                );
-
-                // config messages should be in the format:
-                // alliance/99011699/
-                // corporation/98725503/
-                // character/418245524/
-                // ship/xxxxxx/
-                // fulltest/1
-                message.content.split("\n").forEach((line) => {
-                  console.log(line);
-
-                  // ignore any lines that start with #
-                  if (thisChannel && !line.startsWith("#")) {
-                    // tokenise the lines on /
-                    const instruction = line.split("/");
-
-                    // if this looks like a config line
-                    if (instruction.length > 1) {
-                      let inst = instruction[0].toLowerCase();
-                      let id = Number.parseInt(instruction[1]);
-                      let matcher = null;
-
-                      // if this still looks like a config line
-                      if (id.toString() === instruction[1]) {
-                        console.log(id);
-
-                        if (inst == "fulltest") {
-                          thisChannel.FullTest = true;
-                        }
-                        if (inst == "alliance") {
-                          matcher = Config.getInstance().matchedAlliances;
-                          thisChannel.Alliances.add(id);
-                        } else if (inst == "corporation") {
-                          matcher = Config.getInstance().matchedCorporations;
-                          thisChannel.Corporations.add(id);
-                        } else if (inst == "character") {
-                          matcher = Config.getInstance().matchedCharacters;
-                          thisChannel.Characters.add(id);
-                        } else if (inst == "ship") {
-                          matcher = Config.getInstance().matchedShips;
-                          thisChannel.Ships.add(id);
-                        }
-
-                        if (matcher) {
-                          let s = matcher.get(id);
-                          if (!s) {
-                            s = new Set<string>();
-                          }
-                          s.add(channel.id);
-                          matcher.set(id, s);
-                        }
-                      }
-                    }
-                  }
-                });
-              }
-            })
-          );
-        })
-        .catch((err) => {
-          if (err instanceof DiscordAPIError && err.code === 50001) {
-            // 50001 == insufficient permissions to view pinned messages
-            // TODO: check permissions before attempt
-            // for now we ignore this error and move on
-          } else {
-            console.log(err);
-          }
-        });
+export async function updateChannel(
+  client: Client<boolean>,
+  channelId: string
+) {
+  const channel = await client.channels.fetch(channelId, { cache: true });
+  // If this is a purely text based channel that we can use
+  if (canUseChannel(channel)) {
+    console.log("Found a channel: " + channel.name);
+    let thisChannel = Config.getInstance().registeredChannels.get(channel.id);
+    if (thisChannel !== undefined) {
+      // If we already had a config loaded for this channel
+      // we need to clear this channel out of the all listeners
+      clearChannel(thisChannel, channel);
     }
-  });
+
+    // fetch the config message
+    const message = await getConfigMessage(channel);
+    if (message) {
+      // found a pinned message in this channel
+      // rework config for this channel
+      thisChannel = parseConfigMessage(message.content, channel);
+
+      Config.getInstance().registeredChannels.set(channel.id, thisChannel);
+
+      thisChannel.Alliances.forEach((id) => {
+        addMatcherEntry(Config.getInstance().matchedAlliances, id, channel.id);
+      });
+
+      thisChannel.Corporations.forEach((id) => {
+        addMatcherEntry(
+          Config.getInstance().matchedCorporations,
+          id,
+          channel.id
+        );
+      });
+
+      thisChannel.Characters.forEach((id) => {
+        addMatcherEntry(Config.getInstance().matchedCharacters, id, channel.id);
+      });
+
+      thisChannel.Ships.forEach((id) => {
+        addMatcherEntry(Config.getInstance().matchedShips, id, channel.id);
+      });
+    }
+  }
 }
 
 // Go through all listeners registered to this channel

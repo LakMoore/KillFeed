@@ -1,46 +1,55 @@
-import {
-  CommandInteraction,
-  Client,
-  TextChannel,
-  PermissionsBitField,
-} from "discord.js";
-import { Config } from "../Config";
+import { CommandInteraction, Client, PermissionsBitField } from "discord.js";
 import { Command } from "../Command";
+import {
+  canUseChannel,
+  checkChannelPermissions,
+  getConfigMessage,
+} from "../helpers/DiscordHelper";
 
 export const Init: Command = {
   name: "init",
   description: "Creates the initial config storage message",
   run: async (client: Client, interaction: CommandInteraction) => {
+    let response = "Missed branch!";
+
     let channel = interaction.channel;
-    if (
-      channel &&
-      channel instanceof TextChannel &&
-      channel.guild.members.me &&
-      channel
-        .permissionsFor(channel.guild.members.me)
-        .has(PermissionsBitField.Flags.SendMessages)
-    ) {
-      if (
-        channel
-          .permissionsFor(channel.guild.members.me)
-          .has(PermissionsBitField.Flags.ManageMessages)
-      ) {
-        const content = "This message has been pinned for future use";
-        const message = await channel.send(content);
-        await message.pin();
+    if (canUseChannel(channel)) {
+      // Get the config message
+      const message = getConfigMessage(channel);
+
+      // if we have no config message
+      if (!message) {
+        // Add a new pinned message
+        if (
+          checkChannelPermissions(
+            channel,
+            PermissionsBitField.Flags.ManageMessages
+          )
+        ) {
+          const content = "This message has been pinned for future use";
+          const message = await channel.send(content);
+          await message.pin();
+          response = "KillFeed initialised successfully!";
+        } else {
+          const content =
+            "Please pin this message to the channel and re-run init";
+          await channel.send(content);
+          response =
+            "KillFeed partially initialised! " +
+            "Either pin the new message or add KillFeed to " +
+            "a role with permission to Manage Messages.";
+        }
       } else {
-        const content = "Please pin this message to the channel";
-        await channel.send(content);
+        // looks good
+        response = "KillFeed is already initialised.";
       }
-      interaction.followUp({
-        ephemeral: true,
-        content: "KillFeed initialised!",
-      });
     } else {
-      interaction.followUp({
-        ephemeral: true,
-        content: "No permission to post messages to this channel.",
-      });
+      response =
+        "Please add KillFeed to a role with permission to post messages to this channel.";
     }
+    interaction.followUp({
+      ephemeral: true,
+      content: response,
+    });
   },
 };

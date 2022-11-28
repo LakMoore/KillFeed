@@ -1,24 +1,22 @@
 import { CommandInteraction, Client } from "discord.js";
 import { Command } from "../Command";
 import { Config } from "../Config";
-import { updateChannel } from "../Channels";
+import { canUseChannel } from "../helpers/DiscordHelper";
 
-export const Update: Command = {
-  name: "update",
-  description: "KillFeed will check your pinned message for new settings",
+export const Report: Command = {
+  name: "report",
+  description: "Output a list of what we are currently listening for.",
   run: async (client: Client, interaction: CommandInteraction) => {
     let content = "KillFeed is not able to view this channel!";
 
-    if (interaction.channel) {
-      await updateChannel(client, interaction.channel.id);
-
+    if (interaction.channel && canUseChannel(interaction.channel)) {
       let thisChannel = Config.getInstance().registeredChannels.get(
         interaction.channelId
       );
 
       if (!thisChannel) {
         content =
-          "The channel settings were not updated correctly.  Please check the format on the pinned message";
+          "The channel settings were not found. Please use the /init command to get started.";
       } else {
         content = "Updated settings. Listening for:\n";
         if (thisChannel.Alliances.size > 0) {
