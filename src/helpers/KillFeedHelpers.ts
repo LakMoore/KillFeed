@@ -34,7 +34,13 @@ export function parseConfigMessage(
       return value;
     });
   } catch (error) {
-    console.log("Error while parsing the config");
+    if (error instanceof Error) {
+      console.log(
+        "Error while parsing the config: " + message + "\n" + error.message
+      );
+    } else {
+      console.log("Error while parsing the config: " + message + "\n");
+    }
   }
 
   if (result?.ResponseFormat) {

@@ -9,7 +9,7 @@ import {
   checkChannelPermissions,
   getConfigMessage,
 } from "../helpers/DiscordHelper";
-import { clearChannel } from "../Channels";
+import { clearChannel, updateChannel } from "../Channels";
 import { Config } from "../Config";
 
 export const Init: Command = {
@@ -48,6 +48,7 @@ export const Init: Command = {
           );
           const message = await channel.send(content);
           await message.pin();
+          await updateChannel(client, channel.id);
           response = "KillFeed initialised successfully!";
         } else {
           const content =

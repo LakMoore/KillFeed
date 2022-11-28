@@ -1,7 +1,7 @@
 import { CommandInteraction, Client, SlashCommandBuilder } from "discord.js";
 import { Config } from "../Config";
 import { getConfigMessage } from "../helpers/DiscordHelper";
-import { addListener, generateConfigMessage } from "../helpers/KillFeedHelpers";
+import { generateConfigMessage } from "../helpers/KillFeedHelpers";
 import { Command } from "../Command";
 import { fetchESIIDs } from "../esi/fetch";
 import {
@@ -14,6 +14,7 @@ import {
   TYPE_CORP,
   TYPE_SHIP,
 } from "../helpers/CommandHelpers";
+import { updateChannel } from "../Channels";
 
 const builder = new SlashCommandBuilder()
   .setName("add")
@@ -68,42 +69,39 @@ export const Add: Command = {
               interaction.channel.id
             );
 
-            let thisSetting = undefined;
-            let listener = undefined;
+            if (!settings) {
+              response =
+                "Unable to find settings for this channel. Use /init to start.";
+            } else {
+              let thisSetting = undefined;
 
-            if (filterType === TYPE_CHAR) {
-              thisSetting = settings?.Characters;
-              listener = Config.getInstance().matchedCharacters;
-            } else if (filterType === TYPE_CORP) {
-              thisSetting = settings?.Corporations;
-              listener = Config.getInstance().matchedCorporations;
-            } else if (filterType === TYPE_ALLIANCE) {
-              thisSetting = settings?.Alliances;
-              listener = Config.getInstance().matchedAlliances;
-            } else if (filterType === TYPE_SHIP) {
-              thisSetting = settings?.Ships;
-              listener = Config.getInstance().matchedShips;
-            }
+              if (filterType === TYPE_CHAR) {
+                thisSetting = settings?.Characters;
+              } else if (filterType === TYPE_CORP) {
+                thisSetting = settings?.Corporations;
+              } else if (filterType === TYPE_ALLIANCE) {
+                thisSetting = settings?.Alliances;
+              } else if (filterType === TYPE_SHIP) {
+                thisSetting = settings?.Ships;
+              }
 
-            // add the ID to the settings in memory
-            if (thisSetting) {
-              console.log("Adding the id");
-              thisSetting?.add(id);
-            }
+              // add the ID to the settings in memory
+              if (thisSetting) {
+                console.log("Adding the id");
+                thisSetting?.add(id);
+              }
 
-            // add the ID to the current filters too
-            if (listener) {
-              addListener(listener, id, interaction.channel.id);
-            }
+              // re-generate the config message
+              const message = await getConfigMessage(interaction.channel);
 
-            response = `Success! Added ${filterValue} (${id})`;
-
-            // re-generate the config message
-            const message = await getConfigMessage(interaction.channel);
-
-            if (message && settings) {
-              // save the config into the channel
-              await message.edit(generateConfigMessage(settings));
+              if (message) {
+                // save the config into the channel
+                await message.edit(generateConfigMessage(settings));
+                await updateChannel(client, interaction.channel.id);
+                response = `Success! Added ${filterValue} (${id})`;
+              } else {
+                response = `No settings found in channel. Use /init to start.`;
+              }
             }
           }
         }
