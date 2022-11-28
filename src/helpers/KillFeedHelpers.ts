@@ -25,10 +25,11 @@ export function parseConfigMessage(
   let result = undefined;
 
   try {
+    console.log(message);
     result = JSON.parse(message, (key, value) => {
       if (key === "Channel") {
         return channel;
-      } else if (value instanceof Array) {
+      } else if (Array.isArray(value)) {
         return new Set(value);
       }
       return value;
@@ -36,10 +37,10 @@ export function parseConfigMessage(
   } catch (error) {
     if (error instanceof Error) {
       console.log(
-        "Error while parsing the config: " + message + "\n" + error.message
+        `Error while parsing the config: ${message}\n${error.message}`
       );
     } else {
-      console.log("Error while parsing the config: " + message + "\n");
+      console.log(`Error while parsing the config: ${message}`);
     }
   }
 
