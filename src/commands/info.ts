@@ -3,11 +3,11 @@ import { Command } from "../Command";
 import { Config } from "../Config";
 import { canUseChannel } from "../helpers/DiscordHelper";
 
-export const Report: Command = {
-  name: "report",
+export const Info: Command = {
+  name: "info",
   description: "Output a list of what we are currently listening for.",
   run: async (client: Client, interaction: CommandInteraction) => {
-    let content = "KillFeed is not able to view this channel!";
+    let response = "KillFeed is not able to view this channel!";
 
     if (interaction.channel && canUseChannel(interaction.channel)) {
       let thisChannel = Config.getInstance().registeredChannels.get(
@@ -15,12 +15,12 @@ export const Report: Command = {
       );
 
       if (!thisChannel) {
-        content =
+        response =
           "The channel settings were not found. Please use the /init command to get started.";
       } else {
-        content = "Updated settings. Listening for:\n";
+        response = "";
         if (thisChannel.Alliances.size > 0) {
-          content +=
+          response +=
             "Alliances: " +
             Array.from(thisChannel.Alliances)
               .map((v) => {
@@ -30,7 +30,7 @@ export const Report: Command = {
             "\n";
         }
         if (thisChannel.Corporations.size > 0) {
-          content +=
+          response +=
             "Corporations: " +
             Array.from(thisChannel.Corporations)
               .map((v) => {
@@ -40,7 +40,7 @@ export const Report: Command = {
             "\n";
         }
         if (thisChannel.Characters.size > 0) {
-          content +=
+          response +=
             "Characters: " +
             Array.from(thisChannel.Characters)
               .map((v) => {
@@ -50,7 +50,7 @@ export const Report: Command = {
             "\n";
         }
         if (thisChannel.Ships.size > 0) {
-          content +=
+          response +=
             "Ships: " +
             Array.from(thisChannel.Ships)
               .map((v) => {
@@ -59,12 +59,24 @@ export const Report: Command = {
               .join(", ") +
             "\n";
         }
+        if (response.length > 0) {
+          response = "Listening for:\n" + response;
+        } else {
+          response = "No filters set. Use /add command to set some filters.";
+        }
+        if (thisChannel.FullTest) {
+          if (response.length > 0) {
+            response += "\n";
+          }
+          response += "Full test mode is on";
+        }
+        response += "\nFormat is " + thisChannel.ResponseFormat;
       }
     }
 
     await interaction.followUp({
       ephemeral: true,
-      content,
+      content: response,
     });
   },
 };

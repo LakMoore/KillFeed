@@ -1,7 +1,6 @@
 import { Client, TextChannel } from "discord.js";
 import { clearChannel, updateChannel } from "../Channels";
 import { Config } from "../Config";
-import { updateGuild } from "../Servers";
 
 export default (client: Client): void => {
   //joined a server

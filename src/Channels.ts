@@ -1,7 +1,7 @@
 import { Client, TextChannel } from "discord.js";
 import { ChannelSettings, Config } from "./Config";
 import { canUseChannel, getConfigMessage } from "./helpers/DiscordHelper";
-import { addMatcherEntry, parseConfigMessage } from "./helpers/KillFeedHelpers";
+import { addListener, parseConfigMessage } from "./helpers/KillFeedHelpers";
 
 export async function updateChannel(
   client: Client<boolean>,
@@ -28,23 +28,19 @@ export async function updateChannel(
       Config.getInstance().registeredChannels.set(channel.id, thisChannel);
 
       thisChannel.Alliances.forEach((id) => {
-        addMatcherEntry(Config.getInstance().matchedAlliances, id, channel.id);
+        addListener(Config.getInstance().matchedAlliances, id, channel.id);
       });
 
       thisChannel.Corporations.forEach((id) => {
-        addMatcherEntry(
-          Config.getInstance().matchedCorporations,
-          id,
-          channel.id
-        );
+        addListener(Config.getInstance().matchedCorporations, id, channel.id);
       });
 
       thisChannel.Characters.forEach((id) => {
-        addMatcherEntry(Config.getInstance().matchedCharacters, id, channel.id);
+        addListener(Config.getInstance().matchedCharacters, id, channel.id);
       });
 
       thisChannel.Ships.forEach((id) => {
-        addMatcherEntry(Config.getInstance().matchedShips, id, channel.id);
+        addListener(Config.getInstance().matchedShips, id, channel.id);
       });
     }
   }

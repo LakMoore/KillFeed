@@ -1,7 +1,10 @@
 import { CommandInteraction, Client, SlashCommandBuilder } from "discord.js";
 import { Config } from "../Config";
 import { getConfigMessage } from "../helpers/DiscordHelper";
-import { addListener, generateConfigMessage } from "../helpers/KillFeedHelpers";
+import {
+  generateConfigMessage,
+  removeListener,
+} from "../helpers/KillFeedHelpers";
 import { Command } from "../Command";
 import { fetchESIIDs } from "../esi/fetch";
 import {
@@ -16,12 +19,12 @@ import {
 } from "../helpers/CommandHelpers";
 
 const builder = new SlashCommandBuilder()
-  .setName("add")
-  .setDescription("Add a rule to KillFeed's filter")
+  .setName("remove")
+  .setDescription("Remove a rule from KillFeed's filter")
   .addStringOption(filterOption)
   .addStringOption(filterValue);
 
-export const Add: Command = {
+export const Remove: Command = {
   ...builder.toJSON(),
   run: async (client: Client, interaction: CommandInteraction) => {
     let response = "Something went wrong!";
@@ -85,18 +88,16 @@ export const Add: Command = {
               listener = Config.getInstance().matchedShips;
             }
 
-            // add the ID to the settings in memory
+            // remove the ID from the settings in memory
             if (thisSetting) {
-              console.log("Adding the id");
-              thisSetting?.add(id);
+              console.log("Deleting the id");
+              thisSetting?.delete(id);
             }
 
-            // add the ID to the current filters too
-            if (listener) {
-              addListener(listener, id, interaction.channel.id);
-            }
+            // remove the ID from the current filters too
+            removeListener(listener, id, interaction.channel.id);
 
-            response = `Success! Added ${filterValue} (${id})`;
+            response = `Success! Removed ${filterValue} (${id})`;
 
             // re-generate the config message
             const message = await getConfigMessage(interaction.channel);

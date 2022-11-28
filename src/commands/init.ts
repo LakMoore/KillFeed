@@ -1,10 +1,16 @@
 import { CommandInteraction, Client, PermissionsBitField } from "discord.js";
+import {
+  generateConfigMessage,
+  parseConfigMessage,
+} from "../helpers/KillFeedHelpers";
 import { Command } from "../Command";
 import {
   canUseChannel,
   checkChannelPermissions,
   getConfigMessage,
 } from "../helpers/DiscordHelper";
+import { clearChannel } from "../Channels";
+import { Config } from "../Config";
 
 export const Init: Command = {
   name: "init",
@@ -15,10 +21,21 @@ export const Init: Command = {
     let channel = interaction.channel;
     if (canUseChannel(channel)) {
       // Get the config message
-      const message = getConfigMessage(channel);
+      const message = await getConfigMessage(channel);
 
       // if we have no config message
       if (!message) {
+        let thisChannelConfig = Config.getInstance().registeredChannels.get(
+          channel.id
+        );
+        if (thisChannelConfig) {
+          // Remove all listeners for this channel
+          clearChannel(thisChannelConfig, channel);
+        }
+
+        //remove config for this channel
+        Config.getInstance().registeredChannels.delete(channel.id);
+
         // Add a new pinned message
         if (
           checkChannelPermissions(
@@ -26,13 +43,15 @@ export const Init: Command = {
             PermissionsBitField.Flags.ManageMessages
           )
         ) {
-          const content = "This message has been pinned for future use";
+          const content = generateConfigMessage(
+            parseConfigMessage("", channel)
+          );
           const message = await channel.send(content);
           await message.pin();
           response = "KillFeed initialised successfully!";
         } else {
           const content =
-            "Please pin this message to the channel and re-run init";
+            "Please pin this message to the channel and re-run /init";
           await channel.send(content);
           response =
             "KillFeed partially initialised! " +
@@ -41,7 +60,7 @@ export const Init: Command = {
         }
       } else {
         // looks good
-        response = "KillFeed is already initialised.";
+        response = "KillFeed is already initialised. Use /add to add filters.";
       }
     } else {
       response =

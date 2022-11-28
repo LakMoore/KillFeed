@@ -52,15 +52,32 @@ export function parseConfigMessage(
   };
 }
 
-export function addMatcherEntry(
-  matcher: Map<number, Set<string>>,
+export function addListener(
+  listener: Map<number, Set<string>>,
   id: number,
   channelId: string
 ) {
-  let s = matcher.get(id);
+  let s = listener.get(id);
   if (!s) {
     s = new Set<string>();
   }
   s.add(channelId);
-  matcher.set(id, s);
+  listener.set(id, s);
+}
+
+export function removeListener(
+  listener: Map<number, Set<string>> | undefined,
+  id: number,
+  channelId: string
+) {
+  // remove the ID from the current filters
+  if (listener) {
+    let s = listener.get(id);
+    if (s) {
+      s.delete(channelId);
+      listener.set(id, s);
+    }
+    // no need to delete the channel id if
+    // the alliance isn't currently being listened for
+  }
 }
