@@ -39,7 +39,10 @@ export function getBotUser(channel?: Channel | null) {
 }
 
 export async function getConfigMessage(channel?: Channel | null) {
-  if (canUseChannel(channel)) {
+  if (
+    canUseChannel(channel) &&
+    checkChannelPermissions(channel, PermissionsBitField.Flags.ManageMessages)
+  ) {
     // Get all pinned messages
     const pinned = await channel.messages.fetchPinned();
 
