@@ -1,14 +1,13 @@
 import axios from "axios";
-import {
-  Client,
-  DiscordAPIError,
-  PermissionsBitField,
-  TextChannel,
-} from "discord.js";
+import { Client, DiscordAPIError, PermissionsBitField } from "discord.js";
 import { Config } from "./Config";
 import { EmbeddedFormat } from "./feedformats/EmbeddedFormat";
 import { InsightFormat } from "./feedformats/InsightFormat";
 import { ZKillLinkFormat } from "./feedformats/ZKillLinkFormat";
+import {
+  canUseChannel,
+  checkChannelPermissions,
+} from "./helpers/DiscordHelper";
 import { Package } from "./zKillboard";
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -91,46 +90,49 @@ export async function pollzKillboardOnce(client: Client) {
         });
       });
 
-      lossmailChannelIDs.forEach(async (channelId) => {
+      for (const channelId of lossmailChannelIDs) {
         let channel = client.channels.cache.find((c) => c.id === channelId);
-        if (
-          channel &&
-          channel instanceof TextChannel &&
-          channel.guild.members.me &&
-          channel
-            .permissionsFor(channel.guild.members.me)
-            .has(PermissionsBitField.Flags.SendMessages)
-        ) {
-          // TODO: Look up the desired message format for this channel
 
-          // Generate the message
-          await InsightFormat.getMessage(data, false).then(async (msg) => {
-            if (channel?.isTextBased()) {
-              // send the message
-              await channel.send(msg);
-            }
-          });
-        } else {
-          console.log("Couldn't find the channel for lossmail");
-        }
-      });
+        // TODO: Look up the desired message format for this channel
 
-      killmailChannelIDs.forEach(async (channelId) => {
+        // Generate the message
+        await InsightFormat.getMessage(data, false).then(async (msg) => {
+          if (
+            canUseChannel(channel) &&
+            checkChannelPermissions(
+              channel,
+              PermissionsBitField.Flags.SendMessages
+            )
+          ) {
+            // send the message
+            await channel.send(msg);
+          } else {
+            console.log("Couldn't send lossmail on this channel");
+          }
+        });
+      }
+
+      for (const channelId of killmailChannelIDs) {
         let channel = client.channels.cache.find((c) => c.id === channelId);
-        if (channel?.isTextBased()) {
-          // TODO: Look up the desired message format for this channel
 
-          // Generate the message
-          await InsightFormat.getMessage(data, true).then(async (msg) => {
-            if (channel?.isTextBased()) {
-              // send the message
-              await channel.send(msg);
-            }
-          });
-        } else {
-          console.log("Couldn't find the channel for killmail");
-        }
-      });
+        // TODO: Look up the desired message format for this channel
+
+        // Generate the message
+        await InsightFormat.getMessage(data, true).then(async (msg) => {
+          if (
+            canUseChannel(channel) &&
+            checkChannelPermissions(
+              channel,
+              PermissionsBitField.Flags.SendMessages
+            )
+          ) {
+            // send the message
+            await channel.send(msg);
+          } else {
+            console.log("Couldn't send killmail on this channel");
+          }
+        });
+      }
     }
   } catch (error) {
     if (axios.isAxiosError(error)) {

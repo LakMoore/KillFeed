@@ -21,9 +21,10 @@ export function canUseChannel(
 }
 
 export function checkChannelPermissions(
-  channel: Channel,
+  channel: Channel | undefined,
   permissions: PermissionResolvable
 ) {
+  if (!channel) return false;
   const user = getBotUser(channel);
   return (
     canUseChannel(channel) &&
