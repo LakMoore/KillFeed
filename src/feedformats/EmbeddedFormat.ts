@@ -1,5 +1,5 @@
 import { EmbedBuilder } from "@discordjs/builders";
-import { Package } from "../zKillboard";
+import { KillMail, ZkbOnly } from "../zKillboard/zKillboard";
 import { BaseFormat } from "./Fomat";
 
 const colours = {
@@ -8,17 +8,17 @@ const colours = {
 };
 
 export const EmbeddedFormat: BaseFormat = {
-  getMessage: async (data: Package, kill: boolean) => {
+  getMessage: async (killmail: KillMail, zkb: ZkbOnly, kill: boolean) => {
     return {
       embeds: [
         new EmbedBuilder()
           .setColor(kill ? colours.kill : colours.loss)
           .setTitle("Ship destroyed somewhere")
-          .setURL(`https://zkillboard.com/kill/${data.package.killID}/`)
+          .setURL(`https://zkillboard.com/kill/${killmail.killmail_id}/`)
           .setAuthor({
             name: kill ? "Kill" : "Loss",
             iconURL: "https://i.imgur.com/AfFp7pu.png",
-            url: `https://zkillboard.com/kill/${data.package.killID}/`,
+            url: `https://zkillboard.com/kill/${killmail.killmail_id}/`,
           })
           .setDescription("Some description here")
           .setThumbnail("https://i.imgur.com/AfFp7pu.png")
@@ -44,7 +44,7 @@ export const EmbeddedFormat: BaseFormat = {
           // .setImage("https://i.imgur.com/AfFp7pu.png")
           .setTimestamp()
           .setFooter({
-            text: `Value: ${data.package.zkb.totalValue}`,
+            text: `Value: ${zkb.zkb.totalValue}`,
             iconURL: "https://i.imgur.com/AfFp7pu.png",
           }),
       ],

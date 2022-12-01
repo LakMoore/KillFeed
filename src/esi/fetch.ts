@@ -1,5 +1,6 @@
 import axios, { AxiosError } from "axios";
 import axiosRetry from "axios-retry";
+import { KillMail } from "../zKillboard/zKillboard";
 
 export interface Name {
   category: string;
@@ -110,4 +111,13 @@ export function fetchESIIDs(names: string[]) {
       }
       return <IDs>{};
     });
+}
+
+export function fetchKillmail(killmailId: string, hash: string) {
+  if (killmailId && hash) {
+    const path = `/killmails/${killmailId}/${hash}/`;
+
+    return axios.get<KillMail>(url + path);
+  }
+  return Promise.reject("Must provide KM ID and Hash");
 }

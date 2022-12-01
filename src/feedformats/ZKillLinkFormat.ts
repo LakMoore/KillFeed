@@ -1,10 +1,10 @@
-import { Package } from "../zKillboard";
+import { KillMail } from "../zKillboard/zKillboard";
 import { BaseFormat } from "./Fomat";
 
 export const ZKillLinkFormat: BaseFormat = {
-  getMessage: (data: Package, kill: boolean) => {
+  getMessage: (killmail: KillMail, kill: boolean) => {
     return Promise.resolve({
-      content: `https://zkillboard.com/kill/${data.package.killID}/`,
+      content: `https://zkillboard.com/kill/${killmail.killmail_id}/`,
     });
   },
 };

@@ -1,5 +1,5 @@
 import { Client } from "discord.js";
-import { pollzKillboardOnce } from "../zKillboardService";
+import { pollzKillboardOnce } from "../zKillboard/zKillboardService";
 import { Commands } from "../Commands";
 import { updateGuild } from "../Servers";
 

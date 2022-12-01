@@ -1,6 +1,6 @@
 import { EmbedBuilder } from "@discordjs/builders";
 import { getCharacterNames } from "../esi/get";
-import { Package } from "../zKillboard";
+import { KillMail, ZkbOnly } from "../zKillboard/zKillboard";
 import { BaseFormat } from "./Fomat";
 
 const colours = {
@@ -9,32 +9,26 @@ const colours = {
 };
 
 export const InsightFormat: BaseFormat = {
-  getMessage: (data: Package, kill: boolean) => {
-    const badgeUrl = data.package.killmail.victim.alliance_id
-      ? `https://images.evetech.net/alliances/${data.package.killmail.victim.alliance_id}/logo?size=64`
-      : `https://images.evetech.net/corporations/${data.package.killmail.victim.corporation_id}/logo?size=64`;
+  getMessage: (killmail: KillMail, zkb: ZkbOnly, kill: boolean) => {
+    const badgeUrl = killmail.victim.alliance_id
+      ? `https://images.evetech.net/alliances/${killmail.victim.alliance_id}/logo?size=64`
+      : `https://images.evetech.net/corporations/${killmail.victim.corporation_id}/logo?size=64`;
 
     let value = "";
-    if (data.package.zkb.totalValue >= 1000000000) {
-      value =
-        Math.round(data.package.zkb.totalValue / 100000000) / 10 + "B ISK";
-    } else if (data.package.zkb.totalValue >= 1000000) {
-      value = Math.round(data.package.zkb.totalValue / 100000) / 10 + "M ISK";
-    } else if (data.package.zkb.totalValue >= 1000) {
-      value = Math.round(data.package.zkb.totalValue / 100) / 10 + "k ISK";
+    if (zkb.zkb.totalValue >= 1000000000) {
+      value = Math.round(zkb.zkb.totalValue / 100000000) / 10 + "B ISK";
+    } else if (zkb.zkb.totalValue >= 1000000) {
+      value = Math.round(zkb.zkb.totalValue / 100000) / 10 + "M ISK";
+    } else if (zkb.zkb.totalValue >= 1000) {
+      value = Math.round(zkb.zkb.totalValue / 100) / 10 + "k ISK";
     }
 
-    let attacker = data.package.killmail.attackers.filter(
-      (char) => char.final_blow
-    )[0];
-    if (!attacker) attacker = data.package.killmail.attackers[0];
+    let attacker = killmail.attackers.filter((char) => char.final_blow)[0];
+    if (!attacker) attacker = killmail.attackers[0];
 
     return Promise.all([
-      getCharacterNames(
-        data.package.killmail.victim,
-        data.package.killmail.solar_system_id
-      ),
-      getCharacterNames(attacker, data.package.killmail.solar_system_id),
+      getCharacterNames(killmail.victim, killmail.solar_system_id),
+      getCharacterNames(attacker, killmail.solar_system_id),
     ]).then(([victimNames, attackerNames]) => {
       let attackerShipName = attackerNames.ship;
       if (
@@ -57,18 +51,16 @@ export const InsightFormat: BaseFormat = {
       }
       let victimName = "";
       if (victimNames.character) {
-        victimName = `**[${victimNames.character}](https://zkillboard.com/character/${data.package.killmail.victim.character_id}/) (${victimNames.corporation})**`;
+        victimName = `**[${victimNames.character}](https://zkillboard.com/character/${killmail.victim.character_id}/) (${victimNames.corporation})**`;
       } else {
         // structures don't have a character name!
-        victimName = `**[${victimNames.corporation}](https://zkillboard.com/character/${data.package.killmail.victim.corporation_id}/)**`;
+        victimName = `**[${victimNames.corporation}](https://zkillboard.com/character/${killmail.victim.corporation_id}/)**`;
       }
 
       let fleetPhrase = ", solo";
-      if (data.package.killmail.attackers.length > 1) {
-        fleetPhrase = ` and ${
-          data.package.killmail.attackers.length - 1
-        } other`;
-        if (data.package.killmail.attackers.length > 2) {
+      if (killmail.attackers.length > 1) {
+        fleetPhrase = ` and ${killmail.attackers.length - 1} other`;
+        if (killmail.attackers.length > 2) {
           fleetPhrase += "s";
         }
       }
@@ -77,17 +69,17 @@ export const InsightFormat: BaseFormat = {
           new EmbedBuilder()
             .setColor(kill ? colours.kill : colours.loss)
             .setTitle(`${victimNames.ship} destroyed in ${victimNames.system}`)
-            .setURL(`https://zkillboard.com/kill/${data.package.killID}/`)
+            .setURL(`https://zkillboard.com/kill/${killmail.killmail_id}/`)
             .setAuthor({
               name: kill ? "Kill" : "Loss",
               iconURL: badgeUrl,
-              url: `https://zkillboard.com/kill/${data.package.killID}/`,
+              url: `https://zkillboard.com/kill/${killmail.killmail_id}/`,
             })
             .setDescription(
               `${victimName} lost their ${victimNames.ship} to ${attackerName} flying ${attackerShipName}${fleetPhrase}.`
             )
             .setThumbnail(
-              `https://images.evetech.net/types/${data.package.killmail.victim.ship_type_id}/render?size=64`
+              `https://images.evetech.net/types/${killmail.victim.ship_type_id}/render?size=64`
             )
             .setTimestamp()
             .setFooter({

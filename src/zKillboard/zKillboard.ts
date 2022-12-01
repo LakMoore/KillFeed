@@ -21,7 +21,7 @@ interface Victim extends Character {
   };
 }
 
-interface KillMail {
+export interface KillMail {
   attackers: [Attacker];
   killmail_id: number;
   killmail_time: Date;
@@ -47,5 +47,21 @@ export interface Package {
       labels: [string];
       href: string;
     };
+  };
+}
+
+export interface ZkbOnly {
+  killmail_id: number;
+  zkb: {
+    locationID: number;
+    hash: string;
+    fittedValue: number;
+    droppedValue: number;
+    destroyedValue: number;
+    totalValue: number;
+    points: number;
+    npc: boolean;
+    solo: boolean;
+    awox: boolean;
   };
 }

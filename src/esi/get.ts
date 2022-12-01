@@ -1,4 +1,4 @@
-import { Character } from "../zKillboard";
+import { Character } from "../zKillboard/zKillboard";
 import { CachedESI } from "./cache";
 import { fetchESINames } from "./fetch";
 

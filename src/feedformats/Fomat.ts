@@ -1,6 +1,10 @@
 import { MessageCreateOptions } from "discord.js";
-import { Package } from "../zKillboard";
+import { KillMail, ZkbOnly } from "../zKillboard/zKillboard";
 
 export interface BaseFormat {
-  getMessage: (data: Package, kill: boolean) => Promise<MessageCreateOptions>;
+  getMessage: (
+    data: KillMail,
+    zkb: ZkbOnly,
+    kill: boolean
+  ) => Promise<MessageCreateOptions>;
 }
