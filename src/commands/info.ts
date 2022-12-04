@@ -1,4 +1,5 @@
 import { CommandInteraction, Client } from "discord.js";
+import { fetchESINames } from "../esi/fetch";
 import { Command } from "../Command";
 import { Config } from "../Config";
 import { canUseChannel } from "../helpers/DiscordHelper";
@@ -21,42 +22,54 @@ export const Info: Command = {
         response = "";
         if (thisChannel.Alliances.size > 0) {
           response +=
-            "Alliances: " +
-            Array.from(thisChannel.Alliances)
-              .map((v) => {
-                return v.toString();
-              })
-              .join(", ") +
+            "**Alliances:**\n" +
+            (await fetchESINames(Array.from(thisChannel.Alliances)).then(
+              (names) => {
+                return names
+                  .map((n) => n.name)
+                  .sort()
+                  .join("\n");
+              }
+            )) +
             "\n";
         }
         if (thisChannel.Corporations.size > 0) {
           response +=
-            "Corporations: " +
-            Array.from(thisChannel.Corporations)
-              .map((v) => {
-                return v.toString();
-              })
-              .join(", ") +
+            "**Corporations:**\n" +
+            (await fetchESINames(Array.from(thisChannel.Corporations)).then(
+              (names) => {
+                return names
+                  .map((n) => n.name)
+                  .sort()
+                  .join("\n");
+              }
+            )) +
             "\n";
         }
         if (thisChannel.Characters.size > 0) {
           response +=
-            "Characters: " +
-            Array.from(thisChannel.Characters)
-              .map((v) => {
-                return v.toString();
-              })
-              .join(", ") +
+            "**Characters:**\n" +
+            (await fetchESINames(Array.from(thisChannel.Characters)).then(
+              (names) => {
+                return names
+                  .map((n) => n.name)
+                  .sort()
+                  .join("\n");
+              }
+            )) +
             "\n";
         }
         if (thisChannel.Ships.size > 0) {
           response +=
-            "Ships: " +
-            Array.from(thisChannel.Ships)
-              .map((v) => {
-                return v.toString();
-              })
-              .join(", ") +
+            "**Ships:**\n" +
+            (await fetchESINames(Array.from(thisChannel.Ships)).then(
+              (names) => {
+                return names
+                  .map((n) => n.name)
+                  .sort()
+                  .join("\n");
+              }
+            )) +
             "\n";
         }
         if (response.length > 0) {
@@ -71,6 +84,10 @@ export const Info: Command = {
           response += "Full test mode is on";
         }
         response += "\nFormat is " + thisChannel.ResponseFormat;
+        response +=
+          "\nBot is currently active in " +
+          Config.getInstance().registeredChannels.size +
+          " channels";
       }
     }
 
