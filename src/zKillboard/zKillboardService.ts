@@ -125,7 +125,7 @@ export async function prepAndSend(
       // TODO: Look up the desired message format for this channel
 
       // Generate the message
-      await InsightFormat.getMessage(killmail, zkb, false).then(async (msg) => {
+      await InsightFormat.getMessage(killmail, zkb, false).then((msg) => {
         if (
           canUseChannel(channel) &&
           checkChannelPermissions(
@@ -134,7 +134,7 @@ export async function prepAndSend(
           )
         ) {
           // send the message
-          await channel.send(msg);
+          return channel.send(msg);
         } else {
           console.log("Couldn't send lossmail on this channel");
         }
@@ -147,7 +147,7 @@ export async function prepAndSend(
       // TODO: Look up the desired message format for this channel
 
       // Generate the message
-      await InsightFormat.getMessage(killmail, zkb, true).then(async (msg) => {
+      await InsightFormat.getMessage(killmail, zkb, true).then((msg) => {
         if (
           canUseChannel(channel) &&
           checkChannelPermissions(
@@ -156,7 +156,7 @@ export async function prepAndSend(
           )
         ) {
           // send the message
-          await channel.send(msg);
+          return channel.send(msg);
         } else {
           console.log("Couldn't send killmail on this channel");
         }
