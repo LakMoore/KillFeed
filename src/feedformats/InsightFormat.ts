@@ -56,14 +56,18 @@ export const InsightFormat: BaseFormat = {
       }
       let victimName = "";
       // not all Corps are in an Alliance!
-      const victimCorp = victimNames.alliance
-        ? victimNames.alliance
-        : victimNames.corporation;
       if (victimNames.character) {
+        const victimCorp = victimNames.alliance
+          ? victimNames.alliance
+          : victimNames.corporation;
         victimName = `**[${victimNames.character}](https://zkillboard.com/character/${killmail.victim.character_id}/) (${victimCorp})**`;
       } else {
         // structures don't have a character name!
-        victimName = `**[${victimCorp}](https://zkillboard.com/character/${killmail.victim.corporation_id}/)**`;
+        if (victimNames.alliance) {
+          victimName = `**[${victimNames.alliance}](https://zkillboard.com/alliance/${killmail.victim.alliance_id}/)**`;
+        } else {
+          victimName = `**[${victimNames.corporation}](https://zkillboard.com/corporation/${killmail.victim.corporation_id}/)**`;
+        }
       }
 
       let fleetPhrase = ", solo";
