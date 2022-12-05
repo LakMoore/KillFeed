@@ -10,6 +10,7 @@ const colours = {
 
 export const InsightFormat: BaseFormat = {
   getMessage: (killmail: KillMail, zkb: ZkbOnly, kill: boolean) => {
+    // not all Corps are in an Alliance!
     const badgeUrl = killmail.victim.alliance_id
       ? `https://images.evetech.net/alliances/${killmail.victim.alliance_id}/logo?size=64`
       : `https://images.evetech.net/corporations/${killmail.victim.corporation_id}/logo?size=64`;
@@ -41,7 +42,11 @@ export const InsightFormat: BaseFormat = {
       }
       let attackerName = "";
       if (attackerNames.character) {
-        attackerName = `**[${attackerNames.character}](https://zkillboard.com/character/${attacker.character_id}/) (${attackerNames.corporation})**`;
+        // not all Corps are in an Alliance!
+        const attackerCorp = attackerNames.alliance
+          ? attackerNames.alliance
+          : attackerNames.corporation;
+        attackerName = `**[${attackerNames.character}](https://zkillboard.com/character/${attacker.character_id}/) (${attackerCorp})**`;
       } else {
         if (attackerNames.corporation) {
           attackerName = `an NPC (${attackerNames.corporation})`;
@@ -50,11 +55,15 @@ export const InsightFormat: BaseFormat = {
         }
       }
       let victimName = "";
+      // not all Corps are in an Alliance!
+      const victimCorp = victimNames.alliance
+        ? victimNames.alliance
+        : victimNames.corporation;
       if (victimNames.character) {
-        victimName = `**[${victimNames.character}](https://zkillboard.com/character/${killmail.victim.character_id}/) (${victimNames.corporation})**`;
+        victimName = `**[${victimNames.character}](https://zkillboard.com/character/${killmail.victim.character_id}/) (${victimCorp})**`;
       } else {
         // structures don't have a character name!
-        victimName = `**[${victimNames.corporation}](https://zkillboard.com/character/${killmail.victim.corporation_id}/)**`;
+        victimName = `**[${victimCorp}](https://zkillboard.com/character/${killmail.victim.corporation_id}/)**`;
       }
 
       let fleetPhrase = ", solo";
@@ -81,7 +90,7 @@ export const InsightFormat: BaseFormat = {
             .setThumbnail(
               `https://images.evetech.net/types/${killmail.victim.ship_type_id}/render?size=64`
             )
-            .setTimestamp()
+            .setTimestamp(new Date(killmail.killmail_time))
             .setFooter({
               text: `Value: ${value}`,
             }),
