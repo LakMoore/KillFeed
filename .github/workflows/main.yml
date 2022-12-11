@@ -1,7 +1,7 @@
 name: CI - Master
 on:
   push:
-    branches: [ main ]
+    branches: [main]
 
 jobs:
   deploy:
@@ -13,9 +13,9 @@ jobs:
       #
       - name: Set up SSH
         run: |
+          mkdir -p ~/.ssh/
           echo "$SSH_PRIVATE_KEY" > ./deploy.key
           sudo chmod 600 ./deploy.key
-          mkdir -p ~/.ssh/
           echo "$SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
         shell: bash
         env:
