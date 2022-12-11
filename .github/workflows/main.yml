@@ -22,14 +22,15 @@ jobs:
           SSH_PRIVATE_KEY: ${{secrets.SSH_PRIVATE_KEY}}
           SSH_KNOWN_HOSTS: ${{secrets.SSH_KNOWN_HOSTS}}
 
-      # (optional - only needed if your config uses environment variables)
       #- name: Create env file
       #  run: |
       #    touch .env
+      # (optional - only needed if your config uses environment variables)
       #    echo DATABASE_ADDRESS=${{ secrets.DATABASE_ADDRESS }} >> .env
 
       - name: Install PM2
         run: npm i pm2
 
       - name: Deploy
-        run: env $(cat .env | grep -v \"#\" | xargs) pm2 deploy ecosystem.config.js production
+        #run: env $(cat .env | grep -v \"#\" | xargs) pm2 deploy ecosystem.config.js production
+        run: pm2 deploy ecosystem.config.js production
