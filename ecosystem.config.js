@@ -3,7 +3,7 @@ module.exports = {
     {
       name: "KillFeed",
       script: "npm",
-      args: "run start",
+      args: "run prod-build-run",
       instances: 1,
       autorestart: true,
     },

@@ -5,6 +5,8 @@
   "main": "src/Bot.ts",
   "scripts": {
     "start": "ts-node src/Bot.ts",
+    "build": "tsc",
+    "prod-build-run": "tsc && node dist/Bot.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "",
