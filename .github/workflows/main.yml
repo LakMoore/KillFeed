@@ -31,6 +31,10 @@ jobs:
       - name: Install PM2
         run: sudo npm install -g pm2
 
+      - name: Setup Deploy
+        #run: env $(cat .env | grep -v \"#\" | xargs) pm2 deploy ecosystem.config.js production
+        run: pm2 deploy ecosystem.config.js setup production
+
       - name: Deploy
         #run: env $(cat .env | grep -v \"#\" | xargs) pm2 deploy ecosystem.config.js production
         run: pm2 deploy ecosystem.config.js production

@@ -10,7 +10,7 @@ module.exports = {
   deploy: {
     production: {
       user: "lakm",
-      host: "140.82.112.4",
+      host: "dnet-nyc3do",
       path: "/home/lakm/KillFeed",
       repo: "git@github.com:LakMoore/KillFeed.git",
       ref: "origin/main",
