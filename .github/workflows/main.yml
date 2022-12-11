@@ -15,7 +15,7 @@ jobs:
           key: ${{ secrets.SSH_KEY }}
           port: ${{ secrets.SSH_PORT }}
           script: |
-            cd ~/KillFeed
+            cd /home/pmtwo/KillFeed
             git pull origin main
             npm install
             ./node_modules/typescript/bin/tsc
