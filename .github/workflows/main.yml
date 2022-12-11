@@ -29,7 +29,7 @@ jobs:
       #    echo DATABASE_ADDRESS=${{ secrets.DATABASE_ADDRESS }} >> .env
 
       - name: Install PM2
-        run: npm i pm2
+        run: sudo npm install -g
 
       - name: Deploy
         #run: env $(cat .env | grep -v \"#\" | xargs) pm2 deploy ecosystem.config.js production
