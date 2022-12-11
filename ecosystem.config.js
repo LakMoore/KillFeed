@@ -2,8 +2,7 @@ module.exports = {
   apps: [
     {
       name: "KillFeed",
-      script: "npm",
-      args: "run prod-build-run",
+      script: "dist/Bot.js",
       instances: 1,
       autorestart: true,
     },

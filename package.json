@@ -6,6 +6,7 @@
   "scripts": {
     "start": "ts-node src/Bot.ts",
     "build": "tsc",
+    "prod-start": "node dist/Bot.js",
     "prod-build-run": "tsc && node dist/Bot.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
