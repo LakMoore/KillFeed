@@ -5,7 +5,7 @@ import interactionCreate from "./listeners/interactionCreate";
 import guild from "./listeners/guild";
 import channel from "./listeners/channel";
 
-async function main() {
+function main() {
   dotenv.config();
   console.log("Bot is starting...");
 

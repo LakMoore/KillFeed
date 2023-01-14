@@ -13,7 +13,7 @@ export default (client: Client): void => {
   });
 
   //removed from a server
-  client.on("channelDelete", async (channel) => {
+  client.on("channelDelete", (channel) => {
     if (channel instanceof TextChannel) {
       console.log("Left a channel: " + channel.name);
 

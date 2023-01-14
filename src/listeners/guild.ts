@@ -12,7 +12,7 @@ export default (client: Client): void => {
   });
 
   //removed from a server
-  client.on("guildDelete", async (guild) => {
+  client.on("guildDelete", (guild) => {
     console.log("Left a guild: " + guild.name);
 
     //go through all of the channels we were tracking on this server

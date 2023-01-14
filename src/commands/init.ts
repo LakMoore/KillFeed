@@ -67,7 +67,7 @@ export const Init: Command = {
       response =
         "Please add KillFeed to a role with permission to post messages to this channel.";
     }
-    interaction.followUp({
+    await interaction.followUp({
       ephemeral: true,
       content: response,
     });
