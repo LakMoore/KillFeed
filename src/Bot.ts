@@ -13,6 +13,8 @@ function main() {
     intents: [IntentsBitField.Flags.Guilds],
   });
 
+  Error.stackTraceLimit = Infinity;
+
   ready(client);
   interactionCreate(client);
   guild(client);
