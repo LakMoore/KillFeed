@@ -1,5 +1,4 @@
 import axios, { AxiosError } from "axios";
-import axiosRetry from "axios-retry";
 import { KillMail } from "../zKillboard/zKillboard";
 
 export interface Name {
@@ -76,8 +75,6 @@ const url = "https://esi.evetech.net/latest";
 export function fetchESINames(ids: number[]) {
   const path = "/universe/names/";
 
-  axiosRetry(axios, { retries: 99, retryDelay: axiosRetry.exponentialDelay });
-
   return axios
     .post<Name[]>(url + path, ids)
     .then((response) => response.data)
@@ -95,8 +92,6 @@ export function fetchESINames(ids: number[]) {
 
 export function fetchESIIDs(names: string[]) {
   const path = "/universe/ids/";
-
-  axiosRetry(axios, { retries: 99, retryDelay: axiosRetry.exponentialDelay });
 
   return axios
     .post<IDs>(url + path, names)
