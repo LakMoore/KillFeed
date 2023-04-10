@@ -21,7 +21,7 @@ export default (client: Client): void => {
           guilds.map((guild, guildId) => {
             console.log("Guild: " + guild.name);
             // update this guild
-            return updateGuild(client, guildId);
+            return updateGuild(client, guildId, guild.name);
           })
         );
       })

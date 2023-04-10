@@ -8,7 +8,7 @@ export default (client: Client): void => {
     if (channel instanceof TextChannel) {
       console.log("Joined a new channel: " + channel.name);
       //Your other stuff like adding to guildArray
-      await updateChannel(client, channel.id);
+      await updateChannel(client, channel.id, channel.guild.name);
     }
   });
 

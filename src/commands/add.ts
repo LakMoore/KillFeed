@@ -27,7 +27,11 @@ export const Add: Command = {
   run: async (client: Client, interaction: CommandInteraction) => {
     let response = "Something went wrong!";
 
-    if (interaction.isChatInputCommand() && interaction.channel) {
+    if (
+      interaction.isChatInputCommand() &&
+      interaction.channel &&
+      interaction.guild
+    ) {
       const filterType = interaction.options.getString(FILTER_TYPE);
 
       if (!filterType) {
@@ -97,7 +101,11 @@ export const Add: Command = {
               if (message) {
                 // save the config into the channel
                 await message.edit(generateConfigMessage(settings));
-                await updateChannel(client, interaction.channel.id);
+                await updateChannel(
+                  client,
+                  interaction.channel.id,
+                  interaction.guild.name
+                );
                 response = `Success! Added ${filterValue} (${id})`;
               } else {
                 response = `No settings found in channel. Use /init to start.`;
