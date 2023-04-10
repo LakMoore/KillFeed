@@ -44,14 +44,19 @@ export async function getConfigMessage(channel?: Channel | null) {
     canUseChannel(channel) &&
     checkChannelPermissions(channel, PermissionsBitField.Flags.ManageMessages)
   ) {
-    // Get all pinned messages
-    const pinned = await channel.messages.fetchPinned();
+    try {
+      // Get all pinned messages
+      const pinned = await channel.messages.fetchPinned();
 
-    // Filter for those authored by this bot
-    const myPinned = pinned.filter(
-      (m) => m.author.id === channel.guild.members.me?.id
-    );
+      // Filter for those authored by this bot
+      const myPinned = pinned.filter(
+        (m) => m.author.id === channel.guild.members.me?.id
+      );
 
-    return myPinned.first();
+      return myPinned.first();
+    } catch {
+      // We probably don't have sufficient permission to read pinned messages
+      console.log("Insufficent Permissions to fetch Pinned Messages!");
+    }
   }
 }
