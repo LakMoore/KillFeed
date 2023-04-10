@@ -119,49 +119,53 @@ export async function prepAndSend(
       });
     });
 
-    for (const channelId of lossmailChannelIDs) {
-      let channel = client.channels.cache.find((c) => c.id === channelId);
+    await Promise.all(
+      Array.from(lossmailChannelIDs).map((channelId) => {
+        let channel = client.channels.cache.find((c) => c.id === channelId);
 
-      // TODO: Look up the desired message format for this channel
+        // TODO: Look up the desired message format for this channel
 
-      // Generate the message
-      await InsightFormat.getMessage(killmail, zkb, false).then((msg) => {
-        if (
-          canUseChannel(channel) &&
-          checkChannelPermissions(
-            channel,
-            PermissionsBitField.Flags.SendMessages
-          )
-        ) {
-          // send the message
-          return channel.send(msg);
-        } else {
-          console.log("Couldn't send lossmail on this channel");
-        }
-      });
-    }
+        // Generate the message
+        return InsightFormat.getMessage(killmail, zkb, false).then((msg) => {
+          if (
+            canUseChannel(channel) &&
+            checkChannelPermissions(
+              channel,
+              PermissionsBitField.Flags.SendMessages
+            )
+          ) {
+            // send the message
+            return channel.send(msg);
+          } else {
+            console.log("Couldn't send lossmail on this channel");
+          }
+        });
+      })
+    );
 
-    for (const channelId of killmailChannelIDs) {
-      let channel = client.channels.cache.find((c) => c.id === channelId);
+    await Promise.all(
+      Array.from(killmailChannelIDs).map((channelId) => {
+        let channel = client.channels.cache.find((c) => c.id === channelId);
 
-      // TODO: Look up the desired message format for this channel
+        // TODO: Look up the desired message format for this channel
 
-      // Generate the message
-      await InsightFormat.getMessage(killmail, zkb, true).then((msg) => {
-        if (
-          canUseChannel(channel) &&
-          checkChannelPermissions(
-            channel,
-            PermissionsBitField.Flags.SendMessages
-          )
-        ) {
-          // send the message
-          return channel.send(msg);
-        } else {
-          console.log("Couldn't send killmail on this channel");
-        }
-      });
-    }
+        // Generate the message
+        return InsightFormat.getMessage(killmail, zkb, true).then((msg) => {
+          if (
+            canUseChannel(channel) &&
+            checkChannelPermissions(
+              channel,
+              PermissionsBitField.Flags.SendMessages
+            )
+          ) {
+            // send the message
+            return channel.send(msg);
+          } else {
+            console.log("Couldn't send killmail on this channel");
+          }
+        });
+      })
+    );
   } catch (error) {
     if (error instanceof DiscordAPIError) {
       console.log(

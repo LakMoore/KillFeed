@@ -4,14 +4,21 @@ import ready from "./listeners/ready";
 import interactionCreate from "./listeners/interactionCreate";
 import guild from "./listeners/guild";
 import channel from "./listeners/channel";
+import axios from "axios";
+import axiosRetry from "axios-retry";
 
-async function main() {
+function main() {
   dotenv.config();
   console.log("Bot is starting...");
 
   const client = new Client({
     intents: [IntentsBitField.Flags.Guilds],
   });
+
+  // set this up once
+  axiosRetry(axios, { retries: 99, retryDelay: axiosRetry.exponentialDelay });
+
+  Error.stackTraceLimit = Infinity;
 
   ready(client);
   interactionCreate(client);
