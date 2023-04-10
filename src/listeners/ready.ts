@@ -47,30 +47,34 @@ async function pollLoop(client: Client, loopCount: number) {
     await sleep(30000);
   }
 
-  const err = new Error();
-  if (err.stack) {
-    console.log("Stack size: " + (err.stack.split("\n").length - 1));
-  }
+  const DEBUG = false;
 
-  if (!firstMem) firstMem = process.memoryUsage();
+  if (DEBUG) {
+    const err = new Error();
+    if (err.stack) {
+      console.log("Stack size: " + (err.stack.split("\n").length - 1));
+    }
 
-  const used = process.memoryUsage();
-  for (let key in used) {
-    console.log(
-      `Memory: ${key}   ${
-        Math.round(
-          (used[key as keyof NodeJS.MemoryUsage] / 1024 / 1024) * 100
-        ) / 100
-      } MB  Diff: ${
-        Math.round(
-          ((used[key as keyof NodeJS.MemoryUsage] -
-            firstMem[key as keyof NodeJS.MemoryUsage]) /
-            1024 /
-            1024) *
-            100
-        ) / 100
-      }`
-    );
+    if (!firstMem) firstMem = process.memoryUsage();
+
+    const used = process.memoryUsage();
+    for (let key in used) {
+      console.log(
+        `Memory: ${key}   ${
+          Math.round(
+            (used[key as keyof NodeJS.MemoryUsage] / 1024 / 1024) * 100
+          ) / 100
+        } MB  Diff: ${
+          Math.round(
+            ((used[key as keyof NodeJS.MemoryUsage] -
+              firstMem[key as keyof NodeJS.MemoryUsage]) /
+              1024 /
+              1024) *
+              100
+          ) / 100
+        }`
+      );
+    }
   }
 
   // infinite loop required
