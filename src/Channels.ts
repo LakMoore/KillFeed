@@ -5,12 +5,13 @@ import { addListener, parseConfigMessage } from "./helpers/KillFeedHelpers";
 
 export async function updateChannel(
   client: Client<boolean>,
-  channelId: string
+  channelId: string,
+  guildName: string
 ) {
   const channel = await client.channels.fetch(channelId, { cache: true });
   // If this is a purely text based channel that we can use
   if (canUseChannel(channel)) {
-    console.log("Found a channel: " + channel.name);
+    console.log(`Server ${guildName}: Found a channel '${channel.name}'`);
     let thisChannel = Config.getInstance().registeredChannels.get(channel.id);
     if (thisChannel !== undefined) {
       // If we already had a config loaded for this channel

@@ -8,7 +8,7 @@ export default (client: Client): void => {
   client.on("guildCreate", async (guild) => {
     console.log("Joined a new guild: " + guild.name);
     //Your other stuff like adding to guildArray
-    await updateGuild(client, guild.id);
+    await updateGuild(client, guild.id, guild.name);
   });
 
   //removed from a server

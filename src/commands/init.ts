@@ -19,7 +19,7 @@ export const Init: Command = {
     let response = "Missed branch!";
 
     let channel = interaction.channel;
-    if (canUseChannel(channel)) {
+    if (canUseChannel(channel) && interaction.guild) {
       // Get the config message
       const message = await getConfigMessage(channel);
 
@@ -48,7 +48,7 @@ export const Init: Command = {
           );
           const message = await channel.send(content);
           await message.pin();
-          await updateChannel(client, channel.id);
+          await updateChannel(client, channel.id, interaction.guild.name);
           response = "KillFeed initialised successfully!";
         } else {
           const content =
