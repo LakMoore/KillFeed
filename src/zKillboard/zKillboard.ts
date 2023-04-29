@@ -11,9 +11,17 @@ interface Attacker extends Character {
   weapon_type_id: number;
 }
 
+interface ZKItem {
+  flag: number;
+  item_type_id: number;
+  quantity_dropped: number | undefined;
+  quantity_destroyed: number | undefined;
+  singleton: number;
+}
+
 interface Victim extends Character {
   damage_taken: number;
-  items: [];
+  items: ZKItem[];
   position: {
     x: number;
     y: number;

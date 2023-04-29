@@ -1,4 +1,6 @@
 import { EmbedBuilder } from "@discordjs/builders";
+import axios from "axios";
+import { EvePraisal } from "src/helpers/EvePraisal";
 import { getCharacterNames } from "../esi/get";
 import { KillMail, ZkbOnly } from "../zKillboard/zKillboard";
 import { BaseFormat } from "./Fomat";
@@ -8,21 +10,26 @@ const colours = {
   loss: 0xff0000,
 };
 
-export const InsightFormat: BaseFormat = {
-  getMessage: async (killmail: KillMail, zkb: ZkbOnly, kill: boolean) => {
+function formatISKValue(isk: number): string {
+  let value = "";
+  if (isk >= 1000000000) {
+    value = Math.round(isk / 100000000) / 10 + "B ISK";
+  } else if (isk >= 1000000) {
+    value = Math.round(isk / 100000) / 10 + "M ISK";
+  } else if (isk >= 1000) {
+    value = Math.round(isk / 100) / 10 + "k ISK";
+  }
+  return value;
+}
+
+export const InsightWithEvePraisalFormat: BaseFormat = {
+  getMessage: (killmail: KillMail, zkb: ZkbOnly, kill: boolean) => {
     // not all Corps are in an Alliance!
     const badgeUrl = killmail.victim.alliance_id
       ? `https://images.evetech.net/alliances/${killmail.victim.alliance_id}/logo?size=64`
       : `https://images.evetech.net/corporations/${killmail.victim.corporation_id}/logo?size=64`;
 
-    let value = "";
-    if (zkb.zkb.totalValue >= 1000000000) {
-      value = Math.round(zkb.zkb.totalValue / 100000000) / 10 + "B ISK";
-    } else if (zkb.zkb.totalValue >= 1000000) {
-      value = Math.round(zkb.zkb.totalValue / 100000) / 10 + "M ISK";
-    } else if (zkb.zkb.totalValue >= 1000) {
-      value = Math.round(zkb.zkb.totalValue / 100) / 10 + "k ISK";
-    }
+    let value = formatISKValue(zkb.zkb.totalValue);
 
     let attacker = killmail.attackers.filter((char) => char.final_blow)[0];
     if (!attacker) attacker = killmail.attackers[0];
@@ -30,7 +37,7 @@ export const InsightFormat: BaseFormat = {
     return Promise.all([
       getCharacterNames(killmail.victim, killmail.solar_system_id),
       getCharacterNames(attacker, killmail.solar_system_id),
-    ]).then(([victimNames, attackerNames]) => {
+    ]).then(async ([victimNames, attackerNames]) => {
       let attackerShipName = attackerNames.ship;
       if (
         attackerShipName &&
@@ -77,6 +84,40 @@ export const InsightFormat: BaseFormat = {
           fleetPhrase += "s";
         }
       }
+
+      let evePraisalItems: {
+        type_id: number;
+        quantity: number;
+      }[] = [];
+      if (killmail.victim.items.length > 0) {
+        evePraisalItems = killmail.victim.items.map((item) => {
+          return {
+            type_id: item.item_type_id,
+            quantity:
+              (item.quantity_destroyed ? item.quantity_destroyed : 0) +
+              (item.quantity_dropped ? item.quantity_dropped : 0),
+          };
+        });
+      }
+
+      evePraisalItems.push({
+        type_id: killmail.victim.ship_type_id,
+        quantity: 1,
+      });
+      const url = "https://evepraisal.com/appraisal/structured.json";
+      const payload = {
+        market_name: "jita",
+        items: evePraisalItems,
+      };
+
+      const { data } = await axios.post<EvePraisal>(url, payload);
+
+      // console.log(JSON.stringify(evePraisalItems));
+      // console.log("-----------------");
+      // console.log(JSON.stringify(data));
+
+      let evePraisalValue = formatISKValue(data.appraisal.totals.sell);
+
       return {
         embeds: [
           new EmbedBuilder()
@@ -96,7 +137,8 @@ export const InsightFormat: BaseFormat = {
             )
             .setTimestamp(new Date(killmail.killmail_time))
             .setFooter({
-              text: `Value: ${value}`,
+              text: `ZKill Value: ${value}
+EvePraisal: ${evePraisalValue}`,
             }),
         ],
       };

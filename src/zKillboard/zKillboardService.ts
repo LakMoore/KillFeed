@@ -3,6 +3,7 @@ import { Client, DiscordAPIError, PermissionsBitField } from "discord.js";
 import { Config } from "../Config";
 import { EmbeddedFormat } from "../feedformats/EmbeddedFormat";
 import { InsightFormat } from "../feedformats/InsightFormat";
+import { InsightWithEvePraisalFormat } from "../feedformats/InsightWithEvePraisalFormat";
 import { ZKillLinkFormat } from "../feedformats/ZKillLinkFormat";
 import {
   canUseChannel,
@@ -126,7 +127,11 @@ export async function prepAndSend(
         // TODO: Look up the desired message format for this channel
 
         // Generate the message
-        return InsightFormat.getMessage(killmail, zkb, false).then((msg) => {
+        return InsightWithEvePraisalFormat.getMessage(
+          killmail,
+          zkb,
+          false
+        ).then((msg) => {
           if (
             canUseChannel(channel) &&
             checkChannelPermissions(
@@ -150,20 +155,22 @@ export async function prepAndSend(
         // TODO: Look up the desired message format for this channel
 
         // Generate the message
-        return InsightFormat.getMessage(killmail, zkb, true).then((msg) => {
-          if (
-            canUseChannel(channel) &&
-            checkChannelPermissions(
-              channel,
-              PermissionsBitField.Flags.SendMessages
-            )
-          ) {
-            // send the message
-            return channel.send(msg);
-          } else {
-            console.log("Couldn't send killmail on this channel");
+        return InsightWithEvePraisalFormat.getMessage(killmail, zkb, true).then(
+          (msg) => {
+            if (
+              canUseChannel(channel) &&
+              checkChannelPermissions(
+                channel,
+                PermissionsBitField.Flags.SendMessages
+              )
+            ) {
+              // send the message
+              return channel.send(msg);
+            } else {
+              console.log("Couldn't send killmail on this channel");
+            }
           }
-        });
+        );
       })
     );
   } catch (error) {
