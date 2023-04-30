@@ -1,5 +1,6 @@
 import axios from "axios";
 import { Client, DiscordAPIError, PermissionsBitField } from "discord.js";
+import { EvePraisal } from "../helpers/EvePraisal";
 import { Config } from "../Config";
 import { EmbeddedFormat } from "../feedformats/EmbeddedFormat";
 import { InsightFormat } from "../feedformats/InsightFormat";
@@ -120,6 +121,40 @@ export async function prepAndSend(
       });
     });
 
+    // Get the Evepraisal value of the lossmail
+    let evePraisalItems: {
+      type_id: number;
+      quantity: number;
+    }[] = [];
+    if (killmail.victim.items.length > 0) {
+      evePraisalItems = killmail.victim.items.map((item) => {
+        return {
+          type_id: item.item_type_id,
+          quantity:
+            (item.quantity_destroyed ? item.quantity_destroyed : 0) +
+            (item.quantity_dropped ? item.quantity_dropped : 0),
+        };
+      });
+    }
+
+    evePraisalItems.push({
+      type_id: killmail.victim.ship_type_id,
+      quantity: 1,
+    });
+    const url = "https://evepraisal.com/appraisal/structured.json";
+    const payload = {
+      market_name: "jita",
+      items: evePraisalItems,
+    };
+
+    const { data } = await axios.post<EvePraisal>(url, payload);
+
+    // console.log(JSON.stringify(evePraisalItems));
+    // console.log("-----------------");
+    // console.log(JSON.stringify(data));
+
+    let evePraisalValue = data.appraisal.totals.sell;
+
     await Promise.all(
       Array.from(lossmailChannelIDs).map((channelId) => {
         let channel = client.channels.cache.find((c) => c.id === channelId);
@@ -130,7 +165,8 @@ export async function prepAndSend(
         return InsightWithEvePraisalFormat.getMessage(
           killmail,
           zkb,
-          false
+          false,
+          evePraisalValue
         ).then((msg) => {
           if (
             canUseChannel(channel) &&
@@ -155,22 +191,25 @@ export async function prepAndSend(
         // TODO: Look up the desired message format for this channel
 
         // Generate the message
-        return InsightWithEvePraisalFormat.getMessage(killmail, zkb, true).then(
-          (msg) => {
-            if (
-              canUseChannel(channel) &&
-              checkChannelPermissions(
-                channel,
-                PermissionsBitField.Flags.SendMessages
-              )
-            ) {
-              // send the message
-              return channel.send(msg);
-            } else {
-              console.log("Couldn't send killmail on this channel");
-            }
+        return InsightWithEvePraisalFormat.getMessage(
+          killmail,
+          zkb,
+          true,
+          evePraisalValue
+        ).then((msg) => {
+          if (
+            canUseChannel(channel) &&
+            checkChannelPermissions(
+              channel,
+              PermissionsBitField.Flags.SendMessages
+            )
+          ) {
+            // send the message
+            return channel.send(msg);
+          } else {
+            console.log("Couldn't send killmail on this channel");
           }
-        );
+        });
       })
     );
   } catch (error) {

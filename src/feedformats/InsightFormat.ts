@@ -9,7 +9,12 @@ const colours = {
 };
 
 export const InsightFormat: BaseFormat = {
-  getMessage: async (killmail: KillMail, zkb: ZkbOnly, kill: boolean) => {
+  getMessage: async (
+    killmail: KillMail,
+    zkb: ZkbOnly,
+    kill: boolean,
+    evePraisal: number
+  ) => {
     // not all Corps are in an Alliance!
     const badgeUrl = killmail.victim.alliance_id
       ? `https://images.evetech.net/alliances/${killmail.victim.alliance_id}/logo?size=64`

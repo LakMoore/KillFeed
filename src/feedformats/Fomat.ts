@@ -5,6 +5,7 @@ export interface BaseFormat {
   getMessage: (
     data: KillMail,
     zkb: ZkbOnly,
-    kill: boolean
+    kill: boolean,
+    evePraisal: number
   ) => Promise<MessageCreateOptions>;
 }

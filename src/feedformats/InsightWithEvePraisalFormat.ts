@@ -23,7 +23,12 @@ function formatISKValue(isk: number): string {
 }
 
 export const InsightWithEvePraisalFormat: BaseFormat = {
-  getMessage: (killmail: KillMail, zkb: ZkbOnly, kill: boolean) => {
+  getMessage: async (
+    killmail: KillMail,
+    zkb: ZkbOnly,
+    kill: boolean,
+    evePraisal: number
+  ) => {
     // not all Corps are in an Alliance!
     const badgeUrl = killmail.victim.alliance_id
       ? `https://images.evetech.net/alliances/${killmail.victim.alliance_id}/logo?size=64`
@@ -85,38 +90,7 @@ export const InsightWithEvePraisalFormat: BaseFormat = {
         }
       }
 
-      let evePraisalItems: {
-        type_id: number;
-        quantity: number;
-      }[] = [];
-      if (killmail.victim.items.length > 0) {
-        evePraisalItems = killmail.victim.items.map((item) => {
-          return {
-            type_id: item.item_type_id,
-            quantity:
-              (item.quantity_destroyed ? item.quantity_destroyed : 0) +
-              (item.quantity_dropped ? item.quantity_dropped : 0),
-          };
-        });
-      }
-
-      evePraisalItems.push({
-        type_id: killmail.victim.ship_type_id,
-        quantity: 1,
-      });
-      const url = "https://evepraisal.com/appraisal/structured.json";
-      const payload = {
-        market_name: "jita",
-        items: evePraisalItems,
-      };
-
-      const { data } = await axios.post<EvePraisal>(url, payload);
-
-      // console.log(JSON.stringify(evePraisalItems));
-      // console.log("-----------------");
-      // console.log(JSON.stringify(data));
-
-      let evePraisalValue = formatISKValue(data.appraisal.totals.sell);
+      let evePraisalValue = formatISKValue(evePraisal);
 
       return {
         embeds: [

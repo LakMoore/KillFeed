@@ -33,7 +33,7 @@ export const Test: Command = {
         if (zkb && zkb.zkb) {
           const { data } = await fetchKillmail(kmId, zkb.zkb.hash);
 
-          prepAndSend(client, data, zkb);
+          await prepAndSend(client, data, zkb);
           content = "Found the Killmail!";
         } else {
           content = `Failed to find kill ID ${kmId} on ZKillboard`;

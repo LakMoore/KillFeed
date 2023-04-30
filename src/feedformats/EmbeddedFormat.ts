@@ -8,7 +8,12 @@ const colours = {
 };
 
 export const EmbeddedFormat: BaseFormat = {
-  getMessage: async (killmail: KillMail, zkb: ZkbOnly, kill: boolean) => {
+  getMessage: async (
+    killmail: KillMail,
+    zkb: ZkbOnly,
+    kill: boolean,
+    evePraisal: number
+  ) => {
     return {
       embeds: [
         new EmbedBuilder()
