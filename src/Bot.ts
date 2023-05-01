@@ -18,7 +18,7 @@ function main() {
   // set this up once
   axiosRetry(axios, { retries: 99, retryDelay: axiosRetry.exponentialDelay });
 
-  Error.stackTraceLimit = Infinity;
+  // Error.stackTraceLimit = Infinity;
 
   ready(client);
   interactionCreate(client);
