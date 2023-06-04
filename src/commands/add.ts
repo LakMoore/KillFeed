@@ -69,24 +69,24 @@ export const Add: Command = {
 
           // now the ID should exist
           if (id) {
-            const settings = Config.getInstance().registeredChannels.get(
+            const thisSubscription = Config.getInstance().allSubscriptions.get(
               interaction.channel.id
             );
 
-            if (!settings) {
+            if (!thisSubscription) {
               response =
                 "Unable to find settings for this channel. Use /init to start.";
             } else {
               let thisSetting = undefined;
 
               if (filterType === TYPE_CHAR) {
-                thisSetting = settings?.Characters;
+                thisSetting = thisSubscription?.Characters;
               } else if (filterType === TYPE_CORP) {
-                thisSetting = settings?.Corporations;
+                thisSetting = thisSubscription?.Corporations;
               } else if (filterType === TYPE_ALLIANCE) {
-                thisSetting = settings?.Alliances;
+                thisSetting = thisSubscription?.Alliances;
               } else if (filterType === TYPE_SHIP) {
-                thisSetting = settings?.Ships;
+                thisSetting = thisSubscription?.Ships;
               }
 
               // add the ID to the settings in memory
@@ -100,7 +100,7 @@ export const Add: Command = {
 
               if (message) {
                 // save the config into the channel
-                await message.edit(generateConfigMessage(settings));
+                await message.edit(generateConfigMessage(thisSubscription));
                 await updateChannel(
                   client,
                   interaction.channel.id,
@@ -108,7 +108,7 @@ export const Add: Command = {
                 );
                 response = `Success! Added ${filterValue} (${id})`;
               } else {
-                response = `No settings found in channel. Use /init to start.`;
+                response = `No subscription found in channel. Use /init to start.`;
               }
             }
           }

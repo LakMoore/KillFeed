@@ -67,31 +67,31 @@ export const Remove: Command = {
 
           // now the ID should exist
           if (id) {
-            const settings = Config.getInstance().registeredChannels.get(
+            const thisSubscription = Config.getInstance().allSubscriptions.get(
               interaction.channel.id
             );
 
-            let thisSetting = undefined;
+            let thisFilter = undefined;
             let listener = undefined;
 
             if (filterType === TYPE_CHAR) {
-              thisSetting = settings?.Characters;
+              thisFilter = thisSubscription?.Characters;
               listener = Config.getInstance().matchedCharacters;
             } else if (filterType === TYPE_CORP) {
-              thisSetting = settings?.Corporations;
+              thisFilter = thisSubscription?.Corporations;
               listener = Config.getInstance().matchedCorporations;
             } else if (filterType === TYPE_ALLIANCE) {
-              thisSetting = settings?.Alliances;
+              thisFilter = thisSubscription?.Alliances;
               listener = Config.getInstance().matchedAlliances;
             } else if (filterType === TYPE_SHIP) {
-              thisSetting = settings?.Ships;
+              thisFilter = thisSubscription?.Ships;
               listener = Config.getInstance().matchedShips;
             }
 
             // remove the ID from the settings in memory
-            if (thisSetting) {
+            if (thisFilter) {
               console.log("Deleting the id");
-              thisSetting?.delete(id);
+              thisFilter?.delete(id);
             }
 
             // remove the ID from the current filters too
@@ -102,9 +102,9 @@ export const Remove: Command = {
             // re-generate the config message
             const message = await getConfigMessage(interaction.channel);
 
-            if (message && settings) {
+            if (message && thisSubscription) {
               // save the config into the channel
-              await message.edit(generateConfigMessage(settings));
+              await message.edit(generateConfigMessage(thisSubscription));
             }
           }
         }

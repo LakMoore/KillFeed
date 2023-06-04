@@ -13,7 +13,7 @@ export interface SubscriptionSettings {
 export class Config {
   private static instance: Config;
 
-  public registeredChannels = new Map<string, SubscriptionSettings>();
+  public allSubscriptions = new Map<string, SubscriptionSettings>();
 
   // in the following maps the keys are Eve IDs and the values are lists of
   // Discord Channel IDs that are listening for the match

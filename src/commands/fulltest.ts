@@ -32,7 +32,7 @@ export const FullTest: Command = {
       interaction.channel &&
       interaction.guild
     ) {
-      const settings = Config.getInstance().registeredChannels.get(
+      const settings = Config.getInstance().allSubscriptions.get(
         interaction.channel.id
       );
 

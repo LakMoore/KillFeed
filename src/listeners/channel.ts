@@ -17,7 +17,7 @@ export default (client: Client): void => {
     if (channel instanceof TextChannel) {
       console.log("Left a channel: " + channel.name);
 
-      let thisChannelConfig = Config.getInstance().registeredChannels.get(
+      let thisChannelConfig = Config.getInstance().allSubscriptions.get(
         channel.id
       );
       if (thisChannelConfig) {
@@ -25,7 +25,7 @@ export default (client: Client): void => {
         clearChannel(thisChannelConfig, channel);
 
         //remove config for this channel
-        Config.getInstance().registeredChannels.delete(channel.id);
+        Config.getInstance().allSubscriptions.delete(channel.id);
       }
     }
   });

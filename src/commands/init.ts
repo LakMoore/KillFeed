@@ -25,7 +25,7 @@ export const Init: Command = {
 
       // if we have no config message
       if (!message) {
-        let thisChannelConfig = Config.getInstance().registeredChannels.get(
+        let thisChannelConfig = Config.getInstance().allSubscriptions.get(
           channel.id
         );
         if (thisChannelConfig) {
@@ -34,7 +34,7 @@ export const Init: Command = {
         }
 
         //remove config for this channel
-        Config.getInstance().registeredChannels.delete(channel.id);
+        Config.getInstance().allSubscriptions.delete(channel.id);
 
         // Add a new pinned message
         if (

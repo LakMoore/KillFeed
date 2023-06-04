@@ -12,11 +12,13 @@ export async function updateChannel(
   // If this is a purely text based channel that we can use
   if (canUseChannel(channel)) {
     console.log(`Server ${guildName}: Found a channel '${channel.name}'`);
-    let thisChannel = Config.getInstance().registeredChannels.get(channel.id);
-    if (thisChannel !== undefined) {
+    let thisSubscription = Config.getInstance().allSubscriptions.get(
+      channel.id
+    );
+    if (thisSubscription !== undefined) {
       // If we already had a config loaded for this channel
       // we need to clear this channel out of the all listeners
-      clearChannel(thisChannel, channel);
+      clearChannel(thisSubscription, channel);
     }
 
     // fetch the config message
@@ -24,23 +26,23 @@ export async function updateChannel(
     if (message) {
       // found a pinned message in this channel
       // rework config for this channel
-      thisChannel = parseConfigMessage(message.content, channel);
+      thisSubscription = parseConfigMessage(message.content, channel);
 
-      Config.getInstance().registeredChannels.set(channel.id, thisChannel);
+      Config.getInstance().allSubscriptions.set(channel.id, thisSubscription);
 
-      thisChannel.Alliances.forEach((id) => {
+      thisSubscription.Alliances.forEach((id) => {
         addListener(Config.getInstance().matchedAlliances, id, channel.id);
       });
 
-      thisChannel.Corporations.forEach((id) => {
+      thisSubscription.Corporations.forEach((id) => {
         addListener(Config.getInstance().matchedCorporations, id, channel.id);
       });
 
-      thisChannel.Characters.forEach((id) => {
+      thisSubscription.Characters.forEach((id) => {
         addListener(Config.getInstance().matchedCharacters, id, channel.id);
       });
 
-      thisChannel.Ships.forEach((id) => {
+      thisSubscription.Ships.forEach((id) => {
         addListener(Config.getInstance().matchedShips, id, channel.id);
       });
     }
@@ -50,24 +52,24 @@ export async function updateChannel(
 // Go through all listeners registered to this channel
 // and remove that registration
 export function clearChannel(
-  thisChannelConfig: SubscriptionSettings,
+  subscription: SubscriptionSettings,
   channel: TextChannel
 ) {
-  thisChannelConfig.Alliances.forEach((allianceId) => {
+  subscription.Alliances.forEach((allianceId) => {
     Config.getInstance().matchedAlliances.get(allianceId)?.delete(channel.id);
     console.log(`Deleted alliance ${allianceId} from server ${channel.id}`);
   });
-  thisChannelConfig.Corporations.forEach((allianceId) => {
+  subscription.Corporations.forEach((allianceId) => {
     Config.getInstance()
       .matchedCorporations.get(allianceId)
       ?.delete(channel.id);
     console.log(`Deleted corporation ${allianceId} from server ${channel.id}`);
   });
-  thisChannelConfig.Characters.forEach((allianceId) => {
+  subscription.Characters.forEach((allianceId) => {
     Config.getInstance().matchedCharacters.get(allianceId)?.delete(channel.id);
     console.log(`Deleted character ${allianceId} from server ${channel.id}`);
   });
-  thisChannelConfig.Ships.forEach((shipId) => {
+  subscription.Ships.forEach((shipId) => {
     Config.getInstance().matchedShips.get(shipId)?.delete(channel.id);
     console.log(`Deleted ship ${shipId} from server ${channel.id}`);
   });

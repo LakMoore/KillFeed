@@ -16,7 +16,7 @@ export default (client: Client): void => {
     console.log("Left a guild: " + guild.name);
 
     //go through all of the channels we were tracking on this server
-    Array.from(Config.getInstance().registeredChannels.values())
+    Array.from(Config.getInstance().allSubscriptions.values())
       .filter((channel) => channel.Channel.guildId === guild.id)
       .forEach((channelConfig) => {
         if (channelConfig.Channel instanceof TextChannel) {
@@ -25,7 +25,7 @@ export default (client: Client): void => {
             clearChannel(channelConfig, channelConfig.Channel);
 
             //remove config for this channel
-            Config.getInstance().registeredChannels.delete(
+            Config.getInstance().allSubscriptions.delete(
               channelConfig.Channel.id
             );
           }

@@ -11,19 +11,19 @@ export const Info: Command = {
     let response = "KillFeed is not able to view this channel!";
 
     if (interaction.channel && canUseChannel(interaction.channel)) {
-      let thisChannel = Config.getInstance().registeredChannels.get(
+      let thisSubscription = Config.getInstance().allSubscriptions.get(
         interaction.channelId
       );
 
-      if (!thisChannel) {
+      if (!thisSubscription) {
         response =
-          "The channel settings were not found. Please use the /init command to get started.";
+          "A subscription was not found for this channel. Please use the /init command to get started.";
       } else {
         response = "";
-        if (thisChannel.Alliances.size > 0) {
+        if (thisSubscription.Alliances.size > 0) {
           response +=
             "**Alliances:**\n" +
-            (await fetchESINames(Array.from(thisChannel.Alliances)).then(
+            (await fetchESINames(Array.from(thisSubscription.Alliances)).then(
               (names) => {
                 return names
                   .map((n) => n.name)
@@ -33,23 +33,23 @@ export const Info: Command = {
             )) +
             "\n";
         }
-        if (thisChannel.Corporations.size > 0) {
+        if (thisSubscription.Corporations.size > 0) {
           response +=
             "**Corporations:**\n" +
-            (await fetchESINames(Array.from(thisChannel.Corporations)).then(
-              (names) => {
-                return names
-                  .map((n) => n.name)
-                  .sort()
-                  .join("\n");
-              }
-            )) +
+            (await fetchESINames(
+              Array.from(thisSubscription.Corporations)
+            ).then((names) => {
+              return names
+                .map((n) => n.name)
+                .sort()
+                .join("\n");
+            })) +
             "\n";
         }
-        if (thisChannel.Characters.size > 0) {
+        if (thisSubscription.Characters.size > 0) {
           response +=
             "**Characters:**\n" +
-            (await fetchESINames(Array.from(thisChannel.Characters)).then(
+            (await fetchESINames(Array.from(thisSubscription.Characters)).then(
               (names) => {
                 return names
                   .map((n) => n.name)
@@ -59,10 +59,10 @@ export const Info: Command = {
             )) +
             "\n";
         }
-        if (thisChannel.Ships.size > 0) {
+        if (thisSubscription.Ships.size > 0) {
           response +=
             "**Ships:**\n" +
-            (await fetchESINames(Array.from(thisChannel.Ships)).then(
+            (await fetchESINames(Array.from(thisSubscription.Ships)).then(
               (names) => {
                 return names
                   .map((n) => n.name)
@@ -77,16 +77,16 @@ export const Info: Command = {
         } else {
           response = "No filters set. Use /add command to set some filters.";
         }
-        if (thisChannel.FullTest) {
+        if (thisSubscription.FullTest) {
           if (response.length > 0) {
             response += "\n";
           }
           response += "Full test mode is on";
         }
-        response += "\nFormat is " + thisChannel.ResponseFormat;
+        response += "\nFormat is " + thisSubscription.ResponseFormat;
         response +=
           "\nBot is currently active in " +
-          Config.getInstance().registeredChannels.size +
+          Config.getInstance().allSubscriptions.size +
           " channels";
       }
     }

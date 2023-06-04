@@ -79,7 +79,7 @@ export async function prepAndSend(
     });
     Config.getInstance().testRequests.clear();
 
-    Array.from(Config.getInstance().registeredChannels.values())
+    Array.from(Config.getInstance().allSubscriptions.values())
       .filter((chan) => chan.FullTest)
       .forEach((chan) => {
         lossmailChannelIDs.add(chan.Channel.id);
