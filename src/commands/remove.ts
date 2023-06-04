@@ -8,10 +8,10 @@ import {
 import { Command } from "../Command";
 import { fetchESIIDs } from "../esi/fetch";
 import {
-  filterOption,
-  filterValue,
+  FILTER_OPTION,
+  FILTER_NAME_OR_ID,
   FILTER_TYPE,
-  FILTER_VALUE,
+  FILTER_NAME_ID,
   TYPE_ALLIANCE,
   TYPE_CHAR,
   TYPE_CORP,
@@ -21,8 +21,8 @@ import {
 const builder = new SlashCommandBuilder()
   .setName("remove")
   .setDescription("Remove a rule from KillFeed's filter")
-  .addStringOption(filterOption)
-  .addStringOption(filterValue);
+  .addStringOption(FILTER_OPTION)
+  .addStringOption(FILTER_NAME_OR_ID);
 
 export const Remove: Command = {
   ...builder.toJSON(),
@@ -35,7 +35,7 @@ export const Remove: Command = {
       if (!filterType) {
         response = "You must specify a type";
       } else {
-        const filterValue = interaction.options.getString(FILTER_VALUE);
+        const filterValue = interaction.options.getString(FILTER_NAME_ID);
 
         if (!filterValue) {
           response = "You must specify a value";
