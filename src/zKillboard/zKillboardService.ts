@@ -29,7 +29,7 @@ export async function pollzKillboardOnce(client: Client) {
 
     // null and empty packages are normal, if there is no kill feed activity
     // in the last 10 seconds
-    if (data && data.package) {
+    if (data?.package) {
       // We have a non-null response from zk
       await prepAndSend(client, data.package.killmail, {
         killmail_id: data.package.killID,
@@ -121,43 +121,60 @@ export async function prepAndSend(
       });
     });
 
+    let evePraisalValue = 0;
+
     // Get the Evepraisal value of the lossmail
-    let evePraisalItems: {
-      type_id: number;
-      quantity: number;
-    }[] = [];
-    if (killmail.victim.items.length > 0) {
-      evePraisalItems = killmail.victim.items.map((item) => {
-        return {
-          type_id: item.item_type_id,
-          quantity:
-            (item.quantity_destroyed ? item.quantity_destroyed : 0) +
-            (item.quantity_dropped ? item.quantity_dropped : 0),
-        };
+    try {
+      let evePraisalItems: {
+        type_id: number;
+        quantity: number;
+      }[] = [];
+      if (killmail.victim.items.length > 0) {
+        evePraisalItems = killmail.victim.items.map((item) => {
+          return {
+            type_id: item.item_type_id,
+            quantity:
+              (item.quantity_destroyed ? item.quantity_destroyed : 0) +
+              (item.quantity_dropped ? item.quantity_dropped : 0),
+          };
+        });
+      }
+
+      evePraisalItems.push({
+        type_id: killmail.victim.ship_type_id,
+        quantity: 1,
       });
+      const url = "https://evepraisal.com/appraisal/structured.json";
+      const payload = {
+        market_name: "jita",
+        items: evePraisalItems,
+      };
+
+      const { data } = await axios.post<EvePraisal>(url, payload);
+
+      // console.log(JSON.stringify(evePraisalItems));
+      // console.log("-----------------");
+      // console.log(JSON.stringify(data));
+
+      evePraisalValue = data.appraisal.totals.sell;
+    } catch (error) {
+      console.log("Evepraisal error", error);
     }
-
-    evePraisalItems.push({
-      type_id: killmail.victim.ship_type_id,
-      quantity: 1,
-    });
-    const url = "https://evepraisal.com/appraisal/structured.json";
-    const payload = {
-      market_name: "jita",
-      items: evePraisalItems,
-    };
-
-    const { data } = await axios.post<EvePraisal>(url, payload);
-
-    // console.log(JSON.stringify(evePraisalItems));
-    // console.log("-----------------");
-    // console.log(JSON.stringify(data));
-
-    let evePraisalValue = data.appraisal.totals.sell;
 
     await Promise.all(
       Array.from(lossmailChannelIDs).map((channelId) => {
         let channel = client.channels.cache.find((c) => c.id === channelId);
+
+        // check the minISK value filter
+        const thisSubscription =
+          Config.getInstance().allSubscriptions.get(channelId);
+
+        if (zkb.zkb.totalValue <= (thisSubscription?.MinISK ?? 0)) {
+          console.log(
+            `Filtered out the killmail for a channel. Insufficient ISK value.`
+          );
+          return Promise.resolve();
+        }
 
         // TODO: Look up the desired message format for this channel
 

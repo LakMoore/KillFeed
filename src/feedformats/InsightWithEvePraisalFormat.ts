@@ -10,7 +10,7 @@ const colours = {
   loss: 0xff0000,
 };
 
-function formatISKValue(isk: number): string {
+export function formatISKValue(isk: number): string {
   let value = "";
   if (isk >= 1000000000) {
     value = Math.round(isk / 100000000) / 10 + "B ISK";

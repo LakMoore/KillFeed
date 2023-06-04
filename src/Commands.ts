@@ -7,6 +7,7 @@ import { Test } from "./commands/test";
 import { Info } from "./commands/info";
 import { Remove } from "./commands/remove";
 import { FullTest } from "./commands/fulltest";
+import { SetMinISK } from "./commands/setMinISK";
 
 export const Commands: Command[] = [
   Hello,
@@ -17,4 +18,5 @@ export const Commands: Command[] = [
   Add,
   Remove,
   FullTest,
+  SetMinISK,
 ];

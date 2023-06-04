@@ -56,6 +56,7 @@ export function parseConfigMessage(
     Corporations: new Set<number>(),
     Characters: new Set<number>(),
     Ships: new Set<number>(),
+    MinISK: 0,
   };
 }
 

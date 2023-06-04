@@ -8,6 +8,7 @@ export interface SubscriptionSettings {
   Corporations: Set<number>;
   Characters: Set<number>;
   Ships: Set<number>;
+  MinISK: number | undefined;
 }
 
 export class Config {
