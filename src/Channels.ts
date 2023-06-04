@@ -1,5 +1,5 @@
 import { Client, TextChannel } from "discord.js";
-import { ChannelSettings, Config } from "./Config";
+import { SubscriptionSettings, Config } from "./Config";
 import { canUseChannel, getConfigMessage } from "./helpers/DiscordHelper";
 import { addListener, parseConfigMessage } from "./helpers/KillFeedHelpers";
 
@@ -50,7 +50,7 @@ export async function updateChannel(
 // Go through all listeners registered to this channel
 // and remove that registration
 export function clearChannel(
-  thisChannelConfig: ChannelSettings,
+  thisChannelConfig: SubscriptionSettings,
   channel: TextChannel
 ) {
   thisChannelConfig.Alliances.forEach((allianceId) => {

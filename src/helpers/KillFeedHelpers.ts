@@ -1,9 +1,9 @@
 import { Channel, TextChannel } from "discord.js";
-import { ChannelSettings } from "../Config";
+import { SubscriptionSettings } from "../Config";
 
 // serialise our settings storage object, dropping the internal reference to the channel itself
 
-export function generateConfigMessage(settings: ChannelSettings): string {
+export function generateConfigMessage(settings: SubscriptionSettings): string {
   return JSON.stringify(
     settings,
     (key, value) => {
@@ -21,7 +21,7 @@ export function generateConfigMessage(settings: ChannelSettings): string {
 export function parseConfigMessage(
   message: string,
   channel: Channel
-): ChannelSettings {
+): SubscriptionSettings {
   let result = undefined;
 
   try {

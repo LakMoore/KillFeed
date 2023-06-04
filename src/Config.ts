@@ -1,6 +1,6 @@
 import { TextChannel } from "discord.js";
 
-export interface ChannelSettings {
+export interface SubscriptionSettings {
   Channel: TextChannel;
   ResponseFormat: "Embed" | "zKill";
   FullTest: boolean;
@@ -13,7 +13,7 @@ export interface ChannelSettings {
 export class Config {
   private static instance: Config;
 
-  public registeredChannels = new Map<string, ChannelSettings>();
+  public registeredChannels = new Map<string, SubscriptionSettings>();
 
   // in the following maps the keys are Eve IDs and the values are lists of
   // Discord Channel IDs that are listening for the match
