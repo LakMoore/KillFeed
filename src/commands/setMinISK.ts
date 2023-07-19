@@ -9,7 +9,7 @@ import { getConfigMessage } from "../helpers/DiscordHelper";
 import { generateConfigMessage } from "../helpers/KillFeedHelpers";
 import { Command } from "../Command";
 import { updateChannel } from "../Channels";
-import { formatISKValue } from "../feedformats/InsightWithEvePraisalFormat";
+import { formatISKValue } from "../helpers/JaniceHelper";
 
 export const NAME_VALUE = "min-isk-value";
 

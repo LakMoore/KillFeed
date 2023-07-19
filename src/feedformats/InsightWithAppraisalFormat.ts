@@ -2,6 +2,7 @@ import { EmbedBuilder } from "@discordjs/builders";
 import { getCharacterNames } from "../esi/get";
 import { KillMail, ZkbOnly } from "../zKillboard/zKillboard";
 import { BaseFormat, ZKMailType } from "./Fomat";
+import { formatISKValue } from "../helpers/JaniceHelper";
 
 const colours = {
   kill: 0x00ff00,
@@ -9,19 +10,7 @@ const colours = {
   neutral: 0x0000ff,
 };
 
-export function formatISKValue(isk: number): string {
-  let value = "";
-  if (isk >= 1000000000) {
-    value = Math.round(isk / 100000000) / 10 + "B ISK";
-  } else if (isk >= 1000000) {
-    value = Math.round(isk / 100000) / 10 + "M ISK";
-  } else if (isk >= 1000) {
-    value = Math.round(isk / 100) / 10 + "k ISK";
-  }
-  return value;
-}
-
-export const InsightWithEvePraisalFormat: BaseFormat = {
+export const InsightWithAppraisalFormat: BaseFormat = {
   getMessage: async (
     killmail: KillMail,
     zkb: ZkbOnly,
@@ -33,7 +22,7 @@ export const InsightWithEvePraisalFormat: BaseFormat = {
       ? `https://images.evetech.net/alliances/${killmail.victim.alliance_id}/logo?size=64`
       : `https://images.evetech.net/corporations/${killmail.victim.corporation_id}/logo?size=64`;
 
-    let value = formatISKValue(zkb.zkb.totalValue);
+    const value = formatISKValue(zkb.zkb.totalValue);
 
     let attacker = killmail.attackers.filter((char) => char.final_blow)[0];
     if (!attacker) attacker = killmail.attackers[0];
@@ -89,7 +78,7 @@ export const InsightWithEvePraisalFormat: BaseFormat = {
         }
       }
 
-      let evePraisalValue = formatISKValue(appraisedValue);
+      const appraisedValueText = formatISKValue(appraisedValue);
 
       let nameText = "Neutral";
       let colour = colours.neutral;
@@ -122,7 +111,7 @@ export const InsightWithEvePraisalFormat: BaseFormat = {
             .setTimestamp(new Date(killmail.killmail_time))
             .setFooter({
               text: `ZKill Value: ${value}
-EvePraisal: ${evePraisalValue}`,
+EvePraisal: ${appraisedValueText}`,
             }),
         ],
       };

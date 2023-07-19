@@ -1,10 +1,9 @@
 import axios from "axios";
 import { Client, DiscordAPIError, PermissionsBitField } from "discord.js";
-import { EvePraisal } from "../helpers/EvePraisal";
 import { Config } from "../Config";
 import { EmbeddedFormat } from "../feedformats/EmbeddedFormat";
 import { InsightFormat } from "../feedformats/InsightFormat";
-import { InsightWithEvePraisalFormat } from "../feedformats/InsightWithEvePraisalFormat";
+import { InsightWithAppraisalFormat } from "../feedformats/InsightWithAppraisalFormat";
 import { ZKillLinkFormat } from "../feedformats/ZKillLinkFormat";
 import {
   canUseChannel,
@@ -144,45 +143,57 @@ export async function prepAndSend(
       console.log(`Error while fetching region from system`, error);
     }
 
-    let evePraisalValue = 0;
+    let appraisalValue = 0;
 
-    // Get the Evepraisal value of the lossmail
-    // try {
-    //   let evePraisalItems: {
-    //     type_id: number;
-    //     quantity: number;
-    //   }[] = [];
-    //   if (killmail.victim.items.length > 0) {
-    //     evePraisalItems = killmail.victim.items.map((item) => {
-    //       return {
-    //         type_id: item.item_type_id,
-    //         quantity:
-    //           (item.quantity_destroyed ? item.quantity_destroyed : 0) +
-    //           (item.quantity_dropped ? item.quantity_dropped : 0),
-    //       };
-    //     });
-    //   }
+    // Get the appraised value of the lossmail from a service
+    // EvePraisal is dead, going to use Janice
+    // https://janice.e-351.com/api/rest/docs/index.html
+    try {
+      let janiceItems: {
+        id: number;
+        ammount: number;
+      }[] = [];
+      if (killmail.victim.items.length > 0) {
+        janiceItems = killmail.victim.items.map((item) => {
+          return {
+            id: item.item_type_id,
+            ammount:
+              (item.quantity_destroyed ? item.quantity_destroyed : 0) +
+              (item.quantity_dropped ? item.quantity_dropped : 0),
+          };
+        });
+      }
 
-    //   evePraisalItems.push({
-    //     type_id: killmail.victim.ship_type_id,
-    //     quantity: 1,
-    //   });
-    //   const url = "https://evepraisal.com/appraisal/structured.json";
-    //   const payload = {
-    //     market_name: "jita",
-    //     items: evePraisalItems,
-    //   };
+      janiceItems.push({
+        id: killmail.victim.ship_type_id,
+        ammount: 1,
+      });
+      const url = "https://janice.e-351.com/api/rest/v2/appraisal";
+      const params = {
+        market: "2",
+        designation: "appraisal",
+        pricing: "sell",
+        pricingVariant: "immediate",
+        persist: "true",
+        compactize: "true",
+        pricePercentage: "1",
+      };
+      const query = new URLSearchParams(params).toString();
 
-    //   const { data } = await axios.post<EvePraisal>(url, payload);
+      const payload = {
+        items: janiceItems,
+      };
 
-    //   // console.log(JSON.stringify(evePraisalItems));
-    //   // console.log("-----------------");
-    //   // console.log(JSON.stringify(data));
+      // Need an API Key and lots of testing before this will work
+      //const { data } = await axios.post<EvePraisal>(url + "?" + query, payload);
+      //appraisalValue = data.appraisal.totals.sell;
 
-    //   evePraisalValue = data.appraisal.totals.sell;
-    // } catch (error) {
-    //   console.log("Evepraisal error", error);
-    // }
+      // console.log(JSON.stringify(evePraisalItems));
+      // console.log("-----------------");
+      // console.log(JSON.stringify(data));
+    } catch (error) {
+      console.log("Evepraisal error", error);
+    }
 
     await Promise.all(
       Array.from(lossmailChannelIDs).map((channelId) => {
@@ -199,11 +210,11 @@ export async function prepAndSend(
         // TODO: Look up the desired message format for this channel
 
         // Generate the message
-        return InsightWithEvePraisalFormat.getMessage(
+        return InsightWithAppraisalFormat.getMessage(
           killmail,
           zkb,
           ZKMailType.Loss,
-          evePraisalValue
+          appraisalValue
         ).then((msg) => {
           if (
             canUseChannel(channel) &&
@@ -236,11 +247,11 @@ export async function prepAndSend(
         // TODO: Look up the desired message format for this channel
 
         // Generate the message
-        return InsightWithEvePraisalFormat.getMessage(
+        return InsightWithAppraisalFormat.getMessage(
           killmail,
           zkb,
           ZKMailType.Kill,
-          evePraisalValue
+          appraisalValue
         ).then((msg) => {
           if (
             canUseChannel(channel) &&
@@ -273,11 +284,11 @@ export async function prepAndSend(
         // TODO: Look up the desired message format for this channel
 
         // Generate the message
-        return InsightWithEvePraisalFormat.getMessage(
+        return InsightWithAppraisalFormat.getMessage(
           killmail,
           zkb,
           ZKMailType.Neutral,
-          evePraisalValue
+          appraisalValue
         ).then((msg) => {
           if (
             canUseChannel(channel) &&

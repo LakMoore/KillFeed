@@ -12,6 +12,6 @@ export interface BaseFormat {
     data: KillMail,
     zkb: ZkbOnly,
     type: ZKMailType,
-    evePraisal: number
+    appraisedValue: number
   ) => Promise<MessageCreateOptions>;
 }
