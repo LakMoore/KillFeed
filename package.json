@@ -16,11 +16,14 @@
     "axios": "^1.1.3",
     "axios-retry": "^3.3.1",
     "discord.js": "^14.6.0",
-    "dotenv": "^16.0.3"
+    "dotenv": "^16.0.3",
+    "eve-client-ts": "^1.0.0"
   },
   "devDependencies": {
     "@marketgridsys/prettier": "^2.9.0-mgs.4",
     "@types/node": "^18.11.9",
+    "@typescript-eslint/eslint-plugin": "^6.1.0",
+    "@typescript-eslint/parser": "^6.1.0",
     "eslint-config-prettier": "^8.8.0",
     "eslint-plugin-prettier": "^4.2.1",
     "ts-node": "^10.9.1",
