@@ -147,42 +147,42 @@ export async function prepAndSend(
     let evePraisalValue = 0;
 
     // Get the Evepraisal value of the lossmail
-    try {
-      let evePraisalItems: {
-        type_id: number;
-        quantity: number;
-      }[] = [];
-      if (killmail.victim.items.length > 0) {
-        evePraisalItems = killmail.victim.items.map((item) => {
-          return {
-            type_id: item.item_type_id,
-            quantity:
-              (item.quantity_destroyed ? item.quantity_destroyed : 0) +
-              (item.quantity_dropped ? item.quantity_dropped : 0),
-          };
-        });
-      }
+    // try {
+    //   let evePraisalItems: {
+    //     type_id: number;
+    //     quantity: number;
+    //   }[] = [];
+    //   if (killmail.victim.items.length > 0) {
+    //     evePraisalItems = killmail.victim.items.map((item) => {
+    //       return {
+    //         type_id: item.item_type_id,
+    //         quantity:
+    //           (item.quantity_destroyed ? item.quantity_destroyed : 0) +
+    //           (item.quantity_dropped ? item.quantity_dropped : 0),
+    //       };
+    //     });
+    //   }
 
-      evePraisalItems.push({
-        type_id: killmail.victim.ship_type_id,
-        quantity: 1,
-      });
-      const url = "https://evepraisal.com/appraisal/structured.json";
-      const payload = {
-        market_name: "jita",
-        items: evePraisalItems,
-      };
+    //   evePraisalItems.push({
+    //     type_id: killmail.victim.ship_type_id,
+    //     quantity: 1,
+    //   });
+    //   const url = "https://evepraisal.com/appraisal/structured.json";
+    //   const payload = {
+    //     market_name: "jita",
+    //     items: evePraisalItems,
+    //   };
 
-      const { data } = await axios.post<EvePraisal>(url, payload);
+    //   const { data } = await axios.post<EvePraisal>(url, payload);
 
-      // console.log(JSON.stringify(evePraisalItems));
-      // console.log("-----------------");
-      // console.log(JSON.stringify(data));
+    //   // console.log(JSON.stringify(evePraisalItems));
+    //   // console.log("-----------------");
+    //   // console.log(JSON.stringify(data));
 
-      evePraisalValue = data.appraisal.totals.sell;
-    } catch (error) {
-      console.log("Evepraisal error", error);
-    }
+    //   evePraisalValue = data.appraisal.totals.sell;
+    // } catch (error) {
+    //   console.log("Evepraisal error", error);
+    // }
 
     await Promise.all(
       Array.from(lossmailChannelIDs).map((channelId) => {
