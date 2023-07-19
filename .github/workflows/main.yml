@@ -16,7 +16,9 @@ jobs:
           port: ${{ secrets.SSH_PORT }}
           script: |
             cd /home/pmtwo/KillFeed
-            git pull origin main
+            
+            git fetch origin main
+            git reset --hard origin/main
             npm install
             ./node_modules/typescript/bin/tsc
             pm2 restart KillFeed
