@@ -1,19 +1,20 @@
 import { EmbedBuilder } from "@discordjs/builders";
 import { getCharacterNames } from "../esi/get";
 import { KillMail, ZkbOnly } from "../zKillboard/zKillboard";
-import { BaseFormat } from "./Fomat";
+import { BaseFormat, ZKMailType } from "./Fomat";
 
 const colours = {
   kill: 0x00ff00,
   loss: 0xff0000,
+  neutral: 0x0000ff,
 };
 
 export const InsightFormat: BaseFormat = {
   getMessage: async (
     killmail: KillMail,
     zkb: ZkbOnly,
-    kill: boolean,
-    evePraisal: number
+    mailType: ZKMailType,
+    appraisedValue: number
   ) => {
     // not all Corps are in an Alliance!
     const badgeUrl = killmail.victim.alliance_id
@@ -82,14 +83,26 @@ export const InsightFormat: BaseFormat = {
           fleetPhrase += "s";
         }
       }
+
+      let nameText = "Neutral";
+      let colour = colours.neutral;
+      if (mailType == ZKMailType.Kill) {
+        nameText = "Kill";
+        colour = colours.kill;
+      }
+      if (mailType == ZKMailType.Loss) {
+        nameText = "Loss";
+        colour = colours.loss;
+      }
+
       return {
         embeds: [
           new EmbedBuilder()
-            .setColor(kill ? colours.kill : colours.loss)
+            .setColor(colour)
             .setTitle(`${victimNames.ship} destroyed in ${victimNames.system}`)
             .setURL(`https://zkillboard.com/kill/${killmail.killmail_id}/`)
             .setAuthor({
-              name: kill ? "Kill" : "Loss",
+              name: nameText,
               iconURL: badgeUrl,
               url: `https://zkillboard.com/kill/${killmail.killmail_id}/`,
             })

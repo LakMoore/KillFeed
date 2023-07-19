@@ -26,7 +26,7 @@ export const InsightWithEvePraisalFormat: BaseFormat = {
     killmail: KillMail,
     zkb: ZkbOnly,
     mailType: ZKMailType,
-    evePraisal: number
+    appraisedValue: number
   ) => {
     // not all Corps are in an Alliance!
     const badgeUrl = killmail.victim.alliance_id
@@ -89,7 +89,7 @@ export const InsightWithEvePraisalFormat: BaseFormat = {
         }
       }
 
-      let evePraisalValue = formatISKValue(evePraisal);
+      let evePraisalValue = formatISKValue(appraisedValue);
 
       let nameText = "Neutral";
       let colour = colours.neutral;
