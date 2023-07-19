@@ -11,7 +11,7 @@ export const Info: Command = {
     let response = "KillFeed is not able to view this channel!";
 
     if (interaction.channel && canUseChannel(interaction.channel)) {
-      let thisSubscription = Config.getInstance().allSubscriptions.get(
+      const thisSubscription = Config.getInstance().allSubscriptions.get(
         interaction.channelId
       );
 

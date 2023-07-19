@@ -18,14 +18,14 @@ export const Init: Command = {
   run: async (client: Client, interaction: CommandInteraction) => {
     let response = "Missed branch!";
 
-    let channel = interaction.channel;
+    const channel = interaction.channel;
     if (canUseChannel(channel) && interaction.guild) {
       // Get the config message
       const message = await getConfigMessage(channel);
 
       // if we have no config message
       if (!message) {
-        let thisChannelConfig = Config.getInstance().allSubscriptions.get(
+        const thisChannelConfig = Config.getInstance().allSubscriptions.get(
           channel.id
         );
         if (thisChannelConfig) {

@@ -30,7 +30,7 @@ export const Test: Command = {
 
         console.log(zkb);
 
-        if (zkb && zkb.zkb) {
+        if (zkb?.zkb) {
           const { data } = await fetchKillmail(kmId, zkb.zkb.hash);
 
           await prepAndSend(client, data, zkb);

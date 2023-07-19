@@ -35,7 +35,7 @@ export default (client: Client): void => {
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-var firstMem: NodeJS.MemoryUsage;
+let firstMem: NodeJS.MemoryUsage;
 
 async function pollLoop(client: Client, loopCount: number) {
   try {
@@ -58,7 +58,7 @@ async function pollLoop(client: Client, loopCount: number) {
     if (!firstMem) firstMem = process.memoryUsage();
 
     const used = process.memoryUsage();
-    for (let key in used) {
+    for (const key in used) {
       console.log(
         `Memory: ${key}   ${
           Math.round(
