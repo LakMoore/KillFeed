@@ -7,6 +7,7 @@ export const TYPE_CHAR = "characters";
 export const TYPE_CORP = "corporations";
 export const TYPE_ALLIANCE = "alliances";
 export const TYPE_SHIP = "inventory_types";
+export const TYPE_REGION = "regions";
 
 export const FILTER_OPTION = new SlashCommandStringOption()
   .setName(FILTER_TYPE)
@@ -16,7 +17,8 @@ export const FILTER_OPTION = new SlashCommandStringOption()
     { name: "Character", value: TYPE_CHAR },
     { name: "Corporation", value: TYPE_CORP },
     { name: "Alliance", value: TYPE_ALLIANCE },
-    { name: "Ship", value: TYPE_SHIP }
+    { name: "Ship", value: TYPE_SHIP },
+    { name: "Region", value: TYPE_REGION }
   );
 
 export const FILTER_NAME_OR_ID = new SlashCommandStringOption()

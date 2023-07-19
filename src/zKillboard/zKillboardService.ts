@@ -11,6 +11,8 @@ import {
   checkChannelPermissions,
 } from "../helpers/DiscordHelper";
 import { KillMail, Package, ZkbOnly } from "./zKillboard";
+import { getRegionForSystem } from "../esi/get";
+import { ZKMailType } from "../feedformats/Fomat";
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
@@ -73,6 +75,7 @@ export async function prepAndSend(
 
     const lossmailChannelIDs = new Set<string>();
     const killmailChannelIDs = new Set<string>();
+    const neutralmailChannelIDs = new Set<string>();
 
     Config.getInstance().testRequests.forEach((v) => {
       lossmailChannelIDs.add(v);
@@ -97,8 +100,10 @@ export async function prepAndSend(
       killmail.victim.character_id
     );
     temp?.forEach((v) => lossmailChannelIDs.add(v));
+    //--
     temp = Config.getInstance().matchedShips.get(killmail.victim.ship_type_id);
     temp?.forEach((v) => lossmailChannelIDs.add(v));
+    //--
 
     killmail.attackers.forEach((attacker) => {
       temp = Config.getInstance().matchedAlliances.get(attacker.alliance_id);
@@ -120,6 +125,24 @@ export async function prepAndSend(
         if (!lossmailChannelIDs.has(v)) killmailChannelIDs.add(v);
       });
     });
+
+    // Handle Matched Regions
+    try {
+      const regionId = await getRegionForSystem(killmail.solar_system_id);
+      if (regionId) {
+        temp = Config.getInstance().matchedRegions.get(regionId);
+
+        // If we match on region and we haven't already matched on
+        // anything else then the event is neither a kill nor a loss
+        temp?.forEach((v) => {
+          if (!lossmailChannelIDs.has(v) && !killmailChannelIDs.has(v)) {
+            neutralmailChannelIDs.add(v);
+          }
+        });
+      }
+    } catch (error) {
+      console.log(`Error while fetching region from system`, error);
+    }
 
     let evePraisalValue = 0;
 
@@ -182,7 +205,7 @@ export async function prepAndSend(
         return InsightWithEvePraisalFormat.getMessage(
           killmail,
           zkb,
-          false,
+          ZKMailType.Loss,
           evePraisalValue
         ).then((msg) => {
           if (
@@ -211,7 +234,7 @@ export async function prepAndSend(
         return InsightWithEvePraisalFormat.getMessage(
           killmail,
           zkb,
-          true,
+          ZKMailType.Kill,
           evePraisalValue
         ).then((msg) => {
           if (
@@ -225,6 +248,35 @@ export async function prepAndSend(
             return channel.send(msg);
           } else {
             console.log("Couldn't send killmail on this channel");
+          }
+        });
+      })
+    );
+
+    await Promise.all(
+      Array.from(neutralmailChannelIDs).map((channelId) => {
+        let channel = client.channels.cache.find((c) => c.id === channelId);
+
+        // TODO: Look up the desired message format for this channel
+
+        // Generate the message
+        return InsightWithEvePraisalFormat.getMessage(
+          killmail,
+          zkb,
+          ZKMailType.Neutral,
+          evePraisalValue
+        ).then((msg) => {
+          if (
+            canUseChannel(channel) &&
+            checkChannelPermissions(
+              channel,
+              PermissionsBitField.Flags.SendMessages
+            )
+          ) {
+            // send the message
+            return channel.send(msg);
+          } else {
+            console.log("Couldn't send neutralmail on this channel");
           }
         });
       })

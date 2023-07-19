@@ -13,6 +13,7 @@ import {
   TYPE_CHAR,
   TYPE_CORP,
   TYPE_SHIP,
+  TYPE_REGION,
 } from "../helpers/CommandHelpers";
 import { updateChannel } from "../Channels";
 
@@ -87,12 +88,16 @@ export const Add: Command = {
                 thisSetting = thisSubscription?.Alliances;
               } else if (filterType === TYPE_SHIP) {
                 thisSetting = thisSubscription?.Ships;
+              } else if (filterType === TYPE_REGION) {
+                thisSetting = thisSubscription?.Regions;
               }
 
               // add the ID to the settings in memory
               if (thisSetting) {
                 console.log("Adding the id");
-                thisSetting?.add(id);
+                thisSetting.add(id);
+              } else {
+                console.log("Unable to find a filter of type " + filterType);
               }
 
               // re-generate the config message

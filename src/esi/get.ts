@@ -1,3 +1,4 @@
+import { UniverseApiFactory } from "eve-client-ts";
 import { Character } from "../zKillboard/zKillboard";
 import { CachedESI } from "./cache";
 import { fetchESINames } from "./fetch";
@@ -60,4 +61,21 @@ export function getCharacterNames(
         system: CachedESI.getSystemName(system),
       };
     });
+}
+
+export async function getRegionForSystem(solar_system_id: number) {
+  const system = await UniverseApiFactory().getUniverseSystemsSystemId(
+    solar_system_id
+  );
+
+  const constellation =
+    await UniverseApiFactory().getUniverseConstellationsConstellationId(
+      system.constellation_id
+    );
+
+  const region = await UniverseApiFactory().getUniverseRegionsRegionId(
+    constellation.region_id
+  );
+
+  return region.region_id;
 }

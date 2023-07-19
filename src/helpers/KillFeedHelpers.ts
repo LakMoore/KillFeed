@@ -44,6 +44,11 @@ export function parseConfigMessage(
     }
   }
 
+  if (result.Regions == undefined) {
+    // Regions object was added later.  These settings need an upgrade!
+    result = { ...result, Regions: new Set<number>() };
+  }
+
   if (result?.ResponseFormat) {
     return result;
   }
@@ -56,6 +61,7 @@ export function parseConfigMessage(
     Corporations: new Set<number>(),
     Characters: new Set<number>(),
     Ships: new Set<number>(),
+    Regions: new Set<number>(),
     MinISK: 0,
   };
 }

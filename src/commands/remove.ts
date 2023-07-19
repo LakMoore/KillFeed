@@ -16,6 +16,7 @@ import {
   TYPE_CHAR,
   TYPE_CORP,
   TYPE_SHIP,
+  TYPE_REGION,
 } from "../helpers/CommandHelpers";
 
 const builder = new SlashCommandBuilder()
@@ -71,40 +72,50 @@ export const Remove: Command = {
               interaction.channel.id
             );
 
-            let thisFilter = undefined;
-            let listener = undefined;
+            if (!thisSubscription) {
+              console.log(`Failed to find a subscription for this channel!`);
+              response = `Failed to find a subscription for this channel!`;
+            } else {
+              let thisFilter = undefined;
+              let listener = undefined;
 
-            if (filterType === TYPE_CHAR) {
-              thisFilter = thisSubscription?.Characters;
-              listener = Config.getInstance().matchedCharacters;
-            } else if (filterType === TYPE_CORP) {
-              thisFilter = thisSubscription?.Corporations;
-              listener = Config.getInstance().matchedCorporations;
-            } else if (filterType === TYPE_ALLIANCE) {
-              thisFilter = thisSubscription?.Alliances;
-              listener = Config.getInstance().matchedAlliances;
-            } else if (filterType === TYPE_SHIP) {
-              thisFilter = thisSubscription?.Ships;
-              listener = Config.getInstance().matchedShips;
-            }
+              if (filterType === TYPE_CHAR) {
+                thisFilter = thisSubscription.Characters;
+                listener = Config.getInstance().matchedCharacters;
+              } else if (filterType === TYPE_CORP) {
+                thisFilter = thisSubscription.Corporations;
+                listener = Config.getInstance().matchedCorporations;
+              } else if (filterType === TYPE_ALLIANCE) {
+                thisFilter = thisSubscription.Alliances;
+                listener = Config.getInstance().matchedAlliances;
+              } else if (filterType === TYPE_SHIP) {
+                thisFilter = thisSubscription.Ships;
+                listener = Config.getInstance().matchedShips;
+              } else if (filterType === TYPE_REGION) {
+                thisFilter = thisSubscription.Regions;
+                listener = Config.getInstance().matchedRegions;
+              }
 
-            // remove the ID from the settings in memory
-            if (thisFilter) {
-              console.log("Deleting the id");
-              thisFilter?.delete(id);
-            }
+              // remove the ID from the settings in memory
+              if (!thisFilter) {
+                console.log("Unable to find a filter called " + filterType);
+                response = "Unable to find a filter called " + filterType;
+              } else {
+                console.log("Deleting the id");
+                thisFilter.delete(id);
 
-            // remove the ID from the current filters too
-            removeListener(listener, id, interaction.channel.id);
+                // remove the ID from the current filters too
+                removeListener(listener, id, interaction.channel.id);
 
-            response = `Success! Removed ${filterValue} (${id})`;
+                // re-generate the config message
+                const message = await getConfigMessage(interaction.channel);
 
-            // re-generate the config message
-            const message = await getConfigMessage(interaction.channel);
-
-            if (message && thisSubscription) {
-              // save the config into the channel
-              await message.edit(generateConfigMessage(thisSubscription));
+                if (message) {
+                  // save the config into the channel
+                  await message.edit(generateConfigMessage(thisSubscription));
+                  response = `Success! Removed ${filterValue} (${id})`;
+                }
+              }
             }
           }
         }

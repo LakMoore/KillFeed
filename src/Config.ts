@@ -8,6 +8,7 @@ export interface SubscriptionSettings {
   Corporations: Set<number>;
   Characters: Set<number>;
   Ships: Set<number>;
+  Regions: Set<number>;
   MinISK: number | undefined;
 }
 
@@ -22,6 +23,7 @@ export class Config {
   public matchedCorporations = new Map<number, Set<string>>();
   public matchedCharacters = new Map<number, Set<string>>();
   public matchedShips = new Map<number, Set<string>>();
+  public matchedRegions = new Map<number, Set<string>>();
 
   // a set of channels that have requested a test killmail
   public testRequests = new Set<string>();

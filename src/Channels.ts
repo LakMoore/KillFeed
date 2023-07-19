@@ -45,6 +45,10 @@ export async function updateChannel(
       thisSubscription.Ships.forEach((id) => {
         addListener(Config.getInstance().matchedShips, id, channel.id);
       });
+
+      thisSubscription.Regions.forEach((id) => {
+        addListener(Config.getInstance().matchedRegions, id, channel.id);
+      });
     }
   }
 }
@@ -72,5 +76,9 @@ export function clearChannel(
   subscription.Ships.forEach((shipId) => {
     Config.getInstance().matchedShips.get(shipId)?.delete(channel.id);
     console.log(`Deleted ship ${shipId} from server ${channel.id}`);
+  });
+  subscription.Regions.forEach((regionId) => {
+    Config.getInstance().matchedRegions.get(regionId)?.delete(channel.id);
+    console.log(`Deleted region ${regionId} from server ${channel.id}`);
   });
 }
