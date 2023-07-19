@@ -193,9 +193,6 @@ export async function prepAndSend(
           Config.getInstance().allSubscriptions.get(channelId);
 
         if (zkb.zkb.totalValue <= (thisSubscription?.MinISK ?? 0)) {
-          console.log(
-            `Filtered out the killmail for a channel. Insufficient ISK value.`
-          );
           return Promise.resolve();
         }
 
@@ -228,6 +225,14 @@ export async function prepAndSend(
       Array.from(killmailChannelIDs).map((channelId) => {
         let channel = client.channels.cache.find((c) => c.id === channelId);
 
+        // check the minISK value filter
+        const thisSubscription =
+          Config.getInstance().allSubscriptions.get(channelId);
+
+        if (zkb.zkb.totalValue <= (thisSubscription?.MinISK ?? 0)) {
+          return Promise.resolve();
+        }
+
         // TODO: Look up the desired message format for this channel
 
         // Generate the message
@@ -256,6 +261,14 @@ export async function prepAndSend(
     await Promise.all(
       Array.from(neutralmailChannelIDs).map((channelId) => {
         let channel = client.channels.cache.find((c) => c.id === channelId);
+
+        // check the minISK value filter
+        const thisSubscription =
+          Config.getInstance().allSubscriptions.get(channelId);
+
+        if (zkb.zkb.totalValue <= (thisSubscription?.MinISK ?? 0)) {
+          return Promise.resolve();
+        }
 
         // TODO: Look up the desired message format for this channel
 
