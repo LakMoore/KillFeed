@@ -44,7 +44,7 @@ export function parseConfigMessage(
     }
   }
 
-  if (result.Regions == undefined) {
+  if (result != undefined && !result.hasOwnProperty("Regions")) {
     // Regions object was added later.  These settings need an upgrade!
     result = { ...result, Regions: new Set<number>() };
   }
