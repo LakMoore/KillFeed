@@ -3,7 +3,7 @@ import { Character } from "../zKillboard/zKillboard";
 import { CachedESI } from "./cache";
 import { fetchESINames } from "./fetch";
 
-export interface Names {
+export interface Result {
   character?: string;
   corporation?: string;
   alliance?: string;
@@ -14,9 +14,9 @@ export interface Names {
 export function getCharacterNames(
   characterIds: Character,
   system: number
-): Promise<Names> {
+): Promise<Result> {
   const missingIds: number[] = [];
-  const result: Names = {
+  const result: Result = {
     character: CachedESI.getCharacterName(characterIds.character_id),
     corporation: CachedESI.getCorporationName(characterIds.corporation_id),
     alliance: CachedESI.getAllianceName(characterIds.alliance_id),
