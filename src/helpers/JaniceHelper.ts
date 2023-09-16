@@ -30,6 +30,30 @@ export interface JanicePrices {
   totalSellPrice: number;
 }
 
+export interface PricerItem {
+  immediatePrices: PricerItemValues;
+  itemType: JaniceItemType;
+}
+
+export interface JaniceItemType {
+  eid: number;
+  name: string;
+  volume: number;
+  packagedVolume: number;
+}
+
+export interface PricerItemValues {
+  buyPrice: number;
+  splitPrice: number;
+  sellPrice: number;
+  buyPrice5DayMedian: number;
+  splitPrice5DayMedian: number;
+  sellPrice5DayMedian: number;
+  buyPrice30DayMedian: number;
+  splitPrice30DayMedian: number;
+  sellPrice30DayMedian: number;
+}
+
 export function formatISKValue(isk: number): string {
   let value = "0 ISK";
   if (isk >= 1000000000) {

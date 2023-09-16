@@ -1,17 +1,6 @@
 import axios, { AxiosRequestConfig } from "axios";
-import { KillMail } from "src/zKillboard/zKillboard";
-
-interface PricerItem {
-  immediatePrices: {
-    buyPrice: number;
-    splitPrice: number;
-    sellPrice: number;
-  };
-  itemType: {
-    eid: number;
-    name: string;
-  };
-}
+import { PricerItem } from "../helpers/JaniceHelper";
+import { KillMail } from "../zKillboard/zKillboard";
 
 /**
  * Get the appraised value of the lossmail from a service
