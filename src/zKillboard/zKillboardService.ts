@@ -148,7 +148,7 @@ export async function prepAndSend(
 
     await Promise.all(
       Array.from(lossmailChannelIDs).map((channelId) => {
-        let channel = client.channels.cache.find((c) => c.id === channelId);
+        const channel = client.channels.cache.find((c) => c.id === channelId);
 
         // check the minISK value filter
         const thisSubscription =
@@ -185,7 +185,7 @@ export async function prepAndSend(
 
     await Promise.all(
       Array.from(killmailChannelIDs).map((channelId) => {
-        let channel = client.channels.cache.find((c) => c.id === channelId);
+        const channel = client.channels.cache.find((c) => c.id === channelId);
 
         // check the minISK value filter
         const thisSubscription =
@@ -222,7 +222,7 @@ export async function prepAndSend(
 
     await Promise.all(
       Array.from(neutralmailChannelIDs).map((channelId) => {
-        let channel = client.channels.cache.find((c) => c.id === channelId);
+        const channel = client.channels.cache.find((c) => c.id === channelId);
 
         // check the minISK value filter
         const thisSubscription =
