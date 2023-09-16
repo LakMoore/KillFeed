@@ -10,9 +10,9 @@ import {
   checkChannelPermissions,
 } from "../helpers/DiscordHelper";
 import { KillMail, Package, ZkbOnly } from "./zKillboard";
-import { getRegionForSystem } from "../esi/get";
 import { ZKMailType } from "../feedformats/Fomat";
 import { getJaniceAppraisalValue } from "../Janice/Janice";
+import { CachedESI } from "../esi/cache";
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
@@ -128,9 +128,11 @@ export async function prepAndSend(
 
     // Handle Matched Regions
     try {
-      const regionId = await getRegionForSystem(killmail.solar_system_id);
-      if (regionId) {
-        temp = Config.getInstance().matchedRegions.get(regionId);
+      const region = await CachedESI.getRegionForSystem(
+        killmail.solar_system_id
+      );
+      if (region) {
+        temp = Config.getInstance().matchedRegions.get(region.region_id);
 
         // If we match on region and we haven't already matched on
         // anything else then the event is neither a kill nor a loss

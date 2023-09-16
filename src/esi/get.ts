@@ -1,4 +1,3 @@
-import { UniverseApiFactory } from "eve-client-ts";
 import { Character } from "../zKillboard/zKillboard";
 import { CachedESI } from "./cache";
 import { fetchESINames } from "./fetch";
@@ -8,20 +7,15 @@ export interface Result {
   corporation?: string;
   alliance?: string;
   ship?: string;
-  system?: string;
 }
 
-export function getCharacterNames(
-  characterIds: Character,
-  system: number
-): Promise<Result> {
+export function getCharacterNames(characterIds: Character): Promise<Result> {
   const missingIds: number[] = [];
   const result: Result = {
     character: CachedESI.getCharacterName(characterIds.character_id),
     corporation: CachedESI.getCorporationName(characterIds.corporation_id),
     alliance: CachedESI.getAllianceName(characterIds.alliance_id),
     ship: CachedESI.getItemName(characterIds.ship_type_id),
-    system: CachedESI.getSystemName(system),
   };
 
   if (!result.character) {
@@ -35,9 +29,6 @@ export function getCharacterNames(
   }
   if (!result.ship) {
     missingIds.push(characterIds.ship_type_id);
-  }
-  if (!result.system && system) {
-    missingIds.push(system);
   }
 
   const missedIds = missingIds.filter((v) => v);
@@ -58,24 +49,6 @@ export function getCharacterNames(
         corporation: CachedESI.getCorporationName(characterIds.corporation_id),
         alliance: CachedESI.getAllianceName(characterIds.alliance_id),
         ship: CachedESI.getItemName(characterIds.ship_type_id),
-        system: CachedESI.getSystemName(system),
       };
     });
-}
-
-export async function getRegionForSystem(solar_system_id: number) {
-  const system = await UniverseApiFactory().getUniverseSystemsSystemId(
-    solar_system_id
-  );
-
-  const constellation =
-    await UniverseApiFactory().getUniverseConstellationsConstellationId(
-      system.constellation_id
-    );
-
-  const region = await UniverseApiFactory().getUniverseRegionsRegionId(
-    constellation.region_id
-  );
-
-  return region.region_id;
 }

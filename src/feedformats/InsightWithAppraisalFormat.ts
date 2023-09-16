@@ -3,6 +3,7 @@ import { getCharacterNames } from "../esi/get";
 import { KillMail, ZkbOnly } from "../zKillboard/zKillboard";
 import { BaseFormat, ZKMailType } from "./Fomat";
 import { formatISKValue } from "../helpers/JaniceHelper";
+import { CachedESI } from "../esi/cache";
 
 const colours = {
   kill: 0x00ff00,
@@ -27,9 +28,12 @@ export const InsightWithAppraisalFormat: BaseFormat = {
     let attacker = killmail.attackers.filter((char) => char.final_blow)[0];
     if (!attacker) attacker = killmail.attackers[0];
 
+    const system = await CachedESI.getSystem(killmail.solar_system_id);
+    const region = await CachedESI.getRegionForSystem(killmail.solar_system_id);
+
     return Promise.all([
-      getCharacterNames(killmail.victim, killmail.solar_system_id),
-      getCharacterNames(attacker, killmail.solar_system_id),
+      getCharacterNames(killmail.victim),
+      getCharacterNames(attacker),
     ]).then(async ([victimNames, attackerNames]) => {
       let attackerShipName = attackerNames.ship;
       if (
@@ -80,7 +84,7 @@ export const InsightWithAppraisalFormat: BaseFormat = {
 
       const appraisedValueText = formatISKValue(appraisedValue);
 
-      let nameText = "Neutral";
+      let nameText = "Neutral Kill";
       let colour = colours.neutral;
       if (mailType == ZKMailType.Kill) {
         nameText = "Kill";
@@ -91,11 +95,15 @@ export const InsightWithAppraisalFormat: BaseFormat = {
         colour = colours.loss;
       }
 
+      nameText += ` in ${system.name} (${system.security_status.toFixed(1)}), ${
+        region.name
+      }`;
+
       return {
         embeds: [
           new EmbedBuilder()
             .setColor(colour)
-            .setTitle(`${victimNames.ship} destroyed in ${victimNames.system}`)
+            .setTitle(`${victimNames.ship} destroyed`)
             .setURL(`https://zkillboard.com/kill/${killmail.killmail_id}/`)
             .setAuthor({
               name: nameText,

@@ -1,13 +1,25 @@
+import {
+  GetUniverseConstellationsConstellationIdOk,
+  GetUniverseRegionsRegionIdOk,
+  GetUniverseSystemsSystemIdOk,
+  UniverseApiFactory,
+} from "eve-client-ts";
 import { Name } from "./fetch";
+import { FancyMap } from "./FancyMap";
 
 export class CachedESI {
   private static instance: CachedESI;
 
-  private characters = new Map<number, string>();
-  private corporations = new Map<number, string>();
-  private alliances = new Map<number, string>();
-  private systems = new Map<number, string>();
-  private items = new Map<number, string>();
+  private characters = new FancyMap<number, string>();
+  private corporations = new FancyMap<number, string>();
+  private alliances = new FancyMap<number, string>();
+  private systems = new FancyMap<number, GetUniverseSystemsSystemIdOk>();
+  private constellations = new FancyMap<
+    number,
+    GetUniverseConstellationsConstellationIdOk
+  >();
+  private regions = new FancyMap<number, GetUniverseRegionsRegionIdOk>();
+  private items = new FancyMap<number, string>();
 
   private constructor() {}
 
@@ -30,8 +42,36 @@ export class CachedESI {
     return CachedESI.getInstance().alliances.get(allianceId);
   }
 
-  public static getSystemName(systemId: number) {
-    return CachedESI.getInstance().systems.get(systemId);
+  public static getSystem(systemId: number) {
+    return CachedESI.getInstance().systems.getOrDefault(systemId, (systemId) =>
+      UniverseApiFactory().getUniverseSystemsSystemId(systemId)
+    );
+  }
+
+  public static getConstellation(constellationId: number) {
+    return CachedESI.getInstance().constellations.getOrDefault(
+      constellationId,
+      (constellationId) =>
+        UniverseApiFactory().getUniverseConstellationsConstellationId(
+          constellationId
+        )
+    );
+  }
+
+  public static getRegion(regionId: number) {
+    return CachedESI.getInstance().regions.getOrDefault(regionId, (regionId) =>
+      UniverseApiFactory().getUniverseRegionsRegionId(regionId)
+    );
+  }
+
+  public static async getRegionForSystem(solar_system_id: number) {
+    const system = await CachedESI.getSystem(solar_system_id);
+
+    const constellation = await CachedESI.getConstellation(
+      system.constellation_id
+    );
+
+    return await CachedESI.getRegion(constellation.region_id);
   }
 
   public static getItemName(itemId: number) {
@@ -56,10 +96,6 @@ export class CachedESI {
     return CachedESI.getInstance().alliances.set(allianceId, allianceName);
   }
 
-  public static setSystemName(systemId: number, systemName: string) {
-    return CachedESI.getInstance().systems.set(systemId, systemName);
-  }
-
   public static setItemName(itemId: number, itemName: string) {
     return CachedESI.getInstance().items.set(itemId, itemName);
   }
@@ -74,9 +110,6 @@ export class CachedESI {
         break;
       case "alliance":
         this.setAllianceName(item.id, item.name);
-        break;
-      case "solar_system":
-        this.setSystemName(item.id, item.name);
         break;
       case "inventory_type":
         this.setItemName(item.id, item.name);

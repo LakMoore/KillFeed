@@ -59,10 +59,6 @@ export async function getJaniceAppraisalValue(killmail: KillMail) {
         return (price ?? 0) * ji.amount;
       })
       .reduce((a, b) => a + b);
-
-    // console.log(JSON.stringify(evePraisalItems));
-    // console.log("-----------------");
-    // console.log(JSON.stringify(data));
   } catch (error) {
     console.log("Janice Appraisal error", error);
   }
