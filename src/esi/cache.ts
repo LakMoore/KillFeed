@@ -3,11 +3,11 @@ import { Name } from "./fetch";
 export class CachedESI {
   private static instance: CachedESI;
 
-  public characters = new Map<number, string>();
-  public corporations = new Map<number, string>();
-  public alliances = new Map<number, string>();
-  public systems = new Map<number, string>();
-  public items = new Map<number, string>();
+  private characters = new Map<number, string>();
+  private corporations = new Map<number, string>();
+  private alliances = new Map<number, string>();
+  private systems = new Map<number, string>();
+  private items = new Map<number, string>();
 
   private constructor() {}
 
