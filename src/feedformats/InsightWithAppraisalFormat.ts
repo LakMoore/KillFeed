@@ -111,7 +111,7 @@ export const InsightWithAppraisalFormat: BaseFormat = {
             .setTimestamp(new Date(killmail.killmail_time))
             .setFooter({
               text: `ZKill Value: ${value}
-EvePraisal: ${appraisedValueText}`,
+Janice Value: ${appraisedValueText}`,
             }),
         ],
       };

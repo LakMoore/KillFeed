@@ -31,7 +31,7 @@ export interface JanicePrices {
 }
 
 export function formatISKValue(isk: number): string {
-  let value = "";
+  let value = "0 ISK";
   if (isk >= 1000000000) {
     value = Math.round(isk / 100000000) / 10 + "B ISK";
   } else if (isk >= 1000000) {

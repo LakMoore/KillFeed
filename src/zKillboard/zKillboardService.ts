@@ -12,6 +12,7 @@ import {
 import { KillMail, Package, ZkbOnly } from "./zKillboard";
 import { getRegionForSystem } from "../esi/get";
 import { ZKMailType } from "../feedformats/Fomat";
+import { getJaniceAppraisalValue } from "../Janice/Janice";
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
@@ -143,57 +144,7 @@ export async function prepAndSend(
       console.log(`Error while fetching region from system`, error);
     }
 
-    let appraisalValue = 0;
-
-    // Get the appraised value of the lossmail from a service
-    // EvePraisal is dead, going to use Janice
-    // https://janice.e-351.com/api/rest/docs/index.html
-    try {
-      let janiceItems: {
-        id: number;
-        ammount: number;
-      }[] = [];
-      if (killmail.victim.items.length > 0) {
-        janiceItems = killmail.victim.items.map((item) => {
-          return {
-            id: item.item_type_id,
-            ammount:
-              (item.quantity_destroyed ? item.quantity_destroyed : 0) +
-              (item.quantity_dropped ? item.quantity_dropped : 0),
-          };
-        });
-      }
-
-      janiceItems.push({
-        id: killmail.victim.ship_type_id,
-        ammount: 1,
-      });
-      const url = "https://janice.e-351.com/api/rest/v2/appraisal";
-      const params = {
-        market: "2",
-        designation: "appraisal",
-        pricing: "sell",
-        pricingVariant: "immediate",
-        persist: "true",
-        compactize: "true",
-        pricePercentage: "1",
-      };
-      const query = new URLSearchParams(params).toString();
-
-      const payload = {
-        items: janiceItems,
-      };
-
-      // Need an API Key and lots of testing before this will work
-      //const { data } = await axios.post<EvePraisal>(url + "?" + query, payload);
-      //appraisalValue = data.appraisal.totals.sell;
-
-      // console.log(JSON.stringify(evePraisalItems));
-      // console.log("-----------------");
-      // console.log(JSON.stringify(data));
-    } catch (error) {
-      console.log("Evepraisal error", error);
-    }
+    const appraisalValue = await getJaniceAppraisalValue(killmail);
 
     await Promise.all(
       Array.from(lossmailChannelIDs).map((channelId) => {
