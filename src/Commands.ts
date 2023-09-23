@@ -8,6 +8,7 @@ import { Info } from "./commands/info";
 import { Remove } from "./commands/remove";
 import { FullTest } from "./commands/fulltest";
 import { SetMinISK } from "./commands/setMinISK";
+import { SetPingTarget } from "./commands/setPingTarget";
 
 export const Commands: Command[] = [
   Hello,
@@ -19,4 +20,5 @@ export const Commands: Command[] = [
   Remove,
   FullTest,
   SetMinISK,
+  SetPingTarget,
 ];

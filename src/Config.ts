@@ -10,6 +10,7 @@ export interface SubscriptionSettings {
   Ships: Set<number>;
   Regions: Set<number>;
   MinISK: number | undefined;
+  RoleToPing: string | undefined;
 }
 
 export class Config {
