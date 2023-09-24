@@ -9,6 +9,8 @@ export function generateConfigMessage(settings: SubscriptionSettings): string {
     (key, value) => {
       if (key === "Channel") {
         return "";
+      } else if (key === "PauseForChanges") {
+        return false;
       } else if (value instanceof Set) {
         return [...value];
       }
@@ -64,6 +66,7 @@ export function parseConfigMessage(
     Regions: new Set<number>(),
     MinISK: 0,
     RoleToPing: undefined,
+    PauseForChanges: false,
   };
 }
 

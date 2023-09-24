@@ -194,7 +194,15 @@ async function send(
   const channel = client.channels.cache.find((c) => c.id === channelId);
 
   // check the minISK value filter
-  const thisSubscription = Config.getInstance().allSubscriptions.get(channelId);
+  let thisSubscription;
+
+  while (thisSubscription == undefined || thisSubscription.PauseForChanges) {
+    thisSubscription = Config.getInstance().allSubscriptions.get(channelId);
+    if (thisSubscription?.PauseForChanges) {
+      console.log("Pausing for changes");
+      await sleep(1000);
+    }
+  }
 
   if (zkb.zkb.totalValue <= (thisSubscription?.MinISK ?? 0)) {
     return;

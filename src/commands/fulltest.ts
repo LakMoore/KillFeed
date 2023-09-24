@@ -40,6 +40,9 @@ export const FullTest: Command = {
         response =
           "Unable to find settings for this channel. Use /init to start.";
       } else {
+        // create some breathing room for the server to catch up
+        settings.PauseForChanges = true;
+
         settings.FullTest = interaction.options.getBoolean(
           FULLTEST_ENABLED,
           true

@@ -56,7 +56,7 @@ export const Remove: Command = {
             } else {
               type ObjectKey = keyof typeof IDs;
               const myKey = filterType as ObjectKey;
-              let tempId = IDs[myKey]?.[0].id;
+              const tempId = IDs[myKey]?.[0].id;
 
               if (!tempId) {
                 response = `Failed to get the ID for ${filterValue} from Eve`;
@@ -76,6 +76,9 @@ export const Remove: Command = {
               console.log(`Failed to find a subscription for this channel!`);
               response = `Failed to find a subscription for this channel!`;
             } else {
+              // create some breathing room for the server to catch up
+              thisSubscription.PauseForChanges = true;
+
               let thisFilter = undefined;
               let listener = undefined;
 

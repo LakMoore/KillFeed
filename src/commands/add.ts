@@ -78,6 +78,9 @@ export const Add: Command = {
               response =
                 "Unable to find settings for this channel. Use /init to start.";
             } else {
+              // create some breathing room for the server to catch up
+              thisSubscription.PauseForChanges = true;
+
               let thisSetting = undefined;
 
               if (filterType === TYPE_CHAR) {

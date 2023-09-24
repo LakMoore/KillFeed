@@ -42,6 +42,9 @@ export const SetMinISK: Command = {
       if (!thisSubscription) {
         response = "No subscription found in channel. Use /init to start.";
       } else {
+        // create some breathing room for the server to catch up
+        thisSubscription.PauseForChanges = true;
+
         const minISKValue = interaction.options.getNumber(NAME_VALUE);
 
         if (!minISKValue) {

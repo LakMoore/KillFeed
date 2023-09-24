@@ -11,6 +11,7 @@ export interface SubscriptionSettings {
   Regions: Set<number>;
   MinISK: number | undefined;
   RoleToPing: string | undefined;
+  PauseForChanges: boolean;
 }
 
 export class Config {
