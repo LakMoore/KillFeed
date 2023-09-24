@@ -44,7 +44,7 @@ export function parseConfigMessage(
     }
   }
 
-  if (result != undefined && !result.hasOwnProperty("Regions")) {
+  if (result != undefined && !Object.hasOwn(result, "Regions")) {
     // Regions object was added later.  These settings need an upgrade!
     result = { ...result, Regions: new Set<number>() };
   }
@@ -63,6 +63,7 @@ export function parseConfigMessage(
     Ships: new Set<number>(),
     Regions: new Set<number>(),
     MinISK: 0,
+    RoleToPing: undefined,
   };
 }
 
@@ -86,7 +87,7 @@ export function removeListener(
 ) {
   // remove the ID from the current filters
   if (listener) {
-    let s = listener.get(id);
+    const s = listener.get(id);
     if (s) {
       s.delete(channelId);
       listener.set(id, s);

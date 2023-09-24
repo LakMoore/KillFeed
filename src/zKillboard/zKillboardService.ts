@@ -1,5 +1,10 @@
 import axios from "axios";
-import { Client, DiscordAPIError, PermissionsBitField } from "discord.js";
+import {
+  Client,
+  DiscordAPIError,
+  MessageMentionOptions,
+  PermissionsBitField,
+} from "discord.js";
 import { Config } from "../Config";
 import { EmbeddedFormat } from "../feedformats/EmbeddedFormat";
 import { InsightFormat } from "../feedformats/InsightFormat";
@@ -148,116 +153,24 @@ export async function prepAndSend(
 
     const appraisalValue = await getJaniceAppraisalValue(killmail);
 
-    await Promise.all(
-      Array.from(lossmailChannelIDs).map((channelId) => {
-        const channel = client.channels.cache.find((c) => c.id === channelId);
-
-        // check the minISK value filter
-        const thisSubscription =
-          Config.getInstance().allSubscriptions.get(channelId);
-
-        if (zkb.zkb.totalValue <= (thisSubscription?.MinISK ?? 0)) {
-          return Promise.resolve();
-        }
-
-        // TODO: Look up the desired message format for this channel
-
-        // Generate the message
-        return InsightWithAppraisalFormat.getMessage(
+    await Promise.all([
+      Array.from(lossmailChannelIDs).map((channelId) =>
+        send(client, channelId, killmail, zkb, appraisalValue, ZKMailType.Loss)
+      ),
+      Array.from(killmailChannelIDs).map((channelId) =>
+        send(client, channelId, killmail, zkb, appraisalValue, ZKMailType.Kill)
+      ),
+      Array.from(neutralmailChannelIDs).map((channelId) =>
+        send(
+          client,
+          channelId,
           killmail,
           zkb,
-          ZKMailType.Loss,
-          appraisalValue
-        ).then((msg) => {
-          if (
-            canUseChannel(channel) &&
-            checkChannelPermissions(
-              channel,
-              PermissionsBitField.Flags.SendMessages
-            )
-          ) {
-            // send the message
-            return channel.send(msg);
-          } else {
-            console.log("Couldn't send lossmail on this channel");
-          }
-        });
-      })
-    );
-
-    await Promise.all(
-      Array.from(killmailChannelIDs).map((channelId) => {
-        const channel = client.channels.cache.find((c) => c.id === channelId);
-
-        // check the minISK value filter
-        const thisSubscription =
-          Config.getInstance().allSubscriptions.get(channelId);
-
-        if (zkb.zkb.totalValue <= (thisSubscription?.MinISK ?? 0)) {
-          return Promise.resolve();
-        }
-
-        // TODO: Look up the desired message format for this channel
-
-        // Generate the message
-        return InsightWithAppraisalFormat.getMessage(
-          killmail,
-          zkb,
-          ZKMailType.Kill,
-          appraisalValue
-        ).then((msg) => {
-          if (
-            canUseChannel(channel) &&
-            checkChannelPermissions(
-              channel,
-              PermissionsBitField.Flags.SendMessages
-            )
-          ) {
-            // send the message
-            return channel.send(msg);
-          } else {
-            console.log("Couldn't send killmail on this channel");
-          }
-        });
-      })
-    );
-
-    await Promise.all(
-      Array.from(neutralmailChannelIDs).map((channelId) => {
-        const channel = client.channels.cache.find((c) => c.id === channelId);
-
-        // check the minISK value filter
-        const thisSubscription =
-          Config.getInstance().allSubscriptions.get(channelId);
-
-        if (zkb.zkb.totalValue <= (thisSubscription?.MinISK ?? 0)) {
-          return Promise.resolve();
-        }
-
-        // TODO: Look up the desired message format for this channel
-
-        // Generate the message
-        return InsightWithAppraisalFormat.getMessage(
-          killmail,
-          zkb,
-          ZKMailType.Neutral,
-          appraisalValue
-        ).then((msg) => {
-          if (
-            canUseChannel(channel) &&
-            checkChannelPermissions(
-              channel,
-              PermissionsBitField.Flags.SendMessages
-            )
-          ) {
-            // send the message
-            return channel.send(msg);
-          } else {
-            console.log("Couldn't send neutralmail on this channel");
-          }
-        });
-      })
-    );
+          appraisalValue,
+          ZKMailType.Neutral
+        )
+      ),
+    ]);
   } catch (error) {
     if (error instanceof DiscordAPIError) {
       console.log(
@@ -267,5 +180,53 @@ export async function prepAndSend(
       console.log("Error sending message");
       console.log(error);
     }
+  }
+}
+
+async function send(
+  client: Client,
+  channelId: string,
+  killmail: KillMail,
+  zkb: ZkbOnly,
+  appraisalValue: number,
+  type: ZKMailType
+) {
+  const channel = client.channels.cache.find((c) => c.id === channelId);
+
+  // check the minISK value filter
+  const thisSubscription = Config.getInstance().allSubscriptions.get(channelId);
+
+  if (zkb.zkb.totalValue <= (thisSubscription?.MinISK ?? 0)) {
+    return;
+  }
+
+  // TODO: Look up the desired message format for this channel
+
+  // Generate the message
+  const msg = await InsightWithAppraisalFormat.getMessage(
+    killmail,
+    zkb,
+    type,
+    appraisalValue
+  );
+
+  // check if we have a role to ping
+  if (thisSubscription?.RoleToPing) {
+    msg.content = `<@&${thisSubscription.RoleToPing}>`;
+    msg.allowedMentions = {
+      roles: [thisSubscription.RoleToPing],
+    };
+  }
+
+  if (
+    canUseChannel(channel) &&
+    checkChannelPermissions(channel, PermissionsBitField.Flags.SendMessages)
+  ) {
+    // send the message
+    return channel.send(msg);
+  } else {
+    console.log(
+      `Unable to send the ${ZKMailType[type]} mail on channel ${channelId}`
+    );
   }
 }
