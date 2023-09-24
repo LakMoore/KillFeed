@@ -212,9 +212,10 @@ async function send(
 
   // check if we have a role to ping
   if (thisSubscription?.RoleToPing) {
+    msg.content = `<@&${thisSubscription.RoleToPing}>`;
     msg.allowedMentions = {
       roles: [thisSubscription.RoleToPing],
-    } as MessageMentionOptions;
+    };
   }
 
   if (
