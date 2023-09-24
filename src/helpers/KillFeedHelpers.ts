@@ -86,7 +86,7 @@ export function removeListener(
 ) {
   // remove the ID from the current filters
   if (listener) {
-    let s = listener.get(id);
+    const s = listener.get(id);
     if (s) {
       s.delete(channelId);
       listener.set(id, s);
