@@ -63,6 +63,7 @@ export function parseConfigMessage(
     Ships: new Set<number>(),
     Regions: new Set<number>(),
     MinISK: 0,
+    RoleToPing: undefined,
   };
 }
 
