@@ -2,6 +2,7 @@ import { Client } from "discord.js";
 import { pollzKillboardOnce } from "../zKillboard/zKillboardService";
 import { Commands } from "../Commands";
 import { updateGuild } from "../Servers";
+import { consoleLog } from "../helpers/Logger";
 
 export default (client: Client): void => {
   client.on("ready", async () => {
@@ -11,7 +12,7 @@ export default (client: Client): void => {
 
     await client.application.commands.set(Commands);
 
-    console.log(`${client.user.username} is online`);
+    consoleLog(`${client.user.username} is online`);
 
     // fetch all guilds(servers) that KillFeed is a member of
     client.guilds
@@ -19,15 +20,15 @@ export default (client: Client): void => {
       .then((guilds) => {
         return Promise.all(
           guilds.map((guild, guildId) => {
-            console.log("Guild: " + guild.name);
+            consoleLog("Guild: " + guild.name);
             // update this guild
             return updateGuild(client, guildId, guild.name);
           })
         );
       })
-      .then(() => console.log("Finished Looping Guilds"))
+      .then(() => consoleLog("Finished Looping Guilds"))
       .then(() => {
-        console.log("Starting Poll");
+        consoleLog("Starting Poll");
         pollLoop(client, 0);
       });
   });
@@ -39,10 +40,10 @@ let firstMem: NodeJS.MemoryUsage;
 
 async function pollLoop(client: Client, loopCount: number) {
   try {
-    console.log("loop " + loopCount++);
+    consoleLog("loop " + loopCount++);
     await pollzKillboardOnce(client);
   } catch (error) {
-    console.log(error);
+    consoleLog(error);
     // if there was an error, we can afford to slow things down a lot!
     await sleep(30000);
   }
@@ -52,14 +53,14 @@ async function pollLoop(client: Client, loopCount: number) {
   if (DEBUG) {
     const err = new Error();
     if (err.stack) {
-      console.log("Stack size: " + (err.stack.split("\n").length - 1));
+      consoleLog("Stack size: " + (err.stack.split("\n").length - 1));
     }
 
     if (!firstMem) firstMem = process.memoryUsage();
 
     const used = process.memoryUsage();
     for (const key in used) {
-      console.log(
+      consoleLog(
         `Memory: ${key}   ${
           Math.round(
             (used[key as keyof NodeJS.MemoryUsage] / 1024 / 1024) * 100

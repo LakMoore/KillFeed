@@ -1,6 +1,7 @@
 import axios, { AxiosRequestConfig } from "axios";
 import { PricerItem } from "../helpers/JaniceHelper";
 import { KillMail } from "../zKillboard/zKillboard";
+import { consoleLog } from "../helpers/Logger";
 
 /**
  * Get the appraised value of the lossmail from a service
@@ -60,7 +61,7 @@ export async function getJaniceAppraisalValue(killmail: KillMail) {
       })
       .reduce((a, b) => a + b);
   } catch (error) {
-    console.log("Janice Appraisal error", error);
+    consoleLog("Janice Appraisal error", error);
   }
 
   return 0;

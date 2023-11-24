@@ -2,18 +2,19 @@ import { Client, TextChannel } from "discord.js";
 import { clearChannel } from "../Channels";
 import { Config } from "../Config";
 import { updateGuild } from "../Servers";
+import { consoleLog } from "../helpers/Logger";
 
 export default (client: Client): void => {
   //joined a server
   client.on("guildCreate", async (guild) => {
-    console.log("Joined a new guild: " + guild.name);
+    consoleLog("Joined a new guild: " + guild.name);
     //Your other stuff like adding to guildArray
     await updateGuild(client, guild.id, guild.name);
   });
 
   //removed from a server
   client.on("guildDelete", (guild) => {
-    console.log("Left a guild: " + guild.name);
+    consoleLog("Left a guild: " + guild.name);
 
     //go through all of the channels we were tracking on this server
     Array.from(Config.getInstance().allSubscriptions.values())

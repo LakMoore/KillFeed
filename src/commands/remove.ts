@@ -18,6 +18,7 @@ import {
   TYPE_SHIP,
   TYPE_REGION,
 } from "../helpers/CommandHelpers";
+import { consoleLog } from "../helpers/Logger";
 
 const builder = new SlashCommandBuilder()
   .setName("remove")
@@ -73,7 +74,7 @@ export const Remove: Command = {
             );
 
             if (!thisSubscription) {
-              console.log(`Failed to find a subscription for this channel!`);
+              consoleLog(`Failed to find a subscription for this channel!`);
               response = `Failed to find a subscription for this channel!`;
             } else {
               // create some breathing room for the server to catch up
@@ -101,10 +102,10 @@ export const Remove: Command = {
 
               // remove the ID from the settings in memory
               if (!thisFilter) {
-                console.log("Unable to find a filter called " + filterType);
+                consoleLog("Unable to find a filter called " + filterType);
                 response = "Unable to find a filter called " + filterType;
               } else {
-                console.log("Deleting the id");
+                consoleLog("Deleting the id");
                 thisFilter.delete(id);
 
                 // remove the ID from the current filters too

@@ -6,10 +6,11 @@ import guild from "./listeners/guild";
 import channel from "./listeners/channel";
 import axios from "axios";
 import axiosRetry from "axios-retry";
+import { consoleLog } from "./helpers/Logger";
 
 function main() {
   dotenv.config();
-  console.log("Bot is starting...");
+  consoleLog("Bot is starting...");
 
   const client = new Client({
     intents: [IntentsBitField.Flags.Guilds],
@@ -27,7 +28,7 @@ function main() {
 
   client.login(process.env.SECRET_TOKEN);
 
-  console.log("===============");
+  consoleLog("===============");
 }
 
 main();

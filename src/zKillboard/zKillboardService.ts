@@ -18,6 +18,7 @@ import { KillMail, Package, ZkbOnly } from "./zKillboard";
 import { ZKMailType } from "../feedformats/Fomat";
 import { getJaniceAppraisalValue } from "../Janice/Janice";
 import { CachedESI } from "../esi/cache";
+import { consoleLog, msToTimeSpan } from "../helpers/Logger";
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
@@ -45,12 +46,12 @@ export async function pollzKillboardOnce(client: Client) {
     }
   } catch (error) {
     if (axios.isAxiosError(error)) {
-      console.log(
+      consoleLog(
         `AxiosError ${error.response?.status} ${error.response?.statusText} ${error.config?.url}`
       );
     } else {
-      console.log("Error fetching from zKillboard");
-      console.log(error);
+      consoleLog("Error fetching from zKillboard");
+      consoleLog(error);
     }
 
     // if there was an error then take a break
@@ -76,7 +77,13 @@ export async function prepAndSend(
   zkb: ZkbOnly
 ) {
   try {
-    console.log(`Kill ID: ${killmail.killmail_id}`);
+    consoleLog(
+      `Kill ID: ${killmail.killmail_id} from ${
+        killmail.killmail_time
+      } (${msToTimeSpan(
+        Date.now() - new Date(killmail.killmail_time).getTime()
+      )} ago)`
+    );
 
     const lossmailChannelIDs = new Set<string>();
     const killmailChannelIDs = new Set<string>();
@@ -148,7 +155,7 @@ export async function prepAndSend(
         });
       }
     } catch (error) {
-      console.log(`Error while fetching region from system`, error);
+      consoleLog(`Error while fetching region from system`, error);
     }
 
     const appraisalValue = await getJaniceAppraisalValue(killmail);
@@ -173,12 +180,12 @@ export async function prepAndSend(
     ]);
   } catch (error) {
     if (error instanceof DiscordAPIError) {
-      console.log(
+      consoleLog(
         `Discord Error while sending message [${error.code}]${error.message}`
       );
     } else {
-      console.log("Error sending message");
-      console.log(error);
+      consoleLog("Error sending message");
+      consoleLog(error);
     }
   }
 }
@@ -199,7 +206,7 @@ async function send(
   while (thisSubscription == undefined || thisSubscription.PauseForChanges) {
     thisSubscription = Config.getInstance().allSubscriptions.get(channelId);
     if (thisSubscription?.PauseForChanges) {
-      console.log("Pausing for changes");
+      consoleLog("Pausing for changes");
       await sleep(1000);
     }
   }
@@ -233,7 +240,7 @@ async function send(
     // send the message
     return channel.send(msg);
   } else {
-    console.log(
+    consoleLog(
       `Unable to send the ${ZKMailType[type]} mail on channel ${channelId}`
     );
   }

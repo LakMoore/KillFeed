@@ -1,5 +1,6 @@
 import { Channel, TextChannel } from "discord.js";
 import { SubscriptionSettings } from "../Config";
+import { consoleLog } from "./Logger";
 
 // serialise our settings storage object, dropping the internal reference to the channel itself
 
@@ -27,7 +28,7 @@ export function parseConfigMessage(
   let result = undefined;
 
   try {
-    console.log(message);
+    consoleLog(message);
     result = JSON.parse(message, (key, value) => {
       if (key === "Channel") {
         return channel;
@@ -38,11 +39,11 @@ export function parseConfigMessage(
     });
   } catch (error) {
     if (error instanceof Error) {
-      console.log(
+      consoleLog(
         `Error while parsing the config: ${message}\n${error.message}`
       );
     } else {
-      console.log(`Error while parsing the config: ${message}`);
+      consoleLog(`Error while parsing the config: ${message}`);
     }
   }
 

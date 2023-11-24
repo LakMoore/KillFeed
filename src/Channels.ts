@@ -2,6 +2,7 @@ import { Client, TextChannel } from "discord.js";
 import { SubscriptionSettings, Config } from "./Config";
 import { canUseChannel, getConfigMessage } from "./helpers/DiscordHelper";
 import { addListener, parseConfigMessage } from "./helpers/KillFeedHelpers";
+import { consoleLog } from "./helpers/Logger";
 
 export async function updateChannel(
   client: Client<boolean>,
@@ -11,7 +12,7 @@ export async function updateChannel(
   const channel = await client.channels.fetch(channelId, { cache: true });
   // If this is a purely text based channel that we can use
   if (canUseChannel(channel)) {
-    console.log(`Server ${guildName}: Found a channel '${channel.name}'`);
+    consoleLog(`Server ${guildName}: Found a channel '${channel.name}'`);
     let thisSubscription = Config.getInstance().allSubscriptions.get(
       channel.id
     );
@@ -61,24 +62,24 @@ export function clearChannel(
 ) {
   subscription.Alliances.forEach((allianceId) => {
     Config.getInstance().matchedAlliances.get(allianceId)?.delete(channel.id);
-    console.log(`Deleted alliance ${allianceId} from server ${channel.id}`);
+    consoleLog(`Deleted alliance ${allianceId} from server ${channel.id}`);
   });
   subscription.Corporations.forEach((allianceId) => {
     Config.getInstance()
       .matchedCorporations.get(allianceId)
       ?.delete(channel.id);
-    console.log(`Deleted corporation ${allianceId} from server ${channel.id}`);
+    consoleLog(`Deleted corporation ${allianceId} from server ${channel.id}`);
   });
   subscription.Characters.forEach((allianceId) => {
     Config.getInstance().matchedCharacters.get(allianceId)?.delete(channel.id);
-    console.log(`Deleted character ${allianceId} from server ${channel.id}`);
+    consoleLog(`Deleted character ${allianceId} from server ${channel.id}`);
   });
   subscription.Ships.forEach((shipId) => {
     Config.getInstance().matchedShips.get(shipId)?.delete(channel.id);
-    console.log(`Deleted ship ${shipId} from server ${channel.id}`);
+    consoleLog(`Deleted ship ${shipId} from server ${channel.id}`);
   });
   subscription.Regions.forEach((regionId) => {
     Config.getInstance().matchedRegions.get(regionId)?.delete(channel.id);
-    console.log(`Deleted region ${regionId} from server ${channel.id}`);
+    consoleLog(`Deleted region ${regionId} from server ${channel.id}`);
   });
 }
