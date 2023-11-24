@@ -27,7 +27,9 @@ export async function pollzKillboardOnce(client: Client) {
     // zKillboard could return immediately or could make us wait up to 10 seconds
     // don't need to use axios-retry as the queue is managed on the zk server
     const { data } = await axios.get<Package>(
-      "https://redisq.zkillboard.com/listen.php?queueID=LakMooresKillFeed",
+      `https://redisq.zkillboard.com/listen.php?queueID=${
+        process.env.QUEUE_ID ?? "NoQueueIDProvided"
+      }`,
       {
         "axios-retry": {
           retries: 0,
