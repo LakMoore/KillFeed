@@ -2,6 +2,8 @@ import { EmbedBuilder } from "@discordjs/builders";
 import { getCharacterNames } from "../esi/get";
 import { KillMail, ZkbOnly } from "../zKillboard/zKillboard";
 import { BaseFormat, ZKMailType } from "./Fomat";
+import { formatISKValue } from "../helpers/JaniceHelper";
+import { CachedESI } from "../esi/cache";
 
 const colours = {
   kill: 0x00ff00,
@@ -21,21 +23,17 @@ export const InsightFormat: BaseFormat = {
       ? `https://images.evetech.net/alliances/${killmail.victim.alliance_id}/logo?size=64`
       : `https://images.evetech.net/corporations/${killmail.victim.corporation_id}/logo?size=64`;
 
-    let value = "";
-    if (zkb.zkb.totalValue >= 1000000000) {
-      value = Math.round(zkb.zkb.totalValue / 100000000) / 10 + "B ISK";
-    } else if (zkb.zkb.totalValue >= 1000000) {
-      value = Math.round(zkb.zkb.totalValue / 100000) / 10 + "M ISK";
-    } else if (zkb.zkb.totalValue >= 1000) {
-      value = Math.round(zkb.zkb.totalValue / 100) / 10 + "k ISK";
-    }
+    const value = formatISKValue(zkb.zkb.totalValue);
 
     let attacker = killmail.attackers.filter((char) => char.final_blow)[0];
     if (!attacker) attacker = killmail.attackers[0];
 
+    const system = await CachedESI.getSystem(killmail.solar_system_id);
+    const region = await CachedESI.getRegionForSystem(killmail.solar_system_id);
+
     return Promise.all([
-      getCharacterNames(killmail.victim, killmail.solar_system_id),
-      getCharacterNames(attacker, killmail.solar_system_id),
+      getCharacterNames(killmail.victim),
+      getCharacterNames(attacker),
     ]).then(([victimNames, attackerNames]) => {
       let attackerShipName = attackerNames.ship;
       if (
@@ -99,7 +97,11 @@ export const InsightFormat: BaseFormat = {
         embeds: [
           new EmbedBuilder()
             .setColor(colour)
-            .setTitle(`${victimNames.ship} destroyed in ${victimNames.system}`)
+            .setTitle(
+              `${victimNames.ship} destroyed in ${
+                system.name
+              } (${system.security_status.toFixed(1)}), ${region.name}`
+            )
             .setURL(`https://zkillboard.com/kill/${killmail.killmail_id}/`)
             .setAuthor({
               name: nameText,
