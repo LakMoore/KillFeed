@@ -37,8 +37,6 @@ export async function pollzKillboardOnce(client: Client) {
       }
     );
 
-    consoleLog(JSON.stringify(data));
-
     // null and empty packages are normal, if there is no kill feed activity
     // in the last 10 seconds
     if (data?.package) {
