@@ -59,7 +59,7 @@ export const Add: Command = {
             } else {
               type ObjectKey = keyof typeof IDs;
               const myKey = filterType as ObjectKey;
-              let tempId = IDs[myKey]?.[0].id;
+              const tempId = IDs[myKey]?.[0].id;
 
               if (!tempId) {
                 response = `Failed to get the ID for ${filterValue} from Eve`;
