@@ -1,5 +1,6 @@
 import { Interaction, Client, CommandInteraction } from "discord.js";
 import { Commands } from "../Commands";
+import { consoleLog } from "../helpers/Logger";
 
 export default (client: Client): void => {
   client.on("interactionCreate", async (interaction: Interaction) => {
@@ -22,6 +23,7 @@ const handleSlashCommand = async (
   await interaction.deferReply();
 
   try {
+    consoleLog(`Running ${slashCommand.name} on ${interaction.guild?.name}`);
     await slashCommand.run(client, interaction);
   } catch (error) {
     if (error instanceof Error) {

@@ -20,7 +20,7 @@ import { getJaniceAppraisalValue } from "../Janice/Janice";
 import { CachedESI } from "../esi/cache";
 import { consoleLog, msToTimeSpan } from "../helpers/Logger";
 
-const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+export const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 export async function pollzKillboardOnce(client: Client) {
   try {
@@ -208,8 +208,10 @@ async function send(
   while (thisSubscription == undefined || thisSubscription.PauseForChanges) {
     thisSubscription = Config.getInstance().allSubscriptions.get(channelId);
     if (thisSubscription?.PauseForChanges) {
-      consoleLog("Pausing for changes");
-      await sleep(1000);
+      consoleLog(
+        `Pausing for changes on ${thisSubscription.Channel.guild.name} : ${thisSubscription.Channel.name}`
+      );
+      await sleep(5000);
     }
   }
 
