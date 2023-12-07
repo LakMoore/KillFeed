@@ -18,7 +18,7 @@ export default (client: Client): void => {
     if (channel instanceof TextChannel) {
       consoleLog("Left a channel: " + channel.name);
 
-      let thisChannelConfig = Config.getInstance().allSubscriptions.get(
+      const thisChannelConfig = Config.getInstance().allSubscriptions.get(
         channel.id
       );
       if (thisChannelConfig) {

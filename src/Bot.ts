@@ -7,10 +7,22 @@ import channel from "./listeners/channel";
 import axios from "axios";
 import axiosRetry from "axios-retry";
 import { consoleLog } from "./helpers/Logger";
+import { Data } from "./Data";
 
-function main() {
+export const savedData = new Data();
+
+async function main() {
   dotenv.config();
   consoleLog("Bot is starting...");
+
+  await savedData.init();
+
+  const stats = savedData.stats;
+  if (!stats.StatsStarted) {
+    stats.StatsStarted = new Date();
+  }
+  stats.BotStarted = new Date();
+  await savedData.save();
 
   const client = new Client({
     intents: [IntentsBitField.Flags.Guilds],

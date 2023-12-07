@@ -1,10 +1,5 @@
 import axios from "axios";
-import {
-  Client,
-  DiscordAPIError,
-  MessageMentionOptions,
-  PermissionsBitField,
-} from "discord.js";
+import { Client, DiscordAPIError, PermissionsBitField } from "discord.js";
 import { Config } from "../Config";
 import { EmbeddedFormat } from "../feedformats/EmbeddedFormat";
 import { InsightFormat } from "../feedformats/InsightFormat";
@@ -19,11 +14,14 @@ import { ZKMailType } from "../feedformats/Fomat";
 import { getJaniceAppraisalValue } from "../Janice/Janice";
 import { CachedESI } from "../esi/cache";
 import { consoleLog, msToTimeSpan } from "../helpers/Logger";
+import { savedData } from "../Bot";
 
 export const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 export async function pollzKillboardOnce(client: Client) {
   try {
+    savedData.stats.PollCount++;
+
     // zKillboard could return immediately or could make us wait up to 10 seconds
     // don't need to use axios-retry as the queue is managed on the zk server
     const { data } = await axios.get<Package>(
@@ -40,6 +38,7 @@ export async function pollzKillboardOnce(client: Client) {
     // null and empty packages are normal, if there is no kill feed activity
     // in the last 10 seconds
     if (data?.package) {
+      savedData.stats.KillMailCount++;
       // We have a non-null response from zk
       await prepAndSend(client, data.package.killmail, {
         killmail_id: data.package.killID,
@@ -162,6 +161,8 @@ export async function prepAndSend(
 
     const appraisalValue = await getJaniceAppraisalValue(killmail);
 
+    savedData.stats.ISKAppraised += appraisalValue;
+
     await Promise.all([
       Array.from(lossmailChannelIDs).map((channelId) =>
         send(client, channelId, killmail, zkb, appraisalValue, ZKMailType.Loss)
@@ -241,6 +242,7 @@ async function send(
     canUseChannel(channel) &&
     checkChannelPermissions(channel, PermissionsBitField.Flags.SendMessages)
   ) {
+    savedData.stats.PostedCount++;
     // send the message
     return channel.send(msg);
   } else {

@@ -3,6 +3,7 @@ import { SubscriptionSettings, Config } from "./Config";
 import { canUseChannel, getConfigMessage } from "./helpers/DiscordHelper";
 import { addListener, parseConfigMessage } from "./helpers/KillFeedHelpers";
 import { consoleLog } from "./helpers/Logger";
+import { savedData } from "./Bot";
 
 export async function updateChannel(
   client: Client<boolean>,
@@ -20,6 +21,9 @@ export async function updateChannel(
       // If we already had a config loaded for this channel
       // we need to clear this channel out of the all listeners
       clearChannel(thisSubscription, channel);
+      if (savedData.stats.ChannelCount > 0) {
+        savedData.stats.ChannelCount--;
+      }
     }
 
     // fetch the config message
@@ -30,6 +34,7 @@ export async function updateChannel(
       thisSubscription = parseConfigMessage(message.content, channel);
 
       Config.getInstance().allSubscriptions.set(channel.id, thisSubscription);
+      savedData.stats.ChannelCount++;
 
       thisSubscription.Alliances.forEach((id) => {
         addListener(Config.getInstance().matchedAlliances, id, channel.id);

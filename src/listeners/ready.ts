@@ -3,6 +3,7 @@ import { pollzKillboardOnce } from "../zKillboard/zKillboardService";
 import { Commands } from "../Commands";
 import { updateGuild } from "../Servers";
 import { consoleLog } from "../helpers/Logger";
+import { savedData } from "../Bot";
 
 export default (client: Client): void => {
   client.on("ready", async () => {
@@ -14,6 +15,8 @@ export default (client: Client): void => {
 
     consoleLog(`${client.user.username} is online`);
 
+    savedData.stats.ServerCount = 0;
+
     // fetch all guilds(servers) that KillFeed is a member of
     client.guilds
       .fetch()
@@ -21,6 +24,7 @@ export default (client: Client): void => {
         return Promise.all(
           guilds.map((guild, guildId) => {
             consoleLog("Guild: " + guild.name);
+            savedData.stats.ServerCount++;
             // update this guild
             return updateGuild(client, guildId, guild.name);
           })
