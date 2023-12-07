@@ -72,6 +72,7 @@ export const SetMinISK: Command = {
         } else {
           response = `No subscription found in channel. Use /init to start.`;
         }
+        thisSubscription.PauseForChanges = false;
       }
     }
 

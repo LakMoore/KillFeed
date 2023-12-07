@@ -120,6 +120,7 @@ export const Remove: Command = {
                   response = `Success! Removed ${filterValue} (${id})`;
                 }
               }
+              thisSubscription.PauseForChanges = false;
             }
           }
         }

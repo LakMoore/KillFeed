@@ -63,6 +63,7 @@ export const FullTest: Command = {
         } else {
           response = `No settings found in channel. Use /init to start.`;
         }
+        settings.PauseForChanges = false;
       }
     }
 
