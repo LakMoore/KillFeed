@@ -29,14 +29,17 @@ export class Data {
   };
 
   public async init() {
-    await storage.init();
-    const temp: Statistics = await storage.getItem(Data.DATA_KEY);
-    if (temp) {
-      this._stats = temp;
+    try {
+      await storage.init();
+      const temp: Statistics = await storage.getItem(Data.DATA_KEY);
+      if (temp) {
+        this._stats = temp;
+      }
+      // save in a little while
+      setTimeout((data) => Data.autoSave(data), SAVE_DELAY_MS, this);
+    } catch (error) {
+      consoleLog("Failed to load data from disk. " + error);
     }
-
-    // save in a little while
-    setTimeout((data) => Data.autoSave(data), SAVE_DELAY_MS, this);
   }
 
   get stats() {
@@ -56,8 +59,12 @@ export class Data {
   }
 
   public async save() {
-    consoleLog("Persisting data to filesystem...");
-    await storage.setItem(Data.DATA_KEY, this._stats);
+    try {
+      consoleLog("Persisting data to filesystem...");
+      await storage.setItem(Data.DATA_KEY, this._stats);
+    } catch (error) {
+      consoleLog("Failed to save data to disk. " + error);
+    }
   }
 
   public async clear() {
