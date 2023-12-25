@@ -44,10 +44,15 @@ export class Data {
   }
 
   public static async autoSave(that: Data) {
-    await that.save();
-    await sleep(SAVE_DELAY_MS);
-    // infinite loop required
-    setTimeout((data) => Data.autoSave(data), 1, that);
+    try {
+      await that.save();
+      await sleep(SAVE_DELAY_MS);
+      // infinite loop required
+    } catch (error) {
+      consoleLog("Failed to save data to disk. " + error);
+      await sleep(SAVE_DELAY_MS * 10);
+    }
+    setTimeout(async (data) => await Data.autoSave(data), 1, that);
   }
 
   public async save() {
