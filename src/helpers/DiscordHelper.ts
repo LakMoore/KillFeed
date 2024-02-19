@@ -57,7 +57,7 @@ export async function getConfigMessage(channel?: Channel | null) {
       return myPinned.first();
     } catch {
       // We probably don't have sufficient permission to read pinned messages
-      LOGGER.error("Insufficent Permissions to fetch Pinned Messages!");
+      LOGGER.debug("Insufficent Permissions to fetch Pinned Messages!");
     }
   }
 }
