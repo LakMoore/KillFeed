@@ -37,13 +37,17 @@ export class LogHandler {
     } else {
       message = error;
     }
-    if (this.devRole) {
-      message = `<@&${this.devRole}>\n${message}`;
-    }
+
+    // Log the message to console
+    LOGGER.debug(message);
+
     if (this.errorChannel) {
+      // Add the dev Role
+      if (this.devRole) {
+        message = `<@&${this.devRole}>\n${message}`;
+      }
       this.errorChannel.send(message);
     }
-    LOGGER.debug(message);
   }
 }
 
