@@ -201,19 +201,21 @@ async function send(
 ) {
   const channel = client.channels.cache.find((c) => c.id === channelId);
 
-  // check the minISK value filter
-  let thisSubscription;
+  const thisSubscription = Config.getInstance().allSubscriptions.get(channelId);
 
-  while (thisSubscription == undefined || thisSubscription.PauseForChanges) {
-    thisSubscription = Config.getInstance().allSubscriptions.get(channelId);
-    if (thisSubscription?.PauseForChanges) {
-      await sleep(5000);
-    }
+  if (thisSubscription == undefined) {
+    LOGGER.error(`No subscription found for ${channelId}`);
+    return;
+  }
+
+  while (thisSubscription.PauseForChanges) {
     LOGGER.debug(
       `Pausing for changes on ${thisSubscription.Channel.guild.name} : ${thisSubscription.Channel.name}`
     );
+    await sleep(5000);
   }
 
+  // check the minISK value filter
   if (zkb.zkb.totalValue <= (thisSubscription?.MinISK ?? 0)) {
     return;
   }
