@@ -6,14 +6,14 @@ import guild from "./listeners/guild";
 import channel from "./listeners/channel";
 import axios from "axios";
 import axiosRetry from "axios-retry";
-import { consoleLog } from "./helpers/Logger";
 import { Data } from "./Data";
+import { LOGGER } from "./helpers/Logger";
 
 export const savedData = new Data();
 
 async function main() {
   dotenv.config();
-  consoleLog("Bot is starting...");
+  LOGGER.info("Bot is starting...");
 
   await savedData.init();
 
@@ -40,7 +40,7 @@ async function main() {
 
   client.login(process.env.SECRET_TOKEN);
 
-  consoleLog("===============");
+  LOGGER.info("===============");
 }
 
 main();

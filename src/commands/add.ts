@@ -16,7 +16,7 @@ import {
   TYPE_REGION,
 } from "../helpers/CommandHelpers";
 import { updateChannel } from "../Channels";
-import { consoleLog } from "../helpers/Logger";
+import { LOGGER } from "../helpers/Logger";
 
 const builder = new SlashCommandBuilder()
   .setName("add")
@@ -98,10 +98,10 @@ export const Add: Command = {
 
               // add the ID to the settings in memory
               if (thisSetting) {
-                consoleLog("Adding the id");
+                LOGGER.debug("Adding the id");
                 thisSetting.add(id);
               } else {
-                consoleLog("Unable to find a filter of type " + filterType);
+                LOGGER.error("Unable to find a filter of type " + filterType);
               }
 
               // re-generate the config message

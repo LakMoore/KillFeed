@@ -1,13 +1,13 @@
 import { Client, TextChannel } from "discord.js";
 import { clearChannel, updateChannel } from "../Channels";
 import { Config } from "../Config";
-import { consoleLog } from "../helpers/Logger";
+import { LOGGER } from "../helpers/Logger";
 
 export default (client: Client): void => {
   //joined a server
   client.on("channelCreate", async (channel) => {
     if (channel instanceof TextChannel) {
-      consoleLog("Joined a new channel: " + channel.name);
+      LOGGER.debug("Joined a new channel: " + channel.name);
       //Your other stuff like adding to guildArray
       await updateChannel(client, channel.id, channel.guild.name);
     }
@@ -16,7 +16,7 @@ export default (client: Client): void => {
   //removed from a server
   client.on("channelDelete", (channel) => {
     if (channel instanceof TextChannel) {
-      consoleLog("Left a channel: " + channel.name);
+      LOGGER.debug("Left a channel: " + channel.name);
 
       const thisChannelConfig = Config.getInstance().allSubscriptions.get(
         channel.id

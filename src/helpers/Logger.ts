@@ -1,9 +1,56 @@
-const DEBUG = true;
+import { TextChannel } from "discord.js";
 
-export function consoleLog(message?: any, ...optionalParams: any[]) {
-  if (DEBUG) {
-    console.log(new Date().toUTCString() + " " + message, ...optionalParams);
+const DEBUG = true;
+export const OUR_GUILD = "KillFeed";
+export const ERROR_CHANNEL = "bot-errors";
+export const DEV_ROLE = "Developer";
+
+export class LogHandler {
+  private errorChannel: TextChannel | undefined;
+  private devRole: string | undefined;
+
+  public setErrorChannel(channel: TextChannel) {
+    this.errorChannel = channel;
   }
+
+  public setDevRole(role: string) {
+    this.devRole = role;
+  }
+
+  // always just log to console
+  public info(message: string) {
+    consoleLog(message);
+  }
+
+  // log to console only if DEBUG is true
+  public debug(message: string) {
+    if (DEBUG) {
+      consoleLog(message);
+    }
+  }
+
+  // always log to console and to error channel on our Discord server
+  public error(error: Error | string) {
+    let message: string;
+    if (error instanceof Error) {
+      message = error.message;
+    } else {
+      message = error;
+    }
+    if (this.devRole) {
+      message = `<@&${this.devRole}>\n${message}`;
+    }
+    if (this.errorChannel) {
+      this.errorChannel.send(message);
+    }
+    LOGGER.debug(message);
+  }
+}
+
+export const LOGGER = new LogHandler();
+
+function consoleLog(message?: any, ...optionalParams: any[]) {
+  console.log(new Date().toUTCString() + " " + message, ...optionalParams);
 }
 
 // function to convert number of milliseconds into timespan string

@@ -7,7 +7,7 @@ import { Config } from "../Config";
 import { Command } from "../Command";
 import { fetchKillmail } from "../esi/fetch";
 import { getOneZKill, prepAndSend } from "../zKillboard/zKillboardService";
-import { consoleLog } from "../helpers/Logger";
+import { LOGGER } from "../helpers/Logger";
 
 const KILLMAIL_ID = "killmail-id";
 
@@ -29,7 +29,7 @@ export const Test: Command = {
       if (kmId) {
         const zkb = await getOneZKill(kmId);
 
-        consoleLog(zkb);
+        LOGGER.debug(JSON.stringify(zkb, null, 2));
 
         if (zkb?.zkb) {
           const { data } = await fetchKillmail(kmId, zkb.zkb.hash);

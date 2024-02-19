@@ -1,6 +1,6 @@
 import storage from "node-persist";
-import { consoleLog } from "./helpers/Logger";
 import { sleep } from "./zKillboard/zKillboardService";
+import { LOGGER } from "./helpers/Logger";
 
 export interface Statistics {
   ServerCount: number;
@@ -38,7 +38,7 @@ export class Data {
       // save in a little while
       setTimeout((data) => Data.autoSave(data), SAVE_DELAY_MS, this);
     } catch (error) {
-      consoleLog("Failed to load data from disk. " + error);
+      LOGGER.error("Failed to load data from disk. " + error);
     }
   }
 
@@ -52,7 +52,7 @@ export class Data {
       await sleep(SAVE_DELAY_MS);
       // infinite loop required
     } catch (error) {
-      consoleLog("Failed to save data to disk. " + error);
+      LOGGER.error("Failed to save data to disk. " + error);
       await sleep(SAVE_DELAY_MS * 10);
     }
     setTimeout(async (data) => await Data.autoSave(data), 1, that);
@@ -60,15 +60,15 @@ export class Data {
 
   public async save() {
     try {
-      consoleLog("Persisting data to filesystem...");
+      LOGGER.debug("Persisting data to filesystem...");
       await storage.setItem(Data.DATA_KEY, this._stats);
     } catch (error) {
-      consoleLog("Failed to save data to disk. " + error);
+      LOGGER.error("Failed to save data to disk. " + error);
     }
   }
 
   public async clear() {
     await storage.clear();
-    consoleLog("Cleared all persistent storage!!!");
+    LOGGER.error("Cleared all persistent storage!!!");
   }
 }
