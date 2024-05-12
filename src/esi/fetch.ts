@@ -115,5 +115,5 @@ export function fetchKillmail(killmailId: string, hash: string) {
 
     return axios.get<KillMail>(url + path);
   }
-  return Promise.reject("Must provide KM ID and Hash");
+  return Promise.reject(new Error("Must provide KM ID and Hash"));
 }
