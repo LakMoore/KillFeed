@@ -41,6 +41,8 @@ export const SetPingTarget: Command = {
       if (!thisSubscription) {
         response = "No subscription found in channel. Use /init to start.";
       } else {
+        thisSubscription.PauseForChanges = true;
+
         const roleToPing = interaction.options.getRole(NAME_VALUE);
 
         if (!roleToPing) {
@@ -66,6 +68,7 @@ export const SetPingTarget: Command = {
         } else {
           response = `No subscription found in channel. Use /init to start.`;
         }
+        thisSubscription.PauseForChanges = false;
       }
     }
 

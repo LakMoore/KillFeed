@@ -1,5 +1,6 @@
 import axios, { AxiosError } from "axios";
 import { KillMail } from "../zKillboard/zKillboard";
+import { LOGGER } from "../helpers/Logger";
 
 export interface Name {
   category: string;
@@ -80,11 +81,11 @@ export function fetchESINames(ids: number[]) {
     .then((response) => response.data)
     .catch((err: Error) => {
       if (err instanceof AxiosError) {
-        console.log(
+        LOGGER.debug(
           `Axios error fetching Names from ESI: [${err.code}]${err.message}`
         );
       } else {
-        console.log("General error fetcing Names from ESI: " + err.message);
+        LOGGER.debug("General error fetcing Names from ESI: " + err.message);
       }
       return <Name[]>[];
     });
@@ -98,11 +99,11 @@ export function fetchESIIDs(names: string[]) {
     .then((response) => response.data)
     .catch((err: Error) => {
       if (err instanceof AxiosError) {
-        console.log(
+        LOGGER.debug(
           `Axios error fetching IDs from ESI: [${err.code}]${err.message}`
         );
       } else {
-        console.log("General error fetcing IDs from ESI: " + err.message);
+        LOGGER.debug("General error fetcing IDs from ESI: " + err.message);
       }
       return <IDs>{};
     });

@@ -18,6 +18,7 @@ import {
   TYPE_SHIP,
   TYPE_REGION,
 } from "../helpers/CommandHelpers";
+import { LOGGER } from "../helpers/Logger";
 
 const builder = new SlashCommandBuilder()
   .setName("remove")
@@ -56,7 +57,7 @@ export const Remove: Command = {
             } else {
               type ObjectKey = keyof typeof IDs;
               const myKey = filterType as ObjectKey;
-              let tempId = IDs[myKey]?.[0].id;
+              const tempId = IDs[myKey]?.[0].id;
 
               if (!tempId) {
                 response = `Failed to get the ID for ${filterValue} from Eve`;
@@ -73,9 +74,12 @@ export const Remove: Command = {
             );
 
             if (!thisSubscription) {
-              console.log(`Failed to find a subscription for this channel!`);
+              LOGGER.debug(`Failed to find a subscription for this channel!`);
               response = `Failed to find a subscription for this channel!`;
             } else {
+              // create some breathing room for the server to catch up
+              thisSubscription.PauseForChanges = true;
+
               let thisFilter = undefined;
               let listener = undefined;
 
@@ -98,10 +102,10 @@ export const Remove: Command = {
 
               // remove the ID from the settings in memory
               if (!thisFilter) {
-                console.log("Unable to find a filter called " + filterType);
+                LOGGER.debug("Unable to find a filter called " + filterType);
                 response = "Unable to find a filter called " + filterType;
               } else {
-                console.log("Deleting the id");
+                LOGGER.debug("Deleting the id");
                 thisFilter.delete(id);
 
                 // remove the ID from the current filters too
@@ -116,6 +120,7 @@ export const Remove: Command = {
                   response = `Success! Removed ${filterValue} (${id})`;
                 }
               }
+              thisSubscription.PauseForChanges = false;
             }
           }
         }

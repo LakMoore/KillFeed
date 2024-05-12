@@ -1,5 +1,6 @@
 import { Channel, TextChannel } from "discord.js";
 import { SubscriptionSettings } from "../Config";
+import { LOGGER } from "./Logger";
 
 // serialise our settings storage object, dropping the internal reference to the channel itself
 
@@ -9,6 +10,8 @@ export function generateConfigMessage(settings: SubscriptionSettings): string {
     (key, value) => {
       if (key === "Channel") {
         return "";
+      } else if (key === "PauseForChanges") {
+        return false;
       } else if (value instanceof Set) {
         return [...value];
       }
@@ -25,7 +28,7 @@ export function parseConfigMessage(
   let result = undefined;
 
   try {
-    console.log(message);
+    LOGGER.debug(message);
     result = JSON.parse(message, (key, value) => {
       if (key === "Channel") {
         return channel;
@@ -36,11 +39,11 @@ export function parseConfigMessage(
     });
   } catch (error) {
     if (error instanceof Error) {
-      console.log(
+      LOGGER.debug(
         `Error while parsing the config: ${message}\n${error.message}`
       );
     } else {
-      console.log(`Error while parsing the config: ${message}`);
+      LOGGER.debug(`Error while parsing the config: ${message}`);
     }
   }
 
@@ -64,6 +67,7 @@ export function parseConfigMessage(
     Regions: new Set<number>(),
     MinISK: 0,
     RoleToPing: undefined,
+    PauseForChanges: false,
   };
 }
 

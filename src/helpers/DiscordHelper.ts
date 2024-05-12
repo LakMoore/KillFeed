@@ -4,6 +4,7 @@ import {
   PermissionsBitField,
   TextChannel,
 } from "discord.js";
+import { LOGGER } from "./Logger";
 
 export function canUseChannel(
   channel?: Channel | null
@@ -56,7 +57,7 @@ export async function getConfigMessage(channel?: Channel | null) {
       return myPinned.first();
     } catch {
       // We probably don't have sufficient permission to read pinned messages
-      console.log("Insufficent Permissions to fetch Pinned Messages!");
+      LOGGER.debug("Insufficent Permissions to fetch Pinned Messages!");
     }
   }
 }

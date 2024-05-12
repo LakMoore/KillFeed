@@ -16,6 +16,7 @@ import {
   TYPE_REGION,
 } from "../helpers/CommandHelpers";
 import { updateChannel } from "../Channels";
+import { LOGGER } from "../helpers/Logger";
 
 const builder = new SlashCommandBuilder()
   .setName("add")
@@ -58,7 +59,7 @@ export const Add: Command = {
             } else {
               type ObjectKey = keyof typeof IDs;
               const myKey = filterType as ObjectKey;
-              let tempId = IDs[myKey]?.[0].id;
+              const tempId = IDs[myKey]?.[0].id;
 
               if (!tempId) {
                 response = `Failed to get the ID for ${filterValue} from Eve`;
@@ -78,6 +79,9 @@ export const Add: Command = {
               response =
                 "Unable to find settings for this channel. Use /init to start.";
             } else {
+              // create some breathing room for the server to catch up
+              thisSubscription.PauseForChanges = true;
+
               let thisSetting = undefined;
 
               if (filterType === TYPE_CHAR) {
@@ -94,10 +98,10 @@ export const Add: Command = {
 
               // add the ID to the settings in memory
               if (thisSetting) {
-                console.log("Adding the id");
+                LOGGER.debug("Adding the id");
                 thisSetting.add(id);
               } else {
-                console.log("Unable to find a filter of type " + filterType);
+                LOGGER.error("Unable to find a filter of type " + filterType);
               }
 
               // re-generate the config message
@@ -115,6 +119,7 @@ export const Add: Command = {
               } else {
                 response = `No subscription found in channel. Use /init to start.`;
               }
+              thisSubscription.PauseForChanges = false;
             }
           }
         }
