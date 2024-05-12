@@ -89,17 +89,6 @@ export async function prepAndSend(
     const killmailChannelIDs = new Set<string>();
     const neutralmailChannelIDs = new Set<string>();
 
-    Config.getInstance().testRequests.forEach((v) => {
-      lossmailChannelIDs.add(v);
-    });
-    Config.getInstance().testRequests.clear();
-
-    Array.from(Config.getInstance().allSubscriptions.values())
-      .filter((chan) => chan.FullTest)
-      .forEach((chan) => {
-        lossmailChannelIDs.add(chan.Channel.id);
-      });
-
     let temp = Config.getInstance().matchedAlliances.get(
       killmail.victim.alliance_id
     );
@@ -176,6 +165,28 @@ export async function prepAndSend(
     } catch (error) {
       LOGGER.error(`Error while fetching constellation from system. ${error}`);
     }
+
+    // TESTS
+
+    Config.getInstance().testRequests.forEach((v) => {
+      if (!lossmailChannelIDs.has(v) && !killmailChannelIDs.has(v)) {
+        neutralmailChannelIDs.add(v);
+      }
+    });
+    Config.getInstance().testRequests.clear();
+
+    Array.from(Config.getInstance().allSubscriptions.values())
+      .filter((chan) => chan.FullTest)
+      .forEach((chan) => {
+        if (
+          !lossmailChannelIDs.has(chan.Channel.id) &&
+          !killmailChannelIDs.has(chan.Channel.id)
+        ) {
+          neutralmailChannelIDs.add(chan.Channel.id);
+        }
+      });
+
+    // END TESTS
 
     const appraisalValue = await getJaniceAppraisalValue(killmail);
 
