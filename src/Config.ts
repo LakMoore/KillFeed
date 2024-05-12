@@ -13,6 +13,7 @@ export interface SubscriptionSettings {
   MinISK: number | undefined;
   RoleToPing: string | undefined;
   PauseForChanges: boolean;
+  Show: string;
 }
 
 export class Config {

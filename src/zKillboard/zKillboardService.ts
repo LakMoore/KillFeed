@@ -15,6 +15,7 @@ import { getJaniceAppraisalValue } from "../Janice/Janice";
 import { CachedESI } from "../esi/cache";
 import { LOGGER, msToTimeSpan } from "../helpers/Logger";
 import { savedData } from "../Bot";
+import { TYPE_KILLS, TYPE_LOSSES } from "../commands/show";
 
 export const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
@@ -93,18 +94,19 @@ export async function prepAndSend(
       killmail.victim.alliance_id
     );
     temp?.forEach((v) => lossmailChannelIDs.add(v));
+
     temp = Config.getInstance().matchedCorporations.get(
       killmail.victim.corporation_id
     );
     temp?.forEach((v) => lossmailChannelIDs.add(v));
+
     temp = Config.getInstance().matchedCharacters.get(
       killmail.victim.character_id
     );
     temp?.forEach((v) => lossmailChannelIDs.add(v));
-    //--
+
     temp = Config.getInstance().matchedShips.get(killmail.victim.ship_type_id);
     temp?.forEach((v) => lossmailChannelIDs.add(v));
-    //--
 
     killmail.attackers.forEach((attacker) => {
       temp = Config.getInstance().matchedAlliances.get(attacker.alliance_id);
@@ -247,6 +249,14 @@ async function send(
 
   // check the minISK value filter
   if (zkb.zkb.totalValue <= (thisSubscription?.MinISK ?? 0)) {
+    return;
+  }
+
+  // Don't send the mail if we don't want its type on this channel
+  if (
+    (thisSubscription.Show == TYPE_LOSSES && type != ZKMailType.Loss) ||
+    (thisSubscription.Show == TYPE_KILLS && type != ZKMailType.Kill)
+  ) {
     return;
   }
 
