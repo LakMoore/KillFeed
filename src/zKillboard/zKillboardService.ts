@@ -158,6 +158,25 @@ export async function prepAndSend(
       LOGGER.error(`Error while fetching region from system. ${error}`);
     }
 
+    // Handle Matched Constellations
+    try {
+      const constellation = await CachedESI.getConstellationForSystem(
+        killmail.solar_system_id
+      );
+      if (constellation) {
+        temp = Config.getInstance().matchedConstellations.get(
+          constellation.constellation_id
+        );
+        temp?.forEach((v) => {
+          if (!lossmailChannelIDs.has(v) && !killmailChannelIDs.has(v)) {
+            neutralmailChannelIDs.add(v);
+          }
+        });
+      }
+    } catch (error) {
+      LOGGER.error(`Error while fetching constellation from system. ${error}`);
+    }
+
     const appraisalValue = await getJaniceAppraisalValue(killmail);
 
     savedData.stats.ISKAppraised += appraisalValue;

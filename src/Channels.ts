@@ -69,6 +69,10 @@ export async function updateChannel(
       thisSubscription.Regions.forEach((id) => {
         addListener(Config.getInstance().matchedRegions, id, channel.id);
       });
+
+      thisSubscription.Constellations.forEach((id) => {
+        addListener(Config.getInstance().matchedConstellations, id, channel.id);
+      });
     }
   }
 }
@@ -100,5 +104,13 @@ export function clearChannel(
   subscription.Regions.forEach((regionId) => {
     Config.getInstance().matchedRegions.get(regionId)?.delete(channel.id);
     LOGGER.debug(`Deleted region ${regionId} from server ${channel.id}`);
+  });
+  subscription.Constellations.forEach((constellationId) => {
+    Config.getInstance()
+      .matchedConstellations.get(constellationId)
+      ?.delete(channel.id);
+    LOGGER.debug(
+      `Deleted constellation ${constellationId} from server ${channel.id}`
+    );
   });
 }

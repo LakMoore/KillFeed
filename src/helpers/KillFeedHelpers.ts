@@ -52,6 +52,11 @@ export function parseConfigMessage(
     result = { ...result, Regions: new Set<number>() };
   }
 
+  if (result != undefined && !Object.hasOwn(result, "Constellations")) {
+    // Constellations object was added later.  These settings need an upgrade!
+    result = { ...result, Constellations: new Set<number>() };
+  }
+
   if (result?.ResponseFormat) {
     return result;
   }
@@ -65,6 +70,7 @@ export function parseConfigMessage(
     Characters: new Set<number>(),
     Ships: new Set<number>(),
     Regions: new Set<number>(),
+    Constellations: new Set<number>(),
     MinISK: 0,
     RoleToPing: undefined,
     PauseForChanges: false,
