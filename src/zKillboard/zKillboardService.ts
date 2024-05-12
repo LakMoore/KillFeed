@@ -15,6 +15,7 @@ import { getJaniceAppraisalValue } from "../Janice/Janice";
 import { CachedESI } from "../esi/cache";
 import { LOGGER, msToTimeSpan } from "../helpers/Logger";
 import { savedData } from "../Bot";
+import { TYPE_KILLS, TYPE_LOSSES } from "../commands/show";
 
 export const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
@@ -89,33 +90,23 @@ export async function prepAndSend(
     const killmailChannelIDs = new Set<string>();
     const neutralmailChannelIDs = new Set<string>();
 
-    Config.getInstance().testRequests.forEach((v) => {
-      lossmailChannelIDs.add(v);
-    });
-    Config.getInstance().testRequests.clear();
-
-    Array.from(Config.getInstance().allSubscriptions.values())
-      .filter((chan) => chan.FullTest)
-      .forEach((chan) => {
-        lossmailChannelIDs.add(chan.Channel.id);
-      });
-
     let temp = Config.getInstance().matchedAlliances.get(
       killmail.victim.alliance_id
     );
     temp?.forEach((v) => lossmailChannelIDs.add(v));
+
     temp = Config.getInstance().matchedCorporations.get(
       killmail.victim.corporation_id
     );
     temp?.forEach((v) => lossmailChannelIDs.add(v));
+
     temp = Config.getInstance().matchedCharacters.get(
       killmail.victim.character_id
     );
     temp?.forEach((v) => lossmailChannelIDs.add(v));
-    //--
+
     temp = Config.getInstance().matchedShips.get(killmail.victim.ship_type_id);
     temp?.forEach((v) => lossmailChannelIDs.add(v));
-    //--
 
     killmail.attackers.forEach((attacker) => {
       temp = Config.getInstance().matchedAlliances.get(attacker.alliance_id);
@@ -157,6 +148,47 @@ export async function prepAndSend(
     } catch (error) {
       LOGGER.error(`Error while fetching region from system. ${error}`);
     }
+
+    // Handle Matched Constellations
+    try {
+      const constellation = await CachedESI.getConstellationForSystem(
+        killmail.solar_system_id
+      );
+      if (constellation) {
+        temp = Config.getInstance().matchedConstellations.get(
+          constellation.constellation_id
+        );
+        temp?.forEach((v) => {
+          if (!lossmailChannelIDs.has(v) && !killmailChannelIDs.has(v)) {
+            neutralmailChannelIDs.add(v);
+          }
+        });
+      }
+    } catch (error) {
+      LOGGER.error(`Error while fetching constellation from system. ${error}`);
+    }
+
+    // TESTS
+
+    Config.getInstance().testRequests.forEach((v) => {
+      if (!lossmailChannelIDs.has(v) && !killmailChannelIDs.has(v)) {
+        neutralmailChannelIDs.add(v);
+      }
+    });
+    Config.getInstance().testRequests.clear();
+
+    Array.from(Config.getInstance().allSubscriptions.values())
+      .filter((chan) => chan.FullTest)
+      .forEach((chan) => {
+        if (
+          !lossmailChannelIDs.has(chan.Channel.id) &&
+          !killmailChannelIDs.has(chan.Channel.id)
+        ) {
+          neutralmailChannelIDs.add(chan.Channel.id);
+        }
+      });
+
+    // END TESTS
 
     const appraisalValue = await getJaniceAppraisalValue(killmail);
 
@@ -217,6 +249,14 @@ async function send(
 
   // check the minISK value filter
   if (zkb.zkb.totalValue <= (thisSubscription?.MinISK ?? 0)) {
+    return;
+  }
+
+  // Don't send the mail if we don't want its type on this channel
+  if (
+    (thisSubscription.Show == TYPE_LOSSES && type != ZKMailType.Loss) ||
+    (thisSubscription.Show == TYPE_KILLS && type != ZKMailType.Kill)
+  ) {
     return;
   }
 

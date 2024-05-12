@@ -65,13 +65,15 @@ export class CachedESI {
   }
 
   public static async getRegionForSystem(solar_system_id: number) {
-    const system = await CachedESI.getSystem(solar_system_id);
-
-    const constellation = await CachedESI.getConstellation(
-      system.constellation_id
+    const constellation = await CachedESI.getConstellationForSystem(
+      solar_system_id
     );
-
     return await CachedESI.getRegion(constellation.region_id);
+  }
+
+  public static async getConstellationForSystem(solar_system_id: number) {
+    const system = await CachedESI.getSystem(solar_system_id);
+    return await CachedESI.getConstellation(system.constellation_id);
   }
 
   public static getItemName(itemId: number) {

@@ -3,6 +3,7 @@ import { fetchESINames } from "../esi/fetch";
 import { Command } from "../Command";
 import { Config } from "../Config";
 import { canUseChannel } from "../helpers/DiscordHelper";
+import { formatISKValue } from "../helpers/JaniceHelper";
 
 export const Info: Command = {
   name: "info",
@@ -72,6 +73,41 @@ export const Info: Command = {
             )) +
             "\n";
         }
+        if (thisSubscription.Regions.size > 0) {
+          response +=
+            "**Regions:**\n" +
+            (await fetchESINames(Array.from(thisSubscription.Regions)).then(
+              (names) => {
+                return names
+                  .map((n) => n.name)
+                  .sort()
+                  .join("\n");
+              }
+            )) +
+            "\n";
+        }
+        if (thisSubscription.Constellations.size > 0) {
+          response +=
+            "**Constellations:**\n" +
+            (await fetchESINames(
+              Array.from(thisSubscription.Constellations)
+            ).then((names) => {
+              return names
+                .map((n) => n.name)
+                .sort()
+                .join("\n");
+            })) +
+            "\n";
+        }
+
+        response += `\nShowing: ${thisSubscription.Show}\n`;
+
+        if (thisSubscription.MinISK) {
+          response += `Minimum ISK: ${formatISKValue(
+            thisSubscription.MinISK
+          )}\n`;
+        }
+
         if (response.length > 0) {
           response = "Listening for:\n" + response;
         } else {

@@ -9,9 +9,11 @@ export interface SubscriptionSettings {
   Characters: Set<number>;
   Ships: Set<number>;
   Regions: Set<number>;
+  Constellations: Set<number>;
   MinISK: number | undefined;
   RoleToPing: string | undefined;
   PauseForChanges: boolean;
+  Show: string;
 }
 
 export class Config {
@@ -26,6 +28,7 @@ export class Config {
   public matchedCharacters = new Map<number, Set<string>>();
   public matchedShips = new Map<number, Set<string>>();
   public matchedRegions = new Map<number, Set<string>>();
+  public matchedConstellations = new Map<number, Set<string>>();
 
   // a set of channels that have requested a test killmail
   public testRequests = new Set<string>();

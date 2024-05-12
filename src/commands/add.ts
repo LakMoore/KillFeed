@@ -14,6 +14,7 @@ import {
   TYPE_CORP,
   TYPE_SHIP,
   TYPE_REGION,
+  TYPE_CONSTELLATION,
 } from "../helpers/CommandHelpers";
 import { updateChannel } from "../Channels";
 import { LOGGER } from "../helpers/Logger";
@@ -94,6 +95,8 @@ export const Add: Command = {
                 thisSetting = thisSubscription?.Ships;
               } else if (filterType === TYPE_REGION) {
                 thisSetting = thisSubscription?.Regions;
+              } else if (filterType === TYPE_CONSTELLATION) {
+                thisSetting = thisSubscription?.Constellations;
               }
 
               // add the ID to the settings in memory
