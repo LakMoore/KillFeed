@@ -29,6 +29,24 @@ export class LogHandler {
     }
   }
 
+  // always log to console and to error channel on our Discord server (no ping!)
+  public warning(error: Error | string) {
+    let message: string;
+    if (error instanceof Error) {
+      message = error.message;
+    } else {
+      message = error;
+    }
+
+    // Log the message to console
+    LOGGER.debug(message);
+
+    if (this.errorChannel) {
+      // No pings for warnings
+      this.errorChannel.send(message);
+    }
+  }
+
   // always log to console and to error channel on our Discord server
   public error(error: Error | string) {
     let message: string;

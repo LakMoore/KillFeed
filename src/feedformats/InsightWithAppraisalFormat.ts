@@ -4,6 +4,7 @@ import { KillMail, ZkbOnly } from "../zKillboard/zKillboard";
 import { BaseFormat, ZKMailType } from "./Fomat";
 import { formatISKValue } from "../helpers/JaniceHelper";
 import { CachedESI } from "../esi/cache";
+import { PLEX } from "../Plex";
 
 const colours = {
   kill: 0x00ff00,
@@ -23,7 +24,11 @@ export const InsightWithAppraisalFormat: BaseFormat = {
       ? `https://images.evetech.net/alliances/${killmail.victim.alliance_id}/logo?size=64`
       : `https://images.evetech.net/corporations/${killmail.victim.corporation_id}/logo?size=64`;
 
-    const value = formatISKValue(zkb.zkb.totalValue);
+    const USDvalue = await PLEX.convertISKtoUSD(zkb.zkb.totalValue);
+    let value = formatISKValue(zkb.zkb.totalValue);
+    if (USDvalue && USDvalue != "") {
+      value = `${value} (${USDvalue})`;
+    }
 
     let attacker = killmail.attackers.filter((char) => char.final_blow)[0];
     if (!attacker) attacker = killmail.attackers[0];
@@ -82,7 +87,11 @@ export const InsightWithAppraisalFormat: BaseFormat = {
         }
       }
 
-      const appraisedValueText = formatISKValue(appraisedValue);
+      let appraisedValueText = formatISKValue(appraisedValue);
+      const USDvalue = await PLEX.convertISKtoUSD(appraisedValue);
+      if (USDvalue && USDvalue != "") {
+        appraisedValueText = `${appraisedValueText} (${USDvalue})`;
+      }
 
       let nameText = "Neutral Kill";
       let colour = colours.neutral;
@@ -118,8 +127,7 @@ export const InsightWithAppraisalFormat: BaseFormat = {
             )
             .setTimestamp(new Date(killmail.killmail_time))
             .setFooter({
-              text: `ZKill Value: ${value}
-Janice Value: ${appraisedValueText}`,
+              text: ` • ZKill Value: ${value}\n• Janice Value: ${appraisedValueText}\n`,
             }),
         ],
       };

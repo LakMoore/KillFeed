@@ -30,7 +30,7 @@ export default (client: Client): void => {
           })
         );
       })
-      .then(() => LOGGER.error(`Imported all servers and now ready.`))
+      .then(() => LOGGER.warning(`Imported all servers and now ready.`))
       .then(() => {
         LOGGER.debug("Starting Poll");
         pollLoop(client, 0);

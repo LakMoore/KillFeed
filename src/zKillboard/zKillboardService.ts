@@ -47,10 +47,17 @@ export async function pollzKillboardOnce(client: Client) {
       });
     }
   } catch (error) {
-    if (axios.isAxiosError(error)) {
-      LOGGER.error(
-        `AxiosError ${error.response?.status} ${error.response?.statusText} ${error.config?.url}`
-      );
+    if (axios.isAxiosError(error) && error.response) {
+      if (error.response.status >= 500 && error.response.status < 600) {
+        // no ping for server-side errors
+        LOGGER.warning(
+          `AxiosError\n${error.response?.status}\n${error.response?.statusText}\n${error.config?.url}`
+        );
+      } else {
+        LOGGER.error(
+          `AxiosError\n${error.response?.status}\n${error.response?.statusText}\n${error.config?.url}`
+        );
+      }
     } else {
       LOGGER.error("Error fetching from zKillboard\n" + error);
     }
