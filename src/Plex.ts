@@ -19,19 +19,25 @@ export class PLEX {
     return PLEX.instance;
   }
 
-  private constructor() {}
+  private constructor() { }
 
   public static async convertISKtoUSD(ISK_amount: number) {
+
+    if (ISK_amount <= 0) {
+      return "0 USD";
+    }
+
     LOGGER.debug("Converting " + ISK_amount + " ISK to USD");
+
     if (
       PLEX.ISK_per_PLEX <= 0 ||
-      this.last_updated.getTime() <
-        new Date().getTime() - PLEX.PLEX_PRICE_UPDATE_INTERVAL
+      PLEX.last_updated.getTime() <
+      new Date().getTime() - PLEX.PLEX_PRICE_UPDATE_INTERVAL
     ) {
       const newPrice = await getPLEXPrice();
       if (newPrice > 0) {
         PLEX.ISK_per_PLEX = newPrice;
-        this.last_updated = new Date();
+        PLEX.last_updated = new Date();
       }
     }
 

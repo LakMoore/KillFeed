@@ -69,8 +69,7 @@ export async function getJaniceAppraisalValue(killmail: KillMail) {
       } else if (error.response.status >= 400 && error.response.status < 500) {
         // Bad request!?
         LOGGER.error(
-          `Janice Appraisal bad request.\n${
-            error.message
+          `Janice Appraisal bad request.\n${error.message
           }\nRequest: ${JSON.stringify(error.request)}`
         );
       }
@@ -87,6 +86,8 @@ export async function getPLEXPrice() {
     const PLEX_ID = 44992;
     const query = new URLSearchParams(PARAMS).toString();
     const payload = `${PLEX_ID}`;
+
+    LOGGER.debug("Fetching PLEX price");
 
     const janiceConfig: AxiosRequestConfig = {
       headers: {
@@ -117,8 +118,7 @@ export async function getPLEXPrice() {
       } else if (error.response.status >= 400 && error.response.status < 500) {
         // Bad request!?
         LOGGER.error(
-          `Janice getPLEXPrice bad request.\n${
-            error.message
+          `Janice getPLEXPrice bad request.\n${error.message
           }\nRequest: ${JSON.stringify(error.request)}`
         );
       }
