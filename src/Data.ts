@@ -35,9 +35,6 @@ export class Data {
       if (temp) {
         this._stats = temp;
       }
-      // save in a little while
-      await sleep(SAVE_DELAY_MS);
-      await this.autoSave();
     } catch (error) {
       LOGGER.error("Failed to load data from disk. " + error);
     }
@@ -47,7 +44,7 @@ export class Data {
     return this._stats;
   }
 
-  private async autoSave() {
+  public async startAutoSaving() {
     while (true) {  // Explicit infinite loop
       try {
         await this.save();
