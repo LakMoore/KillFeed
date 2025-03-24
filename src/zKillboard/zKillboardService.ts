@@ -16,8 +16,7 @@ import { CachedESI } from "../esi/cache";
 import { LOGGER, msToTimeSpan } from "../helpers/Logger";
 import { savedData } from "../Bot";
 import { TYPE_KILLS, TYPE_LOSSES } from "../commands/show";
-
-export const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+import { sleep } from "../listeners/ready";
 
 export async function pollzKillboardOnce(client: Client) {
   try {
@@ -26,8 +25,7 @@ export async function pollzKillboardOnce(client: Client) {
     // zKillboard could return immediately or could make us wait up to 10 seconds
     // don't need to use axios-retry as the queue is managed on the zk server
     const { data } = await axios.get<Package>(
-      `https://redisq.zkillboard.com/listen.php?queueID=${
-        process.env.QUEUE_ID ?? "NoQueueIDProvided"
+      `https://redisq.zkillboard.com/listen.php?queueID=${process.env.QUEUE_ID ?? "NoQueueIDProvided"
       }`,
       {
         "axios-retry": {
@@ -45,6 +43,9 @@ export async function pollzKillboardOnce(client: Client) {
         killmail_id: data.package.killID,
         zkb: data.package.zkb,
       });
+    } else {
+      // No killmails
+      await sleep(1000);  // sleep for a second to save spamming zKillboard during quiet times
     }
   } catch (error) {
     if (axios.isAxiosError(error) && error.response) {
@@ -63,7 +64,7 @@ export async function pollzKillboardOnce(client: Client) {
     }
 
     // if there was an error then take a break
-    await sleep(30000);
+    await sleep(10000);
   }
 }
 
@@ -86,8 +87,7 @@ export async function prepAndSend(
 ) {
   try {
     LOGGER.debug(
-      `Kill ID: ${killmail.killmail_id} from ${
-        killmail.killmail_time
+      `Kill ID: ${killmail.killmail_id} from ${killmail.killmail_time
       } (${msToTimeSpan(
         Date.now() - new Date(killmail.killmail_time).getTime()
       )} ago)`

@@ -1,6 +1,6 @@
 import storage from "node-persist";
-import { sleep } from "./zKillboard/zKillboardService";
 import { LOGGER } from "./helpers/Logger";
+import { sleep } from "./listeners/ready";
 
 export interface Statistics {
   ServerCount: number;
@@ -36,7 +36,8 @@ export class Data {
         this._stats = temp;
       }
       // save in a little while
-      setTimeout((data) => Data.autoSave(data), SAVE_DELAY_MS, this);
+      await sleep(SAVE_DELAY_MS);
+      await this.autoSave();
     } catch (error) {
       LOGGER.error("Failed to load data from disk. " + error);
     }
@@ -46,16 +47,16 @@ export class Data {
     return this._stats;
   }
 
-  public static async autoSave(that: Data) {
-    try {
-      await that.save();
-      await sleep(SAVE_DELAY_MS);
-      // infinite loop required
-    } catch (error) {
-      LOGGER.error("Failed to save data to disk. " + error);
-      await sleep(SAVE_DELAY_MS * 10);
+  private async autoSave() {
+    while (true) {  // Explicit infinite loop
+      try {
+        await this.save();
+        await sleep(SAVE_DELAY_MS);
+      } catch (error) {
+        LOGGER.error("Failed to save data to disk. " + error);
+        await sleep(SAVE_DELAY_MS * 10);
+      }
     }
-    setTimeout(async (data) => await Data.autoSave(data), 1, that);
   }
 
   public async save() {
