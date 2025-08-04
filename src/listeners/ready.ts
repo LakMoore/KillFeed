@@ -86,6 +86,7 @@ async function pollLoop(client: Client, loopCount: number) {
     }
 
     // Small delay between iterations to prevent tight-looping
-    await sleep(100);
+    // Squizz added a 10 requests per 20 seconds limit - 04/08/2025
+    await sleep(600);
   }
 }
