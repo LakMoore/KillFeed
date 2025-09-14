@@ -19,10 +19,9 @@ export class PLEX {
     return PLEX.instance;
   }
 
-  private constructor() { }
+  private constructor() {}
 
   public static async convertISKtoUSD(ISK_amount: number) {
-
     if (ISK_amount <= 0) {
       return "0 USD";
     }

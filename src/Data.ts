@@ -45,7 +45,9 @@ export class Data {
   }
 
   public async startAutoSaving() {
-    while (true) {  // Explicit infinite loop
+    // eslint-disable-next-line no-constant-condition
+    while (true) {
+      // Explicit infinite loop
       try {
         await this.save();
         await sleep(SAVE_DELAY_MS);
