@@ -1,5 +1,5 @@
+import { getPLEXPrice } from "./esi/get";
 import { LOGGER } from "./helpers/Logger";
-import { getPLEXPrice } from "./Janice/Janice";
 
 export class PLEX {
   private static instance: PLEX;
@@ -32,7 +32,7 @@ export class PLEX {
     if (
       PLEX.ISK_per_PLEX <= 0 ||
       PLEX.last_updated.getTime() <
-      new Date().getTime() - PLEX.PLEX_PRICE_UPDATE_INTERVAL
+        new Date().getTime() - PLEX.PLEX_PRICE_UPDATE_INTERVAL
     ) {
       const newPrice = await getPLEXPrice();
       if (newPrice > 0) {
