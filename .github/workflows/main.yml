@@ -17,8 +17,8 @@ jobs:
           script: |
             cd /home/pmtwo/KillFeed
             
-            git fetch origin main
-            git reset --hard origin/main
-            npm install
-            ./node_modules/typescript/bin/tsc
-            pm2 restart KillFeed
+            sudo -u pmtwo git fetch origin main
+            sudo -u pmtwo git reset --hard origin/main
+            sudo -u pmtwo npm install
+            sudo -u pmtwo ./node_modules/typescript/bin/tsc
+            sudo -u pmtwo pm2 restart KillFeed

@@ -30,7 +30,7 @@ export default (client: Client): void => {
           })
         );
       })
-      .then(() => LOGGER.error(`Imported all servers and now ready.`))
+      .then(() => LOGGER.warning(`Imported all servers and now ready.`))
       .then(() => {
         LOGGER.debug("Starting Poll");
         pollLoop(client, 0);
@@ -38,54 +38,54 @@ export default (client: Client): void => {
   });
 };
 
-const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+export const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 let firstMem: NodeJS.MemoryUsage;
 
 async function pollLoop(client: Client, loopCount: number) {
-  try {
-    LOGGER.debug("loop " + loopCount++);
-    await pollzKillboardOnce(client);
-  } catch (error) {
-    if (error instanceof Error) {
-      LOGGER.error(error);
-    } else {
-      LOGGER.error(error as string);
-    }
-    // if there was an error, we can afford to slow things down a lot!
-    await sleep(30000);
-  }
-
-  const DEBUG = false;
-
-  if (DEBUG) {
-    const err = new Error();
-    if (err.stack) {
-      LOGGER.debug("Stack size: " + (err.stack.split("\n").length - 1));
+  while (true) {  // Explicit infinite loop
+    try {
+      LOGGER.debug("loop " + loopCount++);
+      await pollzKillboardOnce(client);
+    } catch (error) {
+      if (error instanceof Error) {
+        LOGGER.error(error);
+      } else {
+        LOGGER.error(error as string);
+      }
+      // if there was an error, we can afford to slow things down!
+      await sleep(10000);
     }
 
-    if (!firstMem) firstMem = process.memoryUsage();
+    const DEBUG = false;
 
-    const used = process.memoryUsage();
-    for (const key in used) {
-      LOGGER.debug(
-        `Memory: ${key}   ${
-          Math.round(
+    if (DEBUG) {
+      const err = new Error();
+      if (err.stack) {
+        LOGGER.debug("Stack size: " + (err.stack.split("\n").length - 1));
+      }
+
+      if (!firstMem) firstMem = process.memoryUsage();
+
+      const used = process.memoryUsage();
+      for (const key in used) {
+        LOGGER.debug(
+          `Memory: ${key}   ${Math.round(
             (used[key as keyof NodeJS.MemoryUsage] / 1024 / 1024) * 100
           ) / 100
-        } MB  Diff: ${
-          Math.round(
+          } MB  Diff: ${Math.round(
             ((used[key as keyof NodeJS.MemoryUsage] -
               firstMem[key as keyof NodeJS.MemoryUsage]) /
               1024 /
               1024) *
-              100
+            100
           ) / 100
-        }`
-      );
+          }`
+        );
+      }
     }
-  }
 
-  // infinite loop required
-  setTimeout(() => pollLoop(client, loopCount), 1);
+    // Small delay between iterations to prevent tight-looping
+    await sleep(100);
+  }
 }

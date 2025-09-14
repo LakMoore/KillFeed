@@ -16,8 +16,7 @@ import { CachedESI } from "../esi/cache";
 import { LOGGER, msToTimeSpan } from "../helpers/Logger";
 import { savedData } from "../Bot";
 import { TYPE_KILLS, TYPE_LOSSES } from "../commands/show";
-
-export const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+import { sleep } from "../listeners/ready";
 
 export async function pollzKillboardOnce(client: Client) {
   try {
@@ -26,8 +25,7 @@ export async function pollzKillboardOnce(client: Client) {
     // zKillboard could return immediately or could make us wait up to 10 seconds
     // don't need to use axios-retry as the queue is managed on the zk server
     const { data } = await axios.get<Package>(
-      `https://redisq.zkillboard.com/listen.php?queueID=${
-        process.env.QUEUE_ID ?? "NoQueueIDProvided"
+      `https://zkillredisq.stream/listen.php?queueID=${process.env.QUEUE_ID ?? "NoQueueIDProvided"
       }`,
       {
         "axios-retry": {
@@ -45,18 +43,30 @@ export async function pollzKillboardOnce(client: Client) {
         killmail_id: data.package.killID,
         zkb: data.package.zkb,
       });
+      // Squizz added a 20 requests per 10 seconds limit - 04/08/2025
+      await sleep(500);  // sleep for a half second to never hit the rate limit
+    } else {
+      // No killmails
+      await sleep(2000);  // sleep for a couple of seconds to save spamming zKillboard during quiet times
     }
   } catch (error) {
-    if (axios.isAxiosError(error)) {
-      LOGGER.error(
-        `AxiosError ${error.response?.status} ${error.response?.statusText} ${error.config?.url}`
-      );
+    if (axios.isAxiosError(error) && error.response) {
+      if (error.response.status >= 500 && error.response.status < 600) {
+        // no ping for server-side errors
+        LOGGER.warning(
+          `AxiosError\n${error.response?.status}\n${error.response?.statusText}\n${error.config?.url}`
+        );
+      } else {
+        LOGGER.error(
+          `AxiosError\n${error.response?.status}\n${error.response?.statusText}\n${error.config?.url}`
+        );
+      }
     } else {
       LOGGER.error("Error fetching from zKillboard\n" + error);
     }
 
     // if there was an error then take a break
-    await sleep(30000);
+    await sleep(10000);
   }
 }
 
@@ -79,8 +89,7 @@ export async function prepAndSend(
 ) {
   try {
     LOGGER.debug(
-      `Kill ID: ${killmail.killmail_id} from ${
-        killmail.killmail_time
+      `Kill ID: ${killmail.killmail_id} from ${killmail.killmail_time
       } (${msToTimeSpan(
         Date.now() - new Date(killmail.killmail_time).getTime()
       )} ago)`

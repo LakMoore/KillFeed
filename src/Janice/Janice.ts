@@ -3,6 +3,11 @@ import { PricerItem } from "../helpers/JaniceHelper";
 import { KillMail } from "../zKillboard/zKillboard";
 import { LOGGER } from "../helpers/Logger";
 
+const URL = "https://janice.e-351.com/api/rest/v2/pricer";
+const PARAMS = {
+  market: "2",
+};
+
 /**
  * Get the appraised value of the lossmail from a service
  * EvePraisal is dead, going to use Janice
@@ -30,11 +35,7 @@ export async function getJaniceAppraisalValue(killmail: KillMail) {
       amount: 1,
     });
 
-    const url = "https://janice.e-351.com/api/rest/v2/pricer";
-    const params = {
-      market: "2",
-    };
-    const query = new URLSearchParams(params).toString();
+    const query = new URLSearchParams(PARAMS).toString();
 
     const payload = janiceItems.map((i) => i.id).join("\n");
 
@@ -48,7 +49,7 @@ export async function getJaniceAppraisalValue(killmail: KillMail) {
 
     // Need an API Key and lots of testing before this will work
     const { data } = await axios.post<PricerItem[]>(
-      url + "?" + query,
+      URL + "?" + query,
       payload,
       janiceConfig
     );
@@ -59,9 +60,71 @@ export async function getJaniceAppraisalValue(killmail: KillMail) {
           ?.immediatePrices.sellPrice;
         return (price ?? 0) * ji.amount;
       })
-      .reduce((a, b) => a + b);
+      .reduce((a, b) => a + b, 0);
   } catch (error) {
-    LOGGER.error("Janice Appraisal error. " + error);
+    if (axios.isAxiosError(error) && error.response) {
+      if (error.response.status >= 500 && error.response.status < 600) {
+        // if this is a 5xx, just raise a warning
+        LOGGER.warning("Janice Appraisal server-side error.\n" + error.message);
+      } else if (error.response.status >= 400 && error.response.status < 500) {
+        // Bad request!?
+        LOGGER.error(
+          `Janice Appraisal bad request.\n${error.message
+          }\nRequest: ${JSON.stringify(error.request)}`
+        );
+      }
+    } else {
+      LOGGER.error("Janice Appraisal error.\n" + error);
+    }
+  }
+
+  return 0;
+}
+
+export async function getPLEXPrice() {
+  try {
+    const PLEX_ID = 44992;
+    const query = new URLSearchParams(PARAMS).toString();
+    const payload = `${PLEX_ID}`;
+
+    LOGGER.debug("Fetching PLEX price");
+
+    const janiceConfig: AxiosRequestConfig = {
+      headers: {
+        "X-ApiKey": process.env.JANICE_KEY,
+        accept: "application/json",
+        "Content-Type": "text/plain",
+      },
+    };
+
+    // Need an API Key and lots of testing before this will work
+    const { data } = await axios.post<PricerItem[]>(
+      URL + "?" + query,
+      payload,
+      janiceConfig
+    );
+
+    const price = data.find((d) => d.itemType.eid === PLEX_ID)?.immediatePrices
+      .sellPrice;
+
+    return price ?? 0;
+  } catch (error) {
+    if (axios.isAxiosError(error) && error.response) {
+      if (error.response.status >= 500 && error.response.status < 600) {
+        // if this is a 5xx, just raise a warning
+        LOGGER.warning(
+          "Janice getPLEXPrice server-side error.\n" + error.message
+        );
+      } else if (error.response.status >= 400 && error.response.status < 500) {
+        // Bad request!?
+        LOGGER.error(
+          `Janice getPLEXPrice bad request.\n${error.message
+          }\nRequest: ${JSON.stringify(error.request)}`
+        );
+      }
+    } else {
+      LOGGER.error("Janice getPLEXPrice error.\n" + error);
+    }
   }
 
   return 0;
