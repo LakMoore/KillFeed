@@ -1,6 +1,8 @@
 import { Character } from "../zKillboard/zKillboard";
 import { CachedESI } from "./cache";
 import { fetchESINames } from "./fetch";
+import { MarketApi } from "eve-client-ts";
+import { LOGGER } from "../helpers/Logger";
 
 export interface Result {
   character?: string;
@@ -51,4 +53,45 @@ export function getCharacterNames(characterIds: Character): Promise<Result> {
         ship: CachedESI.getItemName(characterIds.ship_type_id),
       };
     });
+}
+
+export async function getPLEXPrice(): Promise<number> {
+  try {
+    const PLEX_ID = 44992;
+    const GLOBAL_MARKET_ID = 19000001;
+
+    LOGGER.debug("Fetching PLEX price from ESI");
+
+    const marketApi = new MarketApi();
+
+    const orders = await marketApi.getMarketsRegionIdOrders(
+      "sell",
+      GLOBAL_MARKET_ID,
+      "tranquility",
+      undefined,
+      undefined,
+      PLEX_ID
+    );
+
+    if (!orders || orders.length === 0) {
+      LOGGER.warning("No PLEX sell orders found in global market");
+      return 0;
+    }
+
+    const sellOrders = orders.filter((order) => !order.is_buy_order);
+
+    if (sellOrders.length === 0) {
+      LOGGER.warning("No PLEX sell orders found after filtering");
+      return 0;
+    }
+
+    const lowestPrice = Math.min(...sellOrders.map((order) => order.price));
+
+    LOGGER.debug(`Found PLEX price: ${lowestPrice}`);
+
+    return lowestPrice;
+  } catch (error) {
+    LOGGER.error("ESI getPLEXPrice error: " + error);
+    return 0;
+  }
 }
