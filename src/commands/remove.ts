@@ -18,6 +18,7 @@ import {
   TYPE_SHIP,
   TYPE_REGION,
   TYPE_CONSTELLATION,
+  TYPE_SYSTEM,
 } from "../helpers/CommandHelpers";
 import { LOGGER } from "../helpers/Logger";
 
@@ -102,6 +103,9 @@ export const Remove: Command = {
               } else if (filterType === TYPE_CONSTELLATION) {
                 thisFilter = thisSubscription.Constellations;
                 listener = Config.getInstance().matchedConstellations;
+              } else if (filterType === TYPE_SYSTEM) {
+                thisFilter = thisSubscription.Systems;
+                listener = Config.getInstance().matchedSystems;
               }
 
               // remove the ID from the settings in memory

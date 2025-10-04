@@ -9,6 +9,7 @@ export const TYPE_ALLIANCE = "alliances";
 export const TYPE_SHIP = "inventory_types";
 export const TYPE_REGION = "regions";
 export const TYPE_CONSTELLATION = "constellations";
+export const TYPE_SYSTEM = "systems";
 
 export const FILTER_OPTION = new SlashCommandStringOption()
   .setName(FILTER_TYPE)
@@ -20,7 +21,8 @@ export const FILTER_OPTION = new SlashCommandStringOption()
     { name: "Alliance", value: TYPE_ALLIANCE },
     { name: "Ship", value: TYPE_SHIP },
     { name: "Region", value: TYPE_REGION },
-    { name: "Constellation", value: TYPE_CONSTELLATION }
+    { name: "Constellation", value: TYPE_CONSTELLATION },
+    { name: "System", value: TYPE_SYSTEM }
   );
 
 export const FILTER_NAME_OR_ID = new SlashCommandStringOption()
