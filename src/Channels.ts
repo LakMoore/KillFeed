@@ -42,36 +42,37 @@ export async function updateChannel(
 
     // fetch the config message
     const message = await getConfigMessage(channel);
+    const config = Config.getInstance();
     if (message) {
       // found a pinned message in this channel
       // rework config for this channel
       thisSubscription = parseConfigMessage(message.content, channel);
 
-      Config.getInstance().allSubscriptions.set(channel.id, thisSubscription);
+      config.allSubscriptions.set(channel.id, thisSubscription);
       savedData.stats.ChannelCount++;
 
       thisSubscription.Alliances.forEach((id) => {
-        addListener(Config.getInstance().matchedAlliances, id, channel.id);
+        addListener(config.matchedAlliances, id, channel.id);
       });
 
       thisSubscription.Corporations.forEach((id) => {
-        addListener(Config.getInstance().matchedCorporations, id, channel.id);
+        addListener(config.matchedCorporations, id, channel.id);
       });
 
       thisSubscription.Characters.forEach((id) => {
-        addListener(Config.getInstance().matchedCharacters, id, channel.id);
+        addListener(config.matchedCharacters, id, channel.id);
       });
 
       thisSubscription.Ships.forEach((id) => {
-        addListener(Config.getInstance().matchedShips, id, channel.id);
+        addListener(config.matchedShips, id, channel.id);
       });
 
       thisSubscription.Regions.forEach((id) => {
-        addListener(Config.getInstance().matchedRegions, id, channel.id);
+        addListener(config.matchedRegions, id, channel.id);
       });
 
       thisSubscription.Constellations.forEach((id) => {
-        addListener(Config.getInstance().matchedConstellations, id, channel.id);
+        addListener(config.matchedConstellations, id, channel.id);
       });
     }
   }
@@ -83,32 +84,29 @@ export function clearChannel(
   subscription: SubscriptionSettings,
   channel: TextChannel
 ) {
+  const config = Config.getInstance();
   subscription.Alliances.forEach((allianceId) => {
-    Config.getInstance().matchedAlliances.get(allianceId)?.delete(channel.id);
+    config.matchedAlliances.get(allianceId)?.delete(channel.id);
     LOGGER.debug(`Deleted alliance ${allianceId} from server ${channel.id}`);
   });
   subscription.Corporations.forEach((allianceId) => {
-    Config.getInstance()
-      .matchedCorporations.get(allianceId)
-      ?.delete(channel.id);
+    config.matchedCorporations.get(allianceId)?.delete(channel.id);
     LOGGER.debug(`Deleted corporation ${allianceId} from server ${channel.id}`);
   });
   subscription.Characters.forEach((allianceId) => {
-    Config.getInstance().matchedCharacters.get(allianceId)?.delete(channel.id);
+    config.matchedCharacters.get(allianceId)?.delete(channel.id);
     LOGGER.debug(`Deleted character ${allianceId} from server ${channel.id}`);
   });
   subscription.Ships.forEach((shipId) => {
-    Config.getInstance().matchedShips.get(shipId)?.delete(channel.id);
+    config.matchedShips.get(shipId)?.delete(channel.id);
     LOGGER.debug(`Deleted ship ${shipId} from server ${channel.id}`);
   });
   subscription.Regions.forEach((regionId) => {
-    Config.getInstance().matchedRegions.get(regionId)?.delete(channel.id);
+    config.matchedRegions.get(regionId)?.delete(channel.id);
     LOGGER.debug(`Deleted region ${regionId} from server ${channel.id}`);
   });
   subscription.Constellations.forEach((constellationId) => {
-    Config.getInstance()
-      .matchedConstellations.get(constellationId)
-      ?.delete(channel.id);
+    config.matchedConstellations.get(constellationId)?.delete(channel.id);
     LOGGER.debug(
       `Deleted constellation ${constellationId} from server ${channel.id}`
     );
