@@ -74,6 +74,10 @@ export async function updateChannel(
       thisSubscription.Constellations.forEach((id) => {
         addListener(config.matchedConstellations, id, channel.id);
       });
+
+      thisSubscription.Systems.forEach((id) => {
+        addListener(config.matchedSystems, id, channel.id);
+      });
     }
   }
 }
@@ -110,5 +114,9 @@ export function clearChannel(
     LOGGER.debug(
       `Deleted constellation ${constellationId} from server ${channel.id}`
     );
+  });
+  subscription.Systems.forEach((systemId) => {
+    config.matchedSystems.get(systemId)?.delete(channel.id);
+    LOGGER.debug(`Deleted system ${systemId} from server ${channel.id}`);
   });
 }
