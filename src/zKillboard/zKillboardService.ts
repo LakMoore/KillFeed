@@ -138,6 +138,17 @@ export async function prepAndSend(
       });
     });
 
+    // Handle Matched System
+    temp = Config.getInstance().matchedSystems.get(killmail.solar_system_id);
+
+    // If we match on system and we haven't already matched on
+    // anything else then the event is neither a kill nor a loss
+    temp?.forEach((v) => {
+      if (!lossmailChannelIDs.has(v) && !killmailChannelIDs.has(v)) {
+        neutralmailChannelIDs.add(v);
+      }
+    });
+
     // Handle Matched Regions
     try {
       const region = await CachedESI.getRegionForSystem(
