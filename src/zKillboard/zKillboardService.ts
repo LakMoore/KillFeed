@@ -25,7 +25,8 @@ export async function pollzKillboardOnce(client: Client) {
     // zKillboard could return immediately or could make us wait up to 10 seconds
     // don't need to use axios-retry as the queue is managed on the zk server
     const { data } = await axios.get<Package>(
-      `https://zkillredisq.stream/listen.php?queueID=${process.env.QUEUE_ID ?? "NoQueueIDProvided"
+      `https://zkillredisq.stream/listen.php?queueID=${
+        process.env.QUEUE_ID ?? "NoQueueIDProvided"
       }`,
       {
         "axios-retry": {
@@ -44,10 +45,10 @@ export async function pollzKillboardOnce(client: Client) {
         zkb: data.package.zkb,
       });
       // Squizz added a 20 requests per 10 seconds limit - 04/08/2025
-      await sleep(500);  // sleep for a half second to never hit the rate limit
+      await sleep(500); // sleep for a half second to never hit the rate limit
     } else {
       // No killmails
-      await sleep(2000);  // sleep for a couple of seconds to save spamming zKillboard during quiet times
+      await sleep(2000); // sleep for a couple of seconds to save spamming zKillboard during quiet times
     }
   } catch (error) {
     if (axios.isAxiosError(error) && error.response) {
@@ -89,7 +90,8 @@ export async function prepAndSend(
 ) {
   try {
     LOGGER.debug(
-      `Kill ID: ${killmail.killmail_id} from ${killmail.killmail_time
+      `Kill ID: ${killmail.killmail_id} from ${
+        killmail.killmail_time
       } (${msToTimeSpan(
         Date.now() - new Date(killmail.killmail_time).getTime()
       )} ago)`
@@ -99,43 +101,46 @@ export async function prepAndSend(
     const killmailChannelIDs = new Set<string>();
     const neutralmailChannelIDs = new Set<string>();
 
-    let temp = Config.getInstance().matchedAlliances.get(
-      killmail.victim.alliance_id
-    );
-    temp?.forEach((v) => lossmailChannelIDs.add(v));
+    const config = Config.getInstance();
 
-    temp = Config.getInstance().matchedCorporations.get(
-      killmail.victim.corporation_id
-    );
-    temp?.forEach((v) => lossmailChannelIDs.add(v));
+    config.matchedAlliances
+      .get(killmail.victim.alliance_id)
+      ?.forEach((v) => lossmailChannelIDs.add(v));
 
-    temp = Config.getInstance().matchedCharacters.get(
-      killmail.victim.character_id
-    );
-    temp?.forEach((v) => lossmailChannelIDs.add(v));
+    config.matchedCorporations
+      .get(killmail.victim.corporation_id)
+      ?.forEach((v) => lossmailChannelIDs.add(v));
 
-    temp = Config.getInstance().matchedShips.get(killmail.victim.ship_type_id);
-    temp?.forEach((v) => lossmailChannelIDs.add(v));
+    config.matchedCharacters
+      .get(killmail.victim.character_id)
+      ?.forEach((v) => lossmailChannelIDs.add(v));
+
+    config.matchedShips
+      .get(killmail.victim.ship_type_id)
+      ?.forEach((v) => lossmailChannelIDs.add(v));
 
     killmail.attackers.forEach((attacker) => {
-      temp = Config.getInstance().matchedAlliances.get(attacker.alliance_id);
-      temp?.forEach((v) => {
+      config.matchedAlliances.get(attacker.alliance_id)?.forEach((v) => {
         if (!lossmailChannelIDs.has(v)) killmailChannelIDs.add(v);
       });
-      temp = Config.getInstance().matchedCorporations.get(
-        attacker.corporation_id
-      );
-      temp?.forEach((v) => {
+      config.matchedCorporations.get(attacker.corporation_id)?.forEach((v) => {
         if (!lossmailChannelIDs.has(v)) killmailChannelIDs.add(v);
       });
-      temp = Config.getInstance().matchedCharacters.get(attacker.character_id);
-      temp?.forEach((v) => {
+      config.matchedCharacters.get(attacker.character_id)?.forEach((v) => {
         if (!lossmailChannelIDs.has(v)) killmailChannelIDs.add(v);
       });
-      temp = Config.getInstance().matchedShips.get(attacker.ship_type_id);
-      temp?.forEach((v) => {
+      config.matchedShips.get(attacker.ship_type_id)?.forEach((v) => {
         if (!lossmailChannelIDs.has(v)) killmailChannelIDs.add(v);
       });
+    });
+
+    // Handle Matched System
+    // If we match on system and we haven't already matched on
+    // anything else then the event is neither a kill nor a loss
+    config.matchedSystems.get(killmail.solar_system_id)?.forEach((v) => {
+      if (!lossmailChannelIDs.has(v) && !killmailChannelIDs.has(v)) {
+        neutralmailChannelIDs.add(v);
+      }
     });
 
     // Handle Matched Regions
@@ -144,18 +149,18 @@ export async function prepAndSend(
         killmail.solar_system_id
       );
       if (region) {
-        temp = Config.getInstance().matchedRegions.get(region.region_id);
-
         // If we match on region and we haven't already matched on
         // anything else then the event is neither a kill nor a loss
-        temp?.forEach((v) => {
+        config.matchedRegions.get(region.region_id)?.forEach((v) => {
           if (!lossmailChannelIDs.has(v) && !killmailChannelIDs.has(v)) {
             neutralmailChannelIDs.add(v);
           }
         });
       }
     } catch (error) {
-      LOGGER.error(`Error while fetching region from system. ${error}`);
+      LOGGER.error(
+        `Error while fetching region from system ${killmail.solar_system_id}. ${error}`
+      );
     }
 
     // Handle Matched Constellations
@@ -164,29 +169,30 @@ export async function prepAndSend(
         killmail.solar_system_id
       );
       if (constellation) {
-        temp = Config.getInstance().matchedConstellations.get(
-          constellation.constellation_id
-        );
-        temp?.forEach((v) => {
-          if (!lossmailChannelIDs.has(v) && !killmailChannelIDs.has(v)) {
-            neutralmailChannelIDs.add(v);
-          }
-        });
+        config.matchedConstellations
+          .get(constellation.constellation_id)
+          ?.forEach((v) => {
+            if (!lossmailChannelIDs.has(v) && !killmailChannelIDs.has(v)) {
+              neutralmailChannelIDs.add(v);
+            }
+          });
       }
     } catch (error) {
-      LOGGER.error(`Error while fetching constellation from system. ${error}`);
+      LOGGER.error(
+        `Error while fetching constellation from system ${killmail.solar_system_id}. ${error}`
+      );
     }
 
     // TESTS
 
-    Config.getInstance().testRequests.forEach((v) => {
+    config.testRequests.forEach((v) => {
       if (!lossmailChannelIDs.has(v) && !killmailChannelIDs.has(v)) {
         neutralmailChannelIDs.add(v);
       }
     });
-    Config.getInstance().testRequests.clear();
+    config.testRequests.clear();
 
-    Array.from(Config.getInstance().allSubscriptions.values())
+    Array.from(config.allSubscriptions.values())
       .filter((chan) => chan.FullTest)
       .forEach((chan) => {
         if (
