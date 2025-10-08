@@ -11,6 +11,7 @@ import { SetMinISK } from "./commands/setMinISK";
 import { SetPingTarget } from "./commands/setPingTarget";
 import { Stats } from "./commands/stats";
 import { Show } from "./commands/show";
+import { FilterMode } from "./commands/filterMode";
 
 export const Commands: Command[] = [
   Hello,
@@ -25,4 +26,5 @@ export const Commands: Command[] = [
   SetPingTarget,
   Stats,
   Show,
+  FilterMode,
 ];

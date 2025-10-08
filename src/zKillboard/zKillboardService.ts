@@ -25,8 +25,7 @@ export async function pollzKillboardOnce(client: Client) {
     // zKillboard could return immediately or could make us wait up to 10 seconds
     // don't need to use axios-retry as the queue is managed on the zk server
     const { data } = await axios.get<Package>(
-      `https://zkillredisq.stream/listen.php?queueID=${
-        process.env.QUEUE_ID ?? "NoQueueIDProvided"
+      `https://zkillredisq.stream/listen.php?queueID=${process.env.QUEUE_ID ?? "NoQueueIDProvided"
       }`,
       {
         "axios-retry": {
@@ -90,8 +89,7 @@ export async function prepAndSend(
 ) {
   try {
     LOGGER.debug(
-      `Kill ID: ${killmail.killmail_id} from ${
-        killmail.killmail_time
+      `Kill ID: ${killmail.killmail_id} from ${killmail.killmail_time
       } (${msToTimeSpan(
         Date.now() - new Date(killmail.killmail_time).getTime()
       )} ago)`
@@ -101,36 +99,70 @@ export async function prepAndSend(
     const killmailChannelIDs = new Set<string>();
     const neutralmailChannelIDs = new Set<string>();
 
+    // For AND filter logic: track which filter types matched for each channel
+    const channelMatchedFilters = new Map<string, Set<string>>();
+
+    const trackMatch = (channelId: string, filterType: string) => {
+      if (!channelMatchedFilters.has(channelId)) {
+        channelMatchedFilters.set(channelId, new Set());
+      }
+      channelMatchedFilters.get(channelId)!.add(filterType);
+    };
+
     const config = Config.getInstance();
 
     config.matchedAlliances
       .get(killmail.victim.alliance_id)
-      ?.forEach((v) => lossmailChannelIDs.add(v));
+      ?.forEach((v) => {
+        lossmailChannelIDs.add(v);
+        trackMatch(v, "Alliances");
+      });
 
     config.matchedCorporations
       .get(killmail.victim.corporation_id)
-      ?.forEach((v) => lossmailChannelIDs.add(v));
+      ?.forEach((v) => {
+        lossmailChannelIDs.add(v);
+        trackMatch(v, "Corporations");
+      });
 
     config.matchedCharacters
       .get(killmail.victim.character_id)
-      ?.forEach((v) => lossmailChannelIDs.add(v));
+      ?.forEach((v) => {
+        lossmailChannelIDs.add(v);
+        trackMatch(v, "Characters");
+      });
 
     config.matchedShips
       .get(killmail.victim.ship_type_id)
-      ?.forEach((v) => lossmailChannelIDs.add(v));
+      ?.forEach((v) => {
+        lossmailChannelIDs.add(v);
+        trackMatch(v, "Ships");
+      });
 
     killmail.attackers.forEach((attacker) => {
       config.matchedAlliances.get(attacker.alliance_id)?.forEach((v) => {
-        if (!lossmailChannelIDs.has(v)) killmailChannelIDs.add(v);
+        if (!lossmailChannelIDs.has(v)) {
+          killmailChannelIDs.add(v);
+          trackMatch(v, "Alliances");
+        }
       });
       config.matchedCorporations.get(attacker.corporation_id)?.forEach((v) => {
-        if (!lossmailChannelIDs.has(v)) killmailChannelIDs.add(v);
+        if (!lossmailChannelIDs.has(v)) {
+          killmailChannelIDs.add(v);
+          trackMatch(v, "Corporations");
+        }
       });
       config.matchedCharacters.get(attacker.character_id)?.forEach((v) => {
-        if (!lossmailChannelIDs.has(v)) killmailChannelIDs.add(v);
+        if (!lossmailChannelIDs.has(v)) {
+          killmailChannelIDs.add(v);
+          trackMatch(v, "Characters");
+        }
       });
       config.matchedShips.get(attacker.ship_type_id)?.forEach((v) => {
-        if (!lossmailChannelIDs.has(v)) killmailChannelIDs.add(v);
+        if (!lossmailChannelIDs.has(v)) {
+          killmailChannelIDs.add(v);
+          trackMatch(v, "Ships");
+        }
       });
     });
 
@@ -141,6 +173,7 @@ export async function prepAndSend(
       if (!lossmailChannelIDs.has(v) && !killmailChannelIDs.has(v)) {
         neutralmailChannelIDs.add(v);
       }
+      trackMatch(v, "Systems");
     });
 
     // Handle Matched Regions
@@ -155,6 +188,7 @@ export async function prepAndSend(
           if (!lossmailChannelIDs.has(v) && !killmailChannelIDs.has(v)) {
             neutralmailChannelIDs.add(v);
           }
+          trackMatch(v, "Regions");
         });
       }
     } catch (error) {
@@ -175,6 +209,7 @@ export async function prepAndSend(
             if (!lossmailChannelIDs.has(v) && !killmailChannelIDs.has(v)) {
               neutralmailChannelIDs.add(v);
             }
+            trackMatch(v, "Constellations");
           });
       }
     } catch (error) {
@@ -204,6 +239,56 @@ export async function prepAndSend(
       });
 
     // END TESTS
+
+    // Apply AND filter logic: remove channels that don't match ALL configured filter types
+    const applyAndFilterLogic = (channelIds: Set<string>) => {
+      const channelsToRemove: string[] = [];
+
+      channelIds.forEach((channelId) => {
+        const subscription = config.allSubscriptions.get(channelId);
+
+        // Skip if subscription not found or AND filtering not enabled
+        if (!subscription || !subscription.RequireAllFilters) {
+          return;
+        }
+
+        // Determine which filter types are configured (have at least one entry)
+        const configuredFilterTypes: string[] = [];
+        if (subscription.Alliances.size > 0) configuredFilterTypes.push("Alliances");
+        if (subscription.Corporations.size > 0) configuredFilterTypes.push("Corporations");
+        if (subscription.Characters.size > 0) configuredFilterTypes.push("Characters");
+        if (subscription.Ships.size > 0) configuredFilterTypes.push("Ships");
+        if (subscription.Regions.size > 0) configuredFilterTypes.push("Regions");
+        if (subscription.Constellations.size > 0) configuredFilterTypes.push("Constellations");
+        if (subscription.Systems.size > 0) configuredFilterTypes.push("Systems");
+
+        // Skip if no filters configured
+        if (configuredFilterTypes.length === 0) {
+          return;
+        }
+
+        // Check if all configured filter types matched
+        const matchedFilterTypes = channelMatchedFilters.get(channelId) || new Set();
+        const allFiltersMatched = configuredFilterTypes.every((filterType) =>
+          matchedFilterTypes.has(filterType)
+        );
+
+        if (!allFiltersMatched) {
+          channelsToRemove.push(channelId);
+          LOGGER.debug(
+            `Removing channel ${channelId} - RequireAllFilters enabled but not all filter types matched. ` +
+            `Configured: [${configuredFilterTypes.join(", ")}], Matched: [${Array.from(matchedFilterTypes).join(", ")}]`
+          );
+        }
+      });
+
+      // Remove channels that didn't pass the AND filter
+      channelsToRemove.forEach((channelId) => channelIds.delete(channelId));
+    };
+
+    applyAndFilterLogic(lossmailChannelIDs);
+    applyAndFilterLogic(killmailChannelIDs);
+    applyAndFilterLogic(neutralmailChannelIDs);
 
     const appraisalValue = await getJaniceAppraisalValue(killmail);
 

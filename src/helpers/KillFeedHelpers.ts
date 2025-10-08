@@ -68,6 +68,11 @@ export function parseConfigMessage(
     result = { ...result, Show: TYPE_ALL };
   }
 
+  if (result != undefined && !Object.hasOwn(result, "RequireAllFilters")) {
+    // RequireAllFilters object was added later.  These settings need an upgrade!
+    result = { ...result, RequireAllFilters: false };
+  }
+
   if (result?.ResponseFormat) {
     return result;
   }
@@ -87,6 +92,7 @@ export function parseConfigMessage(
     RoleToPing: undefined,
     PauseForChanges: false,
     Show: TYPE_ALL,
+    RequireAllFilters: false,
   };
 }
 
