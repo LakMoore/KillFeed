@@ -36,7 +36,7 @@ export class Config {
   // a set of channels that have requested a test killmail
   public testRequests = new Set<string>();
 
-  private constructor() { }
+  private constructor() {}
 
   public static getInstance(): Config {
     if (!Config.instance) {

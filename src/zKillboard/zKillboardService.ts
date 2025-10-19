@@ -25,7 +25,8 @@ export async function pollzKillboardOnce(client: Client) {
     // zKillboard could return immediately or could make us wait up to 10 seconds
     // don't need to use axios-retry as the queue is managed on the zk server
     const { data } = await axios.get<Package>(
-      `https://zkillredisq.stream/listen.php?queueID=${process.env.QUEUE_ID ?? "NoQueueIDProvided"
+      `https://zkillredisq.stream/listen.php?queueID=${
+        process.env.QUEUE_ID ?? "NoQueueIDProvided"
       }`,
       {
         "axios-retry": {
@@ -110,12 +111,10 @@ export async function prepAndSend(
 
     const config = Config.getInstance();
 
-    config.matchedAlliances
-      .get(killmail.victim.alliance_id)
-      ?.forEach((v) => {
-        lossmailChannelIDs.add(v);
-        trackMatch(v, "Alliances");
-      });
+    config.matchedAlliances.get(killmail.victim.alliance_id)?.forEach((v) => {
+      lossmailChannelIDs.add(v);
+      trackMatch(v, "Alliances");
+    });
 
     config.matchedCorporations
       .get(killmail.victim.corporation_id)
@@ -124,19 +123,15 @@ export async function prepAndSend(
         trackMatch(v, "Corporations");
       });
 
-    config.matchedCharacters
-      .get(killmail.victim.character_id)
-      ?.forEach((v) => {
-        lossmailChannelIDs.add(v);
-        trackMatch(v, "Characters");
-      });
+    config.matchedCharacters.get(killmail.victim.character_id)?.forEach((v) => {
+      lossmailChannelIDs.add(v);
+      trackMatch(v, "Characters");
+    });
 
-    config.matchedShips
-      .get(killmail.victim.ship_type_id)
-      ?.forEach((v) => {
-        lossmailChannelIDs.add(v);
-        trackMatch(v, "Ships");
-      });
+    config.matchedShips.get(killmail.victim.ship_type_id)?.forEach((v) => {
+      lossmailChannelIDs.add(v);
+      trackMatch(v, "Ships");
+    });
 
     killmail.attackers.forEach((attacker) => {
       config.matchedAlliances.get(attacker.alliance_id)?.forEach((v) => {
@@ -253,13 +248,19 @@ export async function prepAndSend(
 
         // Determine which filter types are configured (have at least one entry)
         const configuredFilterTypes: string[] = [];
-        if (subscription.Alliances.size > 0) configuredFilterTypes.push("Alliances");
-        if (subscription.Corporations.size > 0) configuredFilterTypes.push("Corporations");
-        if (subscription.Characters.size > 0) configuredFilterTypes.push("Characters");
+        if (subscription.Alliances.size > 0)
+          configuredFilterTypes.push("Alliances");
+        if (subscription.Corporations.size > 0)
+          configuredFilterTypes.push("Corporations");
+        if (subscription.Characters.size > 0)
+          configuredFilterTypes.push("Characters");
         if (subscription.Ships.size > 0) configuredFilterTypes.push("Ships");
-        if (subscription.Regions.size > 0) configuredFilterTypes.push("Regions");
-        if (subscription.Constellations.size > 0) configuredFilterTypes.push("Constellations");
-        if (subscription.Systems.size > 0) configuredFilterTypes.push("Systems");
+        if (subscription.Regions.size > 0)
+          configuredFilterTypes.push("Regions");
+        if (subscription.Constellations.size > 0)
+          configuredFilterTypes.push("Constellations");
+        if (subscription.Systems.size > 0)
+          configuredFilterTypes.push("Systems");
 
         // Skip if no filters configured
         if (configuredFilterTypes.length === 0) {
@@ -267,7 +268,8 @@ export async function prepAndSend(
         }
 
         // Check if all configured filter types matched
-        const matchedFilterTypes = channelMatchedFilters.get(channelId) || new Set();
+        const matchedFilterTypes =
+          channelMatchedFilters.get(channelId) || new Set();
         const allFiltersMatched = configuredFilterTypes.every((filterType) =>
           matchedFilterTypes.has(filterType)
         );
@@ -276,7 +278,9 @@ export async function prepAndSend(
           channelsToRemove.push(channelId);
           LOGGER.debug(
             `Removing channel ${channelId} - RequireAllFilters enabled but not all filter types matched. ` +
-            `Configured: [${configuredFilterTypes.join(", ")}], Matched: [${Array.from(matchedFilterTypes).join(", ")}]`
+              `Configured: [${configuredFilterTypes.join(
+                ", "
+              )}], Matched: [${Array.from(matchedFilterTypes).join(", ")}]`
           );
         }
       });
