@@ -7,14 +7,14 @@ import { LOGGER } from "../helpers/Logger";
 export default (client: Client): void => {
   //joined a server
   client.on("guildCreate", async (guild) => {
-    LOGGER.debug("Joined a new guild: " + guild.name);
+    LOGGER.info("Joined a new guild: " + guild.name);
     //Your other stuff like adding to guildArray
     await updateGuild(client, guild.id, guild.name);
   });
 
   //removed from a server
   client.on("guildDelete", (guild) => {
-    LOGGER.debug("Left a guild: " + guild.name);
+    LOGGER.info("Left a guild: " + guild.name);
 
     //go through all of the channels we were tracking on this server
     Array.from(Config.getInstance().allSubscriptions.values())

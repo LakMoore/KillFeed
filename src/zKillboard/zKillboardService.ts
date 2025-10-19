@@ -87,7 +87,7 @@ export async function prepAndSend(
   zkb: ZkbOnly
 ) {
   try {
-    LOGGER.debug(
+    LOGGER.info(
       `Kill ID: ${killmail.killmail_id} from ${
         killmail.killmail_time
       } (${msToTimeSpan(
@@ -254,7 +254,7 @@ async function send(
   }
 
   while (thisSubscription.PauseForChanges) {
-    LOGGER.debug(
+    LOGGER.info(
       `Pausing for changes on ${thisSubscription.Channel.guild.name} : ${thisSubscription.Channel.name}`
     );
     await sleep(5000);

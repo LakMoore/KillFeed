@@ -27,7 +27,7 @@ export default (client: Client): void => {
       .then((guilds) => {
         return Promise.all(
           guilds.map((guild, guildId) => {
-            LOGGER.debug("Guild: " + guild.name);
+            LOGGER.info("Guild: " + guild.name);
             savedData.stats.ServerCount++;
             // update this guild
             return updateGuild(client, guildId, guild.name);
@@ -36,7 +36,7 @@ export default (client: Client): void => {
       })
       .then(() => LOGGER.warning(`Imported all servers and now ready.`))
       .then(() => {
-        LOGGER.debug("Starting Poll");
+        LOGGER.info("Starting Poll");
         pollLoop(client, 0);
       });
   });
@@ -50,7 +50,7 @@ async function pollLoop(client: Client, loopCount: number) {
   const requestTimestamps: number[] = [];
   while (true) {  // Explicit infinite loop
     try {
-      LOGGER.debug("loop " + loopCount++);
+      LOGGER.info("loop " + loopCount++);
       const now = Date.now();
       while (
         requestTimestamps.length &&

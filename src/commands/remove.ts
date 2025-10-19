@@ -76,8 +76,8 @@ export const Remove: Command = {
             );
 
             if (!thisSubscription) {
-              LOGGER.debug(`Failed to find a subscription for this channel!`);
-              response = `Failed to find a subscription for this channel!`;
+              response = `Failed to find a subscription for channel ${interaction.channel.id} on ${interaction.guild?.name}!`;
+              LOGGER.warning(response);
             } else {
               // create some breathing room for the server to catch up
               thisSubscription.PauseForChanges = true;
@@ -110,10 +110,10 @@ export const Remove: Command = {
 
               // remove the ID from the settings in memory
               if (!thisFilter) {
-                LOGGER.debug("Unable to find a filter called " + filterType);
-                response = "Unable to find a filter called " + filterType;
+                response = `Unable to find a filter called ${filterType}`;
+                LOGGER.warning(response);
               } else {
-                LOGGER.debug("Deleting the id");
+                LOGGER.info(`Deleting the id ${id}`);
                 thisFilter.delete(id);
 
                 // remove the ID from the current filters too

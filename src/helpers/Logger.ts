@@ -39,7 +39,7 @@ export class LogHandler {
     }
 
     // Log the message to console
-    LOGGER.debug(message);
+    consoleError(message);
 
     if (this.errorChannel) {
       // No pings for warnings
@@ -57,7 +57,7 @@ export class LogHandler {
     }
 
     // Log the message to console
-    LOGGER.debug(message);
+    consoleError(message);
 
     if (this.errorChannel) {
       // Add the dev Role
@@ -73,6 +73,10 @@ export const LOGGER = new LogHandler();
 
 function consoleLog(message?: any, ...optionalParams: any[]) {
   console.log(new Date().toUTCString() + " " + message, ...optionalParams);
+}
+
+function consoleError(message?: any, ...optionalParams: any[]) {
+  console.error(new Date().toUTCString() + " " + message, ...optionalParams);
 }
 
 // function to convert number of milliseconds into timespan string

@@ -81,11 +81,11 @@ export function fetchESINames(ids: number[]) {
     .then((response) => response.data)
     .catch((err: Error) => {
       if (err instanceof AxiosError) {
-        LOGGER.debug(
+        LOGGER.error(
           `Axios error fetching Names from ESI: [${err.code}]${err.message}`
         );
       } else {
-        LOGGER.debug("General error fetcing Names from ESI: " + err.message);
+        LOGGER.error("General error fetcing Names from ESI: " + err.message);
       }
       return <Name[]>[];
     });
@@ -99,11 +99,11 @@ export function fetchESIIDs(names: string[]) {
     .then((response) => response.data)
     .catch((err: Error) => {
       if (err instanceof AxiosError) {
-        LOGGER.debug(
+        LOGGER.error(
           `Axios error fetching IDs from ESI: [${err.code}]${err.message}`
         );
       } else {
-        LOGGER.debug("General error fetcing IDs from ESI: " + err.message);
+        LOGGER.error("General error fetcing IDs from ESI: " + err.message);
       }
       return <IDs>{};
     });
