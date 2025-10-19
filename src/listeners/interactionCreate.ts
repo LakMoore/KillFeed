@@ -23,7 +23,7 @@ const handleSlashCommand = async (
   await interaction.deferReply();
 
   try {
-    LOGGER.debug(`Running ${slashCommand.name} on ${interaction.guild?.name}`);
+    LOGGER.info(`Running ${slashCommand.name} on ${interaction.guild?.name}`);
     await slashCommand.run(client, interaction);
   } catch (error) {
     if (error instanceof Error) {

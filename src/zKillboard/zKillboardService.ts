@@ -43,8 +43,6 @@ export async function pollzKillboardOnce(client: Client) {
         killmail_id: data.package.killID,
         zkb: data.package.zkb,
       });
-      // Squizz added a 20 requests per 10 seconds limit - 04/08/2025
-      await sleep(500); // sleep for a half second to never hit the rate limit
     } else {
       // No killmails
       await sleep(2000); // sleep for a couple of seconds to save spamming zKillboard during quiet times
@@ -88,8 +86,9 @@ export async function prepAndSend(
   zkb: ZkbOnly
 ) {
   try {
-    LOGGER.debug(
-      `Kill ID: ${killmail.killmail_id} from ${killmail.killmail_time
+    LOGGER.info(
+      `Kill ID: ${killmail.killmail_id} from ${
+        killmail.killmail_time
       } (${msToTimeSpan(
         Date.now() - new Date(killmail.killmail_time).getTime()
       )} ago)`
@@ -341,7 +340,7 @@ async function send(
   }
 
   while (thisSubscription.PauseForChanges) {
-    LOGGER.debug(
+    LOGGER.info(
       `Pausing for changes on ${thisSubscription.Channel.guild.name} : ${thisSubscription.Channel.name}`
     );
     await sleep(5000);

@@ -5,6 +5,10 @@ import { updateGuild } from "../Servers";
 import { LOGGER } from "../helpers/Logger";
 import { savedData } from "../Bot";
 
+// 20 requests per 10 seconds limit
+const RATE_LIMIT_MAX_REQUESTS = 20;
+const RATE_LIMIT_WINDOW_MS = 10000;
+
 export default (client: Client): void => {
   client.on("ready", async () => {
     if (!client.user || !client.application) {
@@ -23,7 +27,7 @@ export default (client: Client): void => {
       .then((guilds) => {
         return Promise.all(
           guilds.map((guild, guildId) => {
-            LOGGER.debug("Guild: " + guild.name);
+            LOGGER.info("Guild: " + guild.name);
             savedData.stats.ServerCount++;
             // update this guild
             return updateGuild(client, guildId, guild.name);
@@ -32,7 +36,7 @@ export default (client: Client): void => {
       })
       .then(() => LOGGER.warning(`Imported all servers and now ready.`))
       .then(() => {
-        LOGGER.debug("Starting Poll");
+        LOGGER.info("Starting Poll");
         pollLoop(client, 0);
       });
   });
@@ -43,9 +47,26 @@ export const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 let firstMem: NodeJS.MemoryUsage;
 
 async function pollLoop(client: Client, loopCount: number) {
+  const requestTimestamps: number[] = [];
   while (true) {  // Explicit infinite loop
     try {
-      LOGGER.debug("loop " + loopCount++);
+      LOGGER.info("loop " + loopCount++);
+      const now = Date.now();
+      while (
+        requestTimestamps.length &&
+        now - requestTimestamps[0] >= RATE_LIMIT_WINDOW_MS
+      ) {
+        requestTimestamps.shift();
+      }
+      if (requestTimestamps.length >= RATE_LIMIT_MAX_REQUESTS) {
+        const waitTime = Math.max(
+          RATE_LIMIT_WINDOW_MS - (now - requestTimestamps[0]),
+          0
+        );
+        await sleep(waitTime);
+        continue;
+      }
+      requestTimestamps.push(now);
       await pollzKillboardOnce(client);
     } catch (error) {
       if (error instanceof Error) {
@@ -70,22 +91,21 @@ async function pollLoop(client: Client, loopCount: number) {
       const used = process.memoryUsage();
       for (const key in used) {
         LOGGER.debug(
-          `Memory: ${key}   ${Math.round(
-            (used[key as keyof NodeJS.MemoryUsage] / 1024 / 1024) * 100
-          ) / 100
-          } MB  Diff: ${Math.round(
-            ((used[key as keyof NodeJS.MemoryUsage] -
-              firstMem[key as keyof NodeJS.MemoryUsage]) /
-              1024 /
-              1024) *
-            100
-          ) / 100
+          `Memory: ${key}   ${
+            Math.round(
+              (used[key as keyof NodeJS.MemoryUsage] / 1024 / 1024) * 100
+            ) / 100
+          } MB  Diff: ${
+            Math.round(
+              ((used[key as keyof NodeJS.MemoryUsage] -
+                firstMem[key as keyof NodeJS.MemoryUsage]) /
+                1024 /
+                1024) *
+                100
+            ) / 100
           }`
         );
       }
     }
-
-    // Small delay between iterations to prevent tight-looping
-    await sleep(100);
   }
 }

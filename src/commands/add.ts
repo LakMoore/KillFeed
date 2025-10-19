@@ -104,10 +104,10 @@ export const Add: Command = {
 
               // add the ID to the settings in memory
               if (thisSetting) {
-                LOGGER.debug("Adding the id");
+                LOGGER.info("Adding the id");
                 thisSetting.add(id);
               } else {
-                LOGGER.error("Unable to find a filter of type " + filterType);
+                LOGGER.warning(`Unable to find a filter of type ${filterType}`);
               }
 
               // re-generate the config message

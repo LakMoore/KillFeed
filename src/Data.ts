@@ -60,7 +60,7 @@ export class Data {
 
   public async save() {
     try {
-      LOGGER.debug("Persisting data to filesystem...");
+      LOGGER.info("Persisting data to filesystem...");
       await storage.setItem(Data.DATA_KEY, this._stats);
     } catch (error) {
       LOGGER.error("Failed to save data to disk. " + error);
