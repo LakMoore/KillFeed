@@ -65,7 +65,8 @@ async function pollLoop(client: Client, loopCount: number) {
           RATE_LIMIT_WINDOW_MS - (now - requestTimestamps[0]),
           0
         );
-        await sleep(waitTime);
+        LOGGER.info(`Rate limited, waiting ${waitTime}ms before next request`);
+        await sleep(waitTime + 500);
         continue;
       }
       requestTimestamps.push(now);
