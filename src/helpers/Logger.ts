@@ -1,7 +1,7 @@
 import { TextChannel } from "discord.js";
 
 const DEBUG = true;
-export const OUR_GUILD = "KillFeed";
+export const OUR_GUILD = "KillFeed by Lak Moore";
 export const ERROR_CHANNEL = "bot-errors";
 export const DEV_ROLE = "Developer";
 
