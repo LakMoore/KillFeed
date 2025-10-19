@@ -7,7 +7,7 @@ import { savedData } from "../Bot";
 
 // 20 requests per 10 seconds limit
 const RATE_LIMIT_MAX_REQUESTS = 20;
-const RATE_LIMIT_WINDOW_MS = 10000;
+const RATE_LIMIT_WINDOW_MS = 10500;
 
 export default (client: Client): void => {
   client.on("ready", async () => {
