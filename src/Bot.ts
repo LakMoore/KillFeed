@@ -24,7 +24,7 @@ async function main() {
   stats.BotStarted = new Date();
 
   // Start the auto-save loop in the background
-  savedData.startAutoSaving();  // don't await this
+  savedData.startAutoSaving(); // don't await this
 
   const client = new Client({
     intents: [IntentsBitField.Flags.Guilds],

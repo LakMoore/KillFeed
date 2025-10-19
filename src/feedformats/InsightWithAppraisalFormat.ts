@@ -104,8 +104,9 @@ export const InsightWithAppraisalFormat: BaseFormat = {
         colour = colours.loss;
       }
 
-      nameText += ` in ${system.name} (${system.security_status.toFixed(1)}), ${region.name
-        }`;
+      nameText += ` in ${system.name} (${system.security_status.toFixed(1)}), ${
+        region.name
+      }`;
 
       return {
         embeds: [

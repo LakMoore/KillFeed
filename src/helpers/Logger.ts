@@ -71,11 +71,11 @@ export class LogHandler {
 
 export const LOGGER = new LogHandler();
 
-function consoleLog(message?: any, ...optionalParams: any[]) {
+function consoleLog(message: object | string, ...optionalParams: object[]) {
   console.log(new Date().toUTCString() + " " + message, ...optionalParams);
 }
 
-function consoleError(message?: any, ...optionalParams: any[]) {
+function consoleError(message: object | string, ...optionalParams: object[]) {
   console.error(new Date().toUTCString() + " " + message, ...optionalParams);
 }
 

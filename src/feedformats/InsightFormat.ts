@@ -24,6 +24,7 @@ export const InsightFormat: BaseFormat = {
       : `https://images.evetech.net/corporations/${killmail.victim.corporation_id}/logo?size=64`;
 
     const value = formatISKValue(zkb.zkb.totalValue);
+    const appraisedValueString = formatISKValue(appraisedValue);
 
     let attacker = killmail.attackers.filter((char) => char.final_blow)[0];
     if (!attacker) attacker = killmail.attackers[0];
@@ -116,7 +117,7 @@ export const InsightFormat: BaseFormat = {
             )
             .setTimestamp(new Date(killmail.killmail_time))
             .setFooter({
-              text: `Value: ${value}`,
+              text: `Value: ${value} | Appraised: ${appraisedValueString}`,
             }),
         ],
       };

@@ -48,7 +48,9 @@ let firstMem: NodeJS.MemoryUsage;
 
 async function pollLoop(client: Client, loopCount: number) {
   const requestTimestamps: number[] = [];
-  while (true) {  // Explicit infinite loop
+  // eslint-disable-next-line no-constant-condition
+  while (true) {
+    // Explicit infinite loop
     try {
       LOGGER.info("loop " + loopCount++);
       const now = Date.now();
