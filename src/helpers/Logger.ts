@@ -82,17 +82,37 @@ export function msToTimeSpan(milliseconds: number): string {
   const hours = Math.floor(minutes / 60);
   const days = Math.floor(hours / 24);
 
+  const remainingHours = hours % 24;
+  const remainingMinutes = minutes % 60;
+  const remainingSeconds = seconds % 60;
+  const remainingMilliseconds = milliseconds % 1000;
+
+  const parts: string[] = [];
+
   if (days > 0) {
-    return days + " day" + (days == 1 ? "" : "s");
+    parts.push(days + " day" + (days == 1 ? "" : "s"));
   }
-  if (hours > 0) {
-    return hours + " hour" + (hours == 1 ? "" : "s");
+  if (remainingHours > 0) {
+    parts.push(remainingHours + " hour" + (remainingHours == 1 ? "" : "s"));
   }
-  if (minutes > 0) {
-    return minutes + " minute" + (minutes == 1 ? "" : "s");
+  if (remainingMinutes > 0) {
+    parts.push(
+      remainingMinutes + " minute" + (remainingMinutes == 1 ? "" : "s")
+    );
   }
-  if (seconds > 0) {
-    return seconds + " second" + (seconds == 1 ? "" : "s");
+  if (remainingSeconds > 0) {
+    parts.push(
+      remainingSeconds + " second" + (remainingSeconds == 1 ? "" : "s")
+    );
   }
-  return milliseconds + " millisecond" + (milliseconds == 1 ? "" : "s");
+
+  if (parts.length === 0) {
+    parts.push(
+      remainingMilliseconds +
+        " millisecond" +
+        (remainingMilliseconds == 1 ? "" : "s")
+    );
+  }
+
+  return parts.join(" ");
 }
