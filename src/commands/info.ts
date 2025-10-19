@@ -100,7 +100,7 @@ export const Info: Command = {
             "\n";
         }
 
-        response += `\nShowing: ${thisSubscription.Show}\n`;
+        response += `\nShowing (Kills/Losses): ${thisSubscription.Show}\n`;
 
         if (thisSubscription.MinISK) {
           response += `Minimum ISK: ${formatISKValue(
