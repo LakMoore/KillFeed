@@ -5,9 +5,9 @@ import { updateGuild } from "../Servers";
 import { LOGGER } from "../helpers/Logger";
 import { savedData } from "../Bot";
 
-// 20 requests per 10 seconds limit
-const RATE_LIMIT_MAX_REQUESTS = 20;
-const RATE_LIMIT_WINDOW_MS = 10500;
+// 1 request per second limit
+const RATE_LIMIT_MAX_REQUESTS = 1;
+const RATE_LIMIT_WINDOW_MS = 1100;
 
 export default (client: Client): void => {
   client.on("ready", async () => {
@@ -66,7 +66,7 @@ async function pollLoop(client: Client, loopCount: number) {
           0
         );
         LOGGER.info(`Rate limited, waiting ${waitTime}ms before next request`);
-        await sleep(waitTime + 500);
+        await sleep(waitTime);
         continue;
       }
       requestTimestamps.push(now);
