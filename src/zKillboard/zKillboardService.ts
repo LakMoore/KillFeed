@@ -44,8 +44,6 @@ export async function pollzKillboardOnce(client: Client) {
         killmail_id: data.package.killID,
         zkb: data.package.zkb,
       });
-      // Squizz added a 20 requests per 10 seconds limit - 04/08/2025
-      await sleep(500); // sleep for a half second to never hit the rate limit
     } else {
       // No killmails
       await sleep(2000); // sleep for a couple of seconds to save spamming zKillboard during quiet times
