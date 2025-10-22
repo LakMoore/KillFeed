@@ -17,10 +17,18 @@ import { LOGGER, msToTimeSpan } from "../helpers/Logger";
 import { savedData } from "../Bot";
 import { TYPE_KILLS, TYPE_LOSSES } from "../commands/show";
 import { sleep } from "../listeners/ready";
+import https from "https";
 
 export async function pollzKillboardOnce(client: Client) {
   try {
     savedData.stats.PollCount++;
+
+    const localAgent = process.env.OUTBOUND_IP
+      ? new https.Agent({
+          localAddress: process.env.OUTBOUND_IP,
+          family: 4,
+        })
+      : undefined;
 
     // zKillboard could return immediately or could make us wait up to 10 seconds
     // don't need to use axios-retry as the queue is managed on the zk server
@@ -32,6 +40,7 @@ export async function pollzKillboardOnce(client: Client) {
         "axios-retry": {
           retries: 0,
         },
+        httpsAgent: localAgent,
       }
     );
 
