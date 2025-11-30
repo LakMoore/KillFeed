@@ -40,7 +40,6 @@ export interface KillMail {
 export interface Package {
   package: {
     killID: number;
-    killmail: KillMail;
     zkb: {
       locationID: number;
       hash: string;

@@ -109,11 +109,42 @@ export function fetchESIIDs(names: string[]) {
     });
 }
 
-export function fetchKillmail(killmailId: string, hash: string) {
-  if (killmailId && hash) {
-    const path = `/killmails/${killmailId}/${hash}/`;
-
-    return axios.get<KillMail>(url + path);
+export async function fetchKillmail(killmailId: string, hash: string) {
+  if (!killmailId || !hash) {
+    throw new Error("Must provide KM ID and Hash");
   }
-  return Promise.reject(new Error("Must provide KM ID and Hash"));
+
+  const path = `/killmails/${killmailId}/${hash}/`;
+  const externalLink = `${url}${path}`;
+
+  try {
+    return await axios.get<KillMail>(externalLink, {
+      "axios-retry": {
+        retries: 3,
+        retryDelay: (retryCount: number) => retryCount * 500,
+        retryCondition: (error: AxiosError) => {
+          const status = error.response?.status;
+          return status === 429 || (status !== undefined && status >= 500);
+        },
+      },
+    });
+  } catch (err) {
+    if (err instanceof AxiosError) {
+      LOGGER.error(
+        `Axios error fetching killmail from ESI (killmailId=${killmailId}, hash=${hash}) ` +
+        `[status=${err.response?.status ?? "n/a"}, code=${err.code ?? "n/a"
+        }] ${err.message} (${externalLink})`
+      );
+    } else if (err instanceof Error) {
+      LOGGER.error(
+        `General error fetching killmail from ESI (killmailId=${killmailId}, hash=${hash}) ` +
+        `${err.message} (${externalLink})`
+      );
+    } else {
+      LOGGER.error(
+        `Unknown error fetching killmail from ESI (killmailId=${killmailId}, hash=${hash}) ` +
+        `${String(err)} (${externalLink})`
+      );
+    }
+  }
 }

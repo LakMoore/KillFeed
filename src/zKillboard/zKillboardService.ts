@@ -17,6 +17,7 @@ import { LOGGER, msToTimeSpan } from "../helpers/Logger";
 import { savedData } from "../Bot";
 import { TYPE_KILLS, TYPE_LOSSES } from "../commands/show";
 import { sleep } from "../listeners/ready";
+import { fetchKillmail } from "../esi/fetch";
 import https from "https";
 
 export async function pollzKillboardOnce(client: Client) {
@@ -48,11 +49,33 @@ export async function pollzKillboardOnce(client: Client) {
     // in the last 10 seconds
     if (data?.package) {
       savedData.stats.KillMailCount++;
-      // We have a non-null response from zk
-      await prepAndSend(client, data.package.killmail, {
-        killmail_id: data.package.killID,
-        zkb: data.package.zkb,
-      });
+      // We have a non-null response from zk. RedisQ no longer includes the killmail
+      // payload, so fetch it directly from ESI using the killID and hash.
+      try {
+        const killId = data.package.killID;
+        const hash = data.package.zkb.hash;
+
+        const resp = await fetchKillmail(killId.toString(), hash);
+
+        LOGGER.info(`Fetched killmail from ESI for killID=${killId}, hash=${hash}`);
+
+        if (resp) {
+          const { data: killmail } = resp;
+
+          await prepAndSend(
+            client,
+            killmail,
+            {
+              killmail_id: killId,
+              zkb: data.package.zkb,
+            }
+          );
+        }
+      } catch (error) {
+        LOGGER.error(
+          `Error fetching killmail from ESI for killID=${data.package.killID}, hash=${data.package.zkb.hash}: ${error}`
+        );
+      }
     } else {
       // No killmails
       await sleep(2000); // sleep for a couple of seconds to save spamming zKillboard during quiet times

@@ -32,10 +32,14 @@ export const Test: Command = {
         LOGGER.debug(JSON.stringify(zkb, null, 2));
 
         if (zkb?.zkb) {
-          const { data } = await fetchKillmail(kmId, zkb.zkb.hash);
-
-          await prepAndSend(client, data, zkb);
-          content = "Found the Killmail!";
+          const response = await fetchKillmail(kmId, zkb.zkb.hash);
+          if (response) {
+            const { data } = response;
+            await prepAndSend(client, data, zkb);
+            content = "Found the Killmail!";
+          } else {
+            content = `Failed to find killmail for ${kmId}, ${zkb.zkb.hash} on ESI`;
+          }
         } else {
           content = `Failed to find kill ID ${kmId} on ZKillboard`;
         }
