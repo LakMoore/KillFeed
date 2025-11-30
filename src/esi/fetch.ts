@@ -132,18 +132,19 @@ export async function fetchKillmail(killmailId: string, hash: string) {
     if (err instanceof AxiosError) {
       LOGGER.error(
         `Axios error fetching killmail from ESI (killmailId=${killmailId}, hash=${hash}) ` +
-        `[status=${err.response?.status ?? "n/a"}, code=${err.code ?? "n/a"
-        }] ${err.message} (${externalLink})`
+          `[status=${err.response?.status ?? "n/a"}, code=${
+            err.code ?? "n/a"
+          }] ${err.message} (${externalLink})`
       );
     } else if (err instanceof Error) {
       LOGGER.error(
         `General error fetching killmail from ESI (killmailId=${killmailId}, hash=${hash}) ` +
-        `${err.message} (${externalLink})`
+          `${err.message} (${externalLink})`
       );
     } else {
       LOGGER.error(
         `Unknown error fetching killmail from ESI (killmailId=${killmailId}, hash=${hash}) ` +
-        `${String(err)} (${externalLink})`
+          `${String(err)} (${externalLink})`
       );
     }
   }

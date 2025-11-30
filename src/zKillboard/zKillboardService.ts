@@ -57,19 +57,17 @@ export async function pollzKillboardOnce(client: Client) {
 
         const resp = await fetchKillmail(killId.toString(), hash);
 
-        LOGGER.info(`Fetched killmail from ESI for killID=${killId}, hash=${hash}`);
+        LOGGER.info(
+          `Fetched killmail from ESI for killID=${killId}, hash=${hash}`
+        );
 
         if (resp) {
           const { data: killmail } = resp;
 
-          await prepAndSend(
-            client,
-            killmail,
-            {
-              killmail_id: killId,
-              zkb: data.package.zkb,
-            }
-          );
+          await prepAndSend(client, killmail, {
+            killmail_id: killId,
+            zkb: data.package.zkb,
+          });
         }
       } catch (error) {
         LOGGER.error(
