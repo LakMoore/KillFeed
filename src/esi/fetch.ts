@@ -71,7 +71,7 @@ export interface IDs {
   ];
 }
 
-const url = "https://esi.evetech.net/latest";
+const url = "https://esi.evetech.net";
 
 export function fetchESINames(ids: number[]) {
   const path = "/universe/names/";
