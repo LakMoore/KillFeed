@@ -31,7 +31,7 @@ async function main() {
   });
 
   // set this up once
-  axiosRetry(axios, { retries: 99, retryDelay: axiosRetry.exponentialDelay });
+  axiosRetry(axios, { retries: 9, retryDelay: axiosRetry.exponentialDelay });
 
   // Error.stackTraceLimit = Infinity;
 
@@ -45,4 +45,15 @@ async function main() {
   LOGGER.info("===============");
 }
 
-main();
+process.on("unhandledRejection", (reason) => {
+  LOGGER.error("Unhandled promise rejection: " + reason);
+});
+
+process.on("uncaughtException", (err) => {
+  LOGGER.error("Uncaught exception: " + err);
+});
+
+main().catch((err) => {
+  LOGGER.error("Fatal error in main(): " + err);
+  process.exit(1);
+});

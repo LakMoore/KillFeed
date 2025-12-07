@@ -16,7 +16,10 @@ const handleSlashCommand = async (
 ): Promise<void> => {
   const slashCommand = Commands.find((c) => c.name === interaction.commandName);
   if (!slashCommand) {
-    interaction.followUp({ content: "An error has occurred" });
+    await interaction.reply({
+      content: "Did not find a command with that name!",
+      ephemeral: true,
+    });
     return;
   }
 

@@ -11,34 +11,36 @@ const RATE_LIMIT_WINDOW_MS = 1100;
 
 export default (client: Client): void => {
   client.on("ready", async () => {
-    if (!client.user || !client.application) {
-      return;
+    try {
+      if (!client.user || !client.application) return;
+
+      await client.application.commands.set(Commands);
+      // ... rest of ready work, then pollLoop
+      LOGGER.error(`${client.user.username} is online`);
+
+      savedData.stats.ServerCount = 0;
+
+      // fetch all guilds(servers) that KillFeed is a member of
+      client.guilds
+        .fetch()
+        .then((guilds) => {
+          return Promise.all(
+            guilds.map((guild, guildId) => {
+              LOGGER.info("Guild: " + guild.name);
+              savedData.stats.ServerCount++;
+              // update this guild
+              return updateGuild(client, guildId, guild.name);
+            })
+          );
+        })
+        .then(() => LOGGER.warning(`Imported all servers and now ready.`))
+        .then(() => {
+          LOGGER.info("Starting Poll");
+          pollLoop(client, 0);
+        });
+    } catch (err) {
+      LOGGER.error("Error in ready handler: " + err);
     }
-
-    await client.application.commands.set(Commands);
-
-    LOGGER.error(`${client.user.username} is online`);
-
-    savedData.stats.ServerCount = 0;
-
-    // fetch all guilds(servers) that KillFeed is a member of
-    client.guilds
-      .fetch()
-      .then((guilds) => {
-        return Promise.all(
-          guilds.map((guild, guildId) => {
-            LOGGER.info("Guild: " + guild.name);
-            savedData.stats.ServerCount++;
-            // update this guild
-            return updateGuild(client, guildId, guild.name);
-          })
-        );
-      })
-      .then(() => LOGGER.warning(`Imported all servers and now ready.`))
-      .then(() => {
-        LOGGER.info("Starting Poll");
-        pollLoop(client, 0);
-      });
   });
 };
 
