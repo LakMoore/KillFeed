@@ -33,6 +33,7 @@ export async function updateChannel(
     );
     if (thisSubscription !== undefined) {
       // If we already had a config loaded for this channel
+      LOGGER.debug(`Clearing channel ${channel.name}`);
       // we need to clear this channel out of the all listeners
       clearChannel(thisSubscription, channel);
       if (savedData.stats.ChannelCount > 0) {
