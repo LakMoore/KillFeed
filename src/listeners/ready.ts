@@ -21,23 +21,20 @@ export default (client: Client): void => {
       savedData.stats.ServerCount = 0;
 
       // fetch all guilds(servers) that KillFeed is a member of
-      await client.guilds
-        .fetch()
-        .then((guilds) => {
-          return Promise.all(
-            guilds.map((guild, guildId) => {
-              LOGGER.info("Guild: " + guild.name);
-              savedData.stats.ServerCount++;
-              // update this guild
-              return updateGuild(client, guildId, guild.name);
-            })
-          );
-        })
-        .then(() => LOGGER.warning(`Imported all servers and now ready.`))
-        .then(() => {
-          LOGGER.info("Starting Poll");
-          pollLoop(client, 0);
-        });
+      const guilds = await client.guilds.fetch();
+
+      for (const g of guilds) {
+        const guild = g[1];
+        const guildId = g[0];
+        LOGGER.info("Guild: " + guild.name);
+        savedData.stats.ServerCount++;
+        // update this guild
+        await updateGuild(client, guildId, guild.name);
+      }
+
+      LOGGER.warning(`Imported all servers and now ready.`);
+      LOGGER.info("Starting Poll");
+      await pollLoop(client, 0);
     } catch (err) {
       LOGGER.error("Error in ready handler: " + err);
     }
