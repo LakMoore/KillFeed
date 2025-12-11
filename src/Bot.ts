@@ -10,10 +10,10 @@ import { Data } from "./Data";
 import { LOGGER } from "./helpers/Logger";
 import error from "./listeners/error";
 
+dotenv.config();
 export const savedData = new Data();
 
 async function main() {
-  dotenv.config();
   LOGGER.info("Bot is starting...");
 
   await savedData.init();

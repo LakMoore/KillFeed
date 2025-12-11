@@ -1,6 +1,9 @@
+import dotenv from "dotenv";
 import { TextChannel } from "discord.js";
 
+dotenv.config();
 const DEBUG = process.env.NODE_ENV === "development";
+
 export const OUR_GUILD = "KillFeed by Lak Moore";
 export const ERROR_CHANNEL = "bot-errors";
 export const DEV_ROLE = "Developer";
