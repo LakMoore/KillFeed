@@ -1,5 +1,5 @@
 import {
-  CommandInteraction,
+  ChatInputCommandInteraction,
   Client,
   SlashCommandBuilder,
   SlashCommandStringOption,
@@ -35,7 +35,7 @@ const builder = new SlashCommandBuilder()
 
 export const Show: Command = {
   ...builder.toJSON(),
-  run: async (client: Client, interaction: CommandInteraction) => {
+  run: async (client: Client, interaction: ChatInputCommandInteraction) => {
     let response = "Something went wrong!";
 
     if (

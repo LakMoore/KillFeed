@@ -1,4 +1,8 @@
-import { CommandInteraction, Client, SlashCommandBuilder } from "discord.js";
+import {
+  ChatInputCommandInteraction,
+  Client,
+  SlashCommandBuilder,
+} from "discord.js";
 import { Config } from "../Config";
 import { getConfigMessage } from "../helpers/DiscordHelper";
 import { generateConfigMessage } from "../helpers/KillFeedHelpers";
@@ -28,7 +32,7 @@ const builder = new SlashCommandBuilder()
 
 export const Add: Command = {
   ...builder.toJSON(),
-  run: async (client: Client, interaction: CommandInteraction) => {
+  run: async (client: Client, interaction: ChatInputCommandInteraction) => {
     let response = "Something went wrong!";
 
     if (

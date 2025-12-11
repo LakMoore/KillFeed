@@ -40,7 +40,7 @@ export const Init: Command = {
         if (
           checkChannelPermissions(
             channel,
-            PermissionsBitField.Flags.ManageMessages
+            PermissionsBitField.Flags.PinMessages
           )
         ) {
           const content = generateConfigMessage(
@@ -52,12 +52,12 @@ export const Init: Command = {
           response = "KillFeed initialised successfully!";
         } else {
           const content =
-            "Please pin this message to the channel and re-run /init";
+            "Please give KillFeed permission to pin messages OR pin this message to the channel and re-run /init";
           await channel.send(content);
           response =
             "KillFeed partially initialised! " +
             "Either pin the new message or add KillFeed to " +
-            "a role with permission to Manage Messages.";
+            "a role with permission to Pin Messages.";
         }
       } else {
         // looks good

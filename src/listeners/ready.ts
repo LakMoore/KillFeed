@@ -10,7 +10,7 @@ const RATE_LIMIT_MAX_REQUESTS = 1;
 const RATE_LIMIT_WINDOW_MS = 1100;
 
 export default (client: Client): void => {
-  client.on("ready", async () => {
+  client.on("clientReady", async () => {
     try {
       if (!client.user || !client.application) return;
 

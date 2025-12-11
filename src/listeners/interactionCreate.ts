@@ -1,10 +1,10 @@
-import { Interaction, Client, CommandInteraction } from "discord.js";
+import { Interaction, Client, ChatInputCommandInteraction } from "discord.js";
 import { Commands } from "../Commands";
 import { LOGGER } from "../helpers/Logger";
 
 export default (client: Client): void => {
   client.on("interactionCreate", async (interaction: Interaction) => {
-    if (interaction.isCommand() || interaction.isContextMenuCommand()) {
+    if (interaction.isChatInputCommand()) {
       await handleSlashCommand(client, interaction);
     }
   });
@@ -12,7 +12,7 @@ export default (client: Client): void => {
 
 const handleSlashCommand = async (
   client: Client,
-  interaction: CommandInteraction
+  interaction: ChatInputCommandInteraction
 ): Promise<void> => {
   const slashCommand = Commands.find((c) => c.name === interaction.commandName);
   if (!slashCommand) {

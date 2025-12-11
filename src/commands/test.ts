@@ -1,7 +1,7 @@
 import {
-  CommandInteraction,
+  ChatInputCommandInteraction,
   Client,
-  SlashCommandStringOption,
+  SlashCommandBuilder,
 } from "discord.js";
 import { Config } from "../Config";
 import { Command } from "../Command";
@@ -11,16 +11,18 @@ import { LOGGER } from "../helpers/Logger";
 
 const KILLMAIL_ID = "killmail-id";
 
+const builder = new SlashCommandBuilder()
+  .setName("test")
+  .setDescription(
+    "Sends the next killmail to the feed. Optionally test specific kill against current channel config."
+  )
+  .addStringOption((option) =>
+    option.setName(KILLMAIL_ID).setDescription("The Killmail ID to test")
+  );
+
 export const Test: Command = {
-  name: "test",
-  description:
-    "Sends the next killmail to the feed. Optionally test specific kill against current channel config.",
-  options: [
-    new SlashCommandStringOption()
-      .setName(KILLMAIL_ID)
-      .setDescription("The Killmail ID to test"),
-  ],
-  run: async (client: Client, interaction: CommandInteraction) => {
+  ...builder.toJSON(),
+  run: async (client: Client, interaction: ChatInputCommandInteraction) => {
     let content = "Test failed";
 
     if (interaction.isChatInputCommand()) {
