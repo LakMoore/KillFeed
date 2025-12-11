@@ -11,7 +11,7 @@ export interface Result {
   ship?: string;
 }
 
-export async function getCharacterNames(characterIds: Character) {
+export function getCharacterNames(characterIds: Character): Promise<Result> {
   const missingIds: number[] = [];
   const result: Result = {
     character: CachedESI.getCharacterName(characterIds.character_id),
@@ -36,21 +36,23 @@ export async function getCharacterNames(characterIds: Character) {
   const missedIds = missingIds.filter((v) => v);
 
   if (missedIds.length === 0) {
-    return result;
+    return Promise.resolve(result);
   }
 
-  const names = await fetchESINames(missedIds);
-
-  names.forEach((name) => {
-    CachedESI.addItem(name);
-  });
-
-  return {
-    character: CachedESI.getCharacterName(characterIds.character_id),
-    corporation: CachedESI.getCorporationName(characterIds.corporation_id),
-    alliance: CachedESI.getAllianceName(characterIds.alliance_id),
-    ship: CachedESI.getItemName(characterIds.ship_type_id),
-  } as Result;
+  return fetchESINames(missedIds)
+    .then((names) => {
+      names.forEach((name) => {
+        CachedESI.addItem(name);
+      });
+    })
+    .then(() => {
+      return {
+        character: CachedESI.getCharacterName(characterIds.character_id),
+        corporation: CachedESI.getCorporationName(characterIds.corporation_id),
+        alliance: CachedESI.getAllianceName(characterIds.alliance_id),
+        ship: CachedESI.getItemName(characterIds.ship_type_id),
+      };
+    });
 }
 
 export async function getPLEXPrice(): Promise<number> {
