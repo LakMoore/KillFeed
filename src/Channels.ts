@@ -43,7 +43,7 @@ export async function updateChannel(
     // fetch the config message
     const message = await getConfigMessage(channel);
     if (message) {
-      LOGGER.info(`Found config message in channel ${channel.name}`);
+      LOGGER.debug(`Found config message in channel ${channel.name}`);
       // found a pinned message in this channel
       // rework config for this channel
       thisSubscription = parseConfigMessage(message.content, channel);
@@ -80,7 +80,7 @@ export async function updateChannel(
         addListener(config.matchedSystems, id, channel.id);
       });
     } else {
-      LOGGER.info(`No config message found in channel ${channel.name}`);
+      LOGGER.debug(`No config message found in channel ${channel.name}`);
     }
   }
 }

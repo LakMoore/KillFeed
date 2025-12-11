@@ -49,6 +49,9 @@ export async function getConfigMessage(channel?: Channel | null) {
     checkChannelPermissions(channel, PermissionsBitField.Flags.ManageMessages)
   ) {
     try {
+      LOGGER.debug(
+        `Fetching pinned messages on channel ${channel?.name} on ${channel?.guild.name}`
+      );
       // Get all pinned messages
       const pinned = await channel.messages.fetchPinned();
 
@@ -56,6 +59,8 @@ export async function getConfigMessage(channel?: Channel | null) {
       const myPinned = pinned.filter(
         (m) => m.author.id === channel.guild.members.me?.id
       );
+
+      LOGGER.debug(`Found ${myPinned.size} pinned messages for this bot`);
 
       return myPinned.first();
     } catch {
