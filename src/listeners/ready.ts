@@ -21,7 +21,7 @@ export default (client: Client): void => {
       savedData.stats.ServerCount = 0;
 
       // fetch all guilds(servers) that KillFeed is a member of
-      client.guilds
+      await client.guilds
         .fetch()
         .then((guilds) => {
           return Promise.all(
