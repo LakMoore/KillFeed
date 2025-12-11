@@ -55,8 +55,11 @@ export async function getConfigMessage(channel?: Channel | null) {
       LOGGER.debug(
         `Fetching pinned messages on channel ${channel?.name} on ${channel?.guild.name}`
       );
-      // Get all pinned messages
-      const pinned = await channel.messages.fetchPins();
+      // Get 10 pinned messages
+      // TODO: fix this!
+      const pinned = await channel.messages.fetchPins({
+        limit: 10,
+      });
 
       // Filter for those authored by this bot
       const myPinned = pinned.items
