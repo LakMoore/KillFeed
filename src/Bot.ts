@@ -8,6 +8,7 @@ import axios from "axios";
 import axiosRetry from "axios-retry";
 import { Data } from "./Data";
 import { LOGGER } from "./helpers/Logger";
+import error from "./listeners/error";
 
 export const savedData = new Data();
 
@@ -35,6 +36,7 @@ async function main() {
 
   // Error.stackTraceLimit = Infinity;
 
+  error(client);
   ready(client);
   interactionCreate(client);
   guild(client);
