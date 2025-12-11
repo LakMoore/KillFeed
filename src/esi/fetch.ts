@@ -73,7 +73,11 @@ export interface IDs {
 
 const url = "https://esi.evetech.net";
 
-export function fetchESINames(ids: number[]) {
+export async function fetchESINames(ids: number[]) {
+  if (!ids || ids.length === 0) {
+    return [] as Name[];
+  }
+
   const path = "/universe/names/";
 
   return axios
@@ -82,12 +86,14 @@ export function fetchESINames(ids: number[]) {
     .catch((err: Error) => {
       if (err instanceof AxiosError) {
         LOGGER.error(
-          `Axios error fetching Names from ESI: [${err.code}]${err.message}`
+          `Axios error fetching Names from ESI at ${
+            url + path
+          } with '${ids.join(",")}': [${err.code}]${err.message}`
         );
       } else {
         LOGGER.error("General error fetcing Names from ESI: " + err.message);
       }
-      return <Name[]>[];
+      return [] as Name[];
     });
 }
 
