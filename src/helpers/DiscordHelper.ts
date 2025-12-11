@@ -55,11 +55,14 @@ export async function getConfigMessage(channel?: Channel | null) {
       LOGGER.debug(
         `Fetching pinned messages on channel ${channel?.name} on ${channel?.guild.name}`
       );
-      // Get 10 pinned messages
+      // Get 10 pinned messages, but don't wait too long
       // TODO: fix this!
-      const pinned = await channel.messages.fetchPins({
-        limit: 10,
-      });
+      const pinned = await timeout(
+        5000,
+        channel.messages.fetchPins({
+          limit: 10,
+        })
+      );
 
       // Filter for those authored by this bot
       const myPinned = pinned.items
@@ -76,4 +79,19 @@ export async function getConfigMessage(channel?: Channel | null) {
       );
     }
   }
+}
+
+function timeout<T>(ms: number, promise: Promise<T>): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const id = setTimeout(() => reject(new Error("Timeout")), ms);
+    promise
+      .then((res) => {
+        clearTimeout(id);
+        resolve(res);
+      })
+      .catch((err) => {
+        clearTimeout(id);
+        reject(err);
+      });
+  });
 }
