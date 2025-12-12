@@ -49,14 +49,9 @@ export async function getConfigMessage(channel?: Channel | null) {
       LOGGER.debug(
         `Fetching pinned messages on channel ${channel?.name} on ${channel?.guild.name}`
       );
-      // Get 10 pinned messages, but don't wait too long
+      // Get pinned messages, but don't wait forever
       // TODO: fix this!
-      const pinned = await timeout(
-        5000,
-        channel.messages.fetchPins({
-          limit: 10,
-        })
-      );
+      const pinned = await timeout(60000, channel.messages.fetchPins());
 
       // Filter for those authored by this bot
       const myPinned = pinned.items
@@ -66,7 +61,12 @@ export async function getConfigMessage(channel?: Channel | null) {
       LOGGER.debug(`Found ${myPinned.length} pinned messages for this bot`);
 
       return myPinned[0];
-    } catch {
+    } catch (error) {
+      if (error instanceof Error && error.message === "Timeout") {
+        LOGGER.debug(
+          `Timeout fetching pinned messages on channel ${channel?.name} on ${channel?.guild.name}`
+        );
+      }
       // We probably don't have sufficient permission to read pinned messages
       LOGGER.debug(
         `Insufficient Permissions to fetch Pinned Messages on channel ${channel?.name} on ${channel?.guild.name}`
