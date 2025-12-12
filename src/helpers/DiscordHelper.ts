@@ -6,6 +6,8 @@ import {
 } from "discord.js";
 import { LOGGER } from "./Logger";
 
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
 export function canUseChannel(
   channel?: Channel | null
 ): channel is TextChannel {
@@ -60,6 +62,7 @@ export async function getConfigMessage(channel?: Channel | null) {
       );
       // Get pinned messages
       const pinned = await channel.messages.fetchPins();
+      await sleep(1100);
 
       // Filter for those authored by this bo
       const myPinned = pinned.items
