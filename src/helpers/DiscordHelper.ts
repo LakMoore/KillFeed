@@ -14,10 +14,7 @@ export function canUseChannel(
     channel &&
     channel instanceof TextChannel &&
     user &&
-    channel.permissionsFor(user).has(PermissionsBitField.Flags.SendMessages) &&
-    channel
-      .permissionsFor(user)
-      .has(PermissionsBitField.Flags.ReadMessageHistory)
+    channel.permissionsFor(user).has(PermissionsBitField.Flags.SendMessages)
   ) {
     return true;
   }
