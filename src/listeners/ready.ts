@@ -25,14 +25,12 @@ export default (client: Client): void => {
       // fetch all guilds(servers) that KillFeed is a member of
       const guilds = await client.guilds.fetch();
 
-      await Promise.all(
-        guilds.map(async (guild, guildId) => {
-          LOGGER.info("Guild: " + guild.name);
-          savedData.stats.ServerCount++;
-          // update this guild
-          await updateGuild(client, guildId, guild.name);
-        })
-      );
+      for (const [guildId, guild] of guilds) {
+        LOGGER.info("Guild: " + guild.name);
+        savedData.stats.ServerCount++;
+        // update this guild
+        await updateGuild(client, guildId, guild.name);
+      }
 
       LOGGER.warning(`Imported all servers and now ready.`);
       LOGGER.info("Starting Poll");

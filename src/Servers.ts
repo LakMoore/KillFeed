@@ -2,6 +2,8 @@ import { Client } from "discord.js";
 import { updateChannel } from "./Channels";
 import { canUseChannel } from "./helpers/DiscordHelper";
 
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
 export async function updateGuild(
   client: Client<boolean>,
   guildId: string,
@@ -13,11 +15,10 @@ export async function updateGuild(
   // Fetch all channels from this guild/server
   const c = await g.channels.fetch();
 
-  await Promise.all(
-    c.map(async (chn) => {
-      if (canUseChannel(chn)) {
-        await updateChannel(client, chn.id, guildName);
-      }
-    })
-  );
+  for (const chn of c.values()) {
+    if (canUseChannel(chn)) {
+      await updateChannel(client, chn.id, guildName);
+      await sleep(250);
+    }
+  }
 }
