@@ -66,11 +66,12 @@ export async function getConfigMessage(channel?: Channel | null) {
         LOGGER.debug(
           `Timeout fetching pinned messages on channel ${channel?.name} on ${channel?.guild.name}`
         );
+      } else {
+        // We probably don't have sufficient permission to read pinned messages
+        LOGGER.debug(
+          `Insufficient Permissions to fetch Pinned Messages on channel ${channel?.name} on ${channel?.guild.name}`
+        );
       }
-      // We probably don't have sufficient permission to read pinned messages
-      LOGGER.debug(
-        `Insufficient Permissions to fetch Pinned Messages on channel ${channel?.name} on ${channel?.guild.name}`
-      );
     }
   }
 }
