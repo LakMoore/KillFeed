@@ -9,4 +9,8 @@ export default (client: Client): void => {
   client.on("warn", async (warning) => {
     LOGGER.error("Discord warning: " + warning);
   });
+
+  client.rest.on("rateLimited", (rateLimitInfo) => {
+    LOGGER.error("Discord rate limited: " + rateLimitInfo);
+  });
 };
