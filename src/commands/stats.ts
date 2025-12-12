@@ -13,7 +13,8 @@ export const Stats: Command = {
 
     if (stats) {
       response =
-        `Serving KillMails on ${stats.ChannelCount} Discord channels for ${stats.ServerCount} servers.\n` +
+        `Serving KillMails on ${stats.ConfigCount} Discord channels.\n` +
+        `Can contribute to ${stats.ChannelCount} Channels on ${stats.ServerCount} servers.\n` +
         `First server stats recorded ${getRelativeDiscordTime(
           stats.StatsStarted
         )}\n` +

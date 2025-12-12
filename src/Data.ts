@@ -11,6 +11,7 @@ export interface Statistics {
   StatsStarted: Date;
   BotStarted: Date;
   ISKAppraised: number;
+  ConfigCount: number;
 }
 
 const SAVE_DELAY_MS = 30 * 1000; // 30 seconds in milliseconds
@@ -26,6 +27,7 @@ export class Data {
     StatsStarted: new Date(),
     BotStarted: new Date(),
     ISKAppraised: 0,
+    ConfigCount: 0,
   };
 
   public async init() {
@@ -34,6 +36,9 @@ export class Data {
       const temp: Statistics = await storage.getItem(Data.DATA_KEY);
       if (temp) {
         this._stats = temp;
+      }
+      if (this._stats.ConfigCount === undefined) {
+        this._stats.ConfigCount = 0;
       }
     } catch (error) {
       LOGGER.error("Failed to load data from disk. " + error);

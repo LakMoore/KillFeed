@@ -19,6 +19,8 @@ export default (client: Client): void => {
       LOGGER.error(`${client.user.username} is online`);
 
       savedData.stats.ServerCount = 0;
+      savedData.stats.ConfigCount = 0;
+      savedData.stats.ChannelCount = 0;
 
       // fetch all guilds(servers) that KillFeed is a member of
       const guilds = await client.guilds.fetch();

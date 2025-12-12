@@ -14,6 +14,7 @@ export async function updateChannel(
   // If this is a purely text based channel that we can use
   if (canUseChannel(channel)) {
     LOGGER.info(`Server ${guildName}: Found a channel '${channel.name}'`);
+    savedData.stats.ChannelCount++;
 
     if (OUR_GUILD == guildName && ERROR_CHANNEL == channel.name) {
       // this is the KillFeed Errors channel
@@ -36,8 +37,8 @@ export async function updateChannel(
       LOGGER.debug(`Clearing channel ${channel.name}`);
       // we need to clear this channel out of the all listeners
       clearChannel(thisSubscription, channel);
-      if (savedData.stats.ChannelCount > 0) {
-        savedData.stats.ChannelCount--;
+      if (savedData.stats.ConfigCount > 0) {
+        savedData.stats.ConfigCount--;
       }
     }
 
@@ -51,7 +52,7 @@ export async function updateChannel(
 
       const config = Config.getInstance();
       config.allSubscriptions.set(channel.id, thisSubscription);
-      savedData.stats.ChannelCount++;
+      savedData.stats.ConfigCount++;
 
       thisSubscription.Alliances.forEach((id) => {
         addListener(config.matchedAlliances, id, channel.id);
