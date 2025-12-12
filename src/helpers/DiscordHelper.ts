@@ -50,16 +50,16 @@ export async function getConfigMessage(channel?: Channel | null) {
         `Fetching pinned messages on channel ${channel?.name} on ${channel?.guild.name}`
       );
       // Get pinned messages
-      const pinned = await channel.messages.fetchPins({ cache: true });
+      const pinned = await channel.messages.fetchPinned(true);
 
-      // Filter for those authored by this bot
-      const myPinned = pinned.items
-        .flatMap((p) => p.message)
+      // Filter for those authored by this bo
+      const myPinned = pinned //.items
+        //.flatMap((p) => p.message)
         .filter((m) => m.author.id === channel.guild.members.me?.id);
 
-      LOGGER.debug(`Found ${myPinned.length} pinned messages for this bot`);
+      LOGGER.debug(`Found ${myPinned.size} pinned messages for this bot`);
 
-      return myPinned[0];
+      return myPinned.first();
     } catch (error) {
       // We probably don't have sufficient permission to read pinned messages
       LOGGER.debug(
