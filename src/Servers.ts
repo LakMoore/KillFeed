@@ -13,10 +13,11 @@ export async function updateGuild(
   // Fetch all channels from this guild/server
   const c = await g.channels.fetch();
 
-  for (const ch of c) {
-    const chn = ch[1];
-    if (canUseChannel(chn)) {
-      await updateChannel(client, chn.id, guildName);
-    }
-  }
+  await Promise.all(
+    c.map(async (chn) => {
+      if (canUseChannel(chn)) {
+        await updateChannel(client, chn.id, guildName);
+      }
+    })
+  );
 }
