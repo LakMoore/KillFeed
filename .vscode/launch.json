@@ -4,14 +4,10 @@
       {
         "type": "node",
         "request": "launch",
-        "name": "Debug KillFeed (ts-node)",
+        "name": "Debug KillFeed (node)",
         "runtimeExecutable": "node",
-        "runtimeArgs": [
-          "--require",
-          "ts-node/register"
-        ],
         "args": [
-          "${workspaceFolder}/src/Bot.ts"
+          "${workspaceFolder}/dist/Bot.js"
         ],
         "cwd": "${workspaceFolder}",
         "envFile": "${workspaceFolder}/.env",

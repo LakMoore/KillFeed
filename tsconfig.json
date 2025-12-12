@@ -20,7 +20,7 @@
     "forceConsistentCasingInFileNames": true,
     "removeComments": true,
     "typeRoots": ["node_modules/@types"],
-    "sourceMap": false,
+    "sourceMap": true,
     "baseUrl": "./"
   },
   "files": ["src/Bot.ts"],
