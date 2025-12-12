@@ -11,6 +11,6 @@ export default (client: Client): void => {
   });
 
   client.rest.on("rateLimited", (rateLimitInfo) => {
-    LOGGER.error("Discord rate limited: " + rateLimitInfo);
+    LOGGER.info("Discord rate limited: " + JSON.stringify(rateLimitInfo));
   });
 };

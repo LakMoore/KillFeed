@@ -49,9 +49,8 @@ export async function getConfigMessage(channel?: Channel | null) {
       LOGGER.debug(
         `Fetching pinned messages on channel ${channel?.name} on ${channel?.guild.name}`
       );
-      // Get pinned messages, but don't wait forever
-      // TODO: fix this!
-      const pinned = await timeout(60000, channel.messages.fetchPins());
+      // Get pinned messages
+      const pinned = await channel.messages.fetchPins({ cache: true });
 
       // Filter for those authored by this bot
       const myPinned = pinned.items
@@ -62,31 +61,10 @@ export async function getConfigMessage(channel?: Channel | null) {
 
       return myPinned[0];
     } catch (error) {
-      if (error instanceof Error && error.message === "Timeout") {
-        LOGGER.debug(
-          `Timeout fetching pinned messages on channel ${channel?.name} on ${channel?.guild.name}`
-        );
-      } else {
-        // We probably don't have sufficient permission to read pinned messages
-        LOGGER.debug(
-          `Insufficient Permissions to fetch Pinned Messages on channel ${channel?.name} on ${channel?.guild.name}`
-        );
-      }
+      // We probably don't have sufficient permission to read pinned messages
+      LOGGER.debug(
+        `Insufficient Permissions to fetch Pinned Messages on channel ${channel?.name} on ${channel?.guild.name}`
+      );
     }
   }
-}
-
-function timeout<T>(ms: number, promise: Promise<T>): Promise<T> {
-  return new Promise((resolve, reject) => {
-    const id = setTimeout(() => reject(new Error("Timeout")), ms);
-    promise
-      .then((res) => {
-        clearTimeout(id);
-        resolve(res);
-      })
-      .catch((err) => {
-        clearTimeout(id);
-        reject(err);
-      });
-  });
 }
