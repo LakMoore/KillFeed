@@ -1,4 +1,4 @@
-import { Client } from "discord.js";
+import { APIRequest, Client, ResponseLike } from "discord.js";
 import { LOGGER } from "../helpers/Logger";
 
 export default (client: Client): void => {
@@ -12,5 +12,14 @@ export default (client: Client): void => {
 
   client.rest.on("rateLimited", (rateLimitInfo) => {
     LOGGER.info("Discord rate limited: " + JSON.stringify(rateLimitInfo));
+  });
+
+  client.rest.on("response", (request: APIRequest, response: ResponseLike) => {
+    LOGGER.info("Discord request: " + JSON.stringify(request));
+    LOGGER.info("Discord response: " + JSON.stringify(response));
+  });
+
+  client.rest.on("restDebug ", (info: string) => {
+    LOGGER.info("Discord restDebug : " + info);
   });
 };
