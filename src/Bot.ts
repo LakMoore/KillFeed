@@ -29,6 +29,9 @@ async function main() {
 
   const client = new Client({
     intents: [IntentsBitField.Flags.Guilds],
+    rest: {
+      invalidRequestWarningInterval: 1,
+    },
   });
 
   // set this up once

@@ -43,23 +43,32 @@ export function getBotUser(channel?: Channel | null) {
 export async function getConfigMessage(channel?: Channel | null) {
   if (
     canUseChannel(channel) &&
-    checkChannelPermissions(channel, PermissionsBitField.Flags.ManageMessages)
+    checkChannelPermissions(channel, PermissionsBitField.Flags.ViewChannel) &&
+    checkChannelPermissions(
+      channel,
+      PermissionsBitField.Flags.ReadMessageHistory
+    ) &&
+    (checkChannelPermissions(
+      channel,
+      PermissionsBitField.Flags.ManageMessages
+    ) ||
+      checkChannelPermissions(channel, PermissionsBitField.Flags.PinMessages))
   ) {
     try {
       LOGGER.debug(
         `Fetching pinned messages on channel ${channel?.name} on ${channel?.guild.name}`
       );
       // Get pinned messages
-      const pinned = await channel.messages.fetchPinned(true);
+      const pinned = await channel.messages.fetchPins();
 
       // Filter for those authored by this bo
-      const myPinned = pinned //.items
-        //.flatMap((p) => p.message)
+      const myPinned = pinned.items
+        .flatMap((p) => p.message)
         .filter((m) => m.author.id === channel.guild.members.me?.id);
 
-      LOGGER.debug(`Found ${myPinned.size} pinned messages for this bot`);
+      LOGGER.debug(`Found ${myPinned.length} pinned messages for this bot`);
 
-      return myPinned.first();
+      return myPinned[0];
     } catch (error) {
       // We probably don't have sufficient permission to read pinned messages
       LOGGER.debug(

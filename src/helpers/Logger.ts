@@ -46,7 +46,7 @@ export class LogHandler {
 
     if (this.errorChannel) {
       // No pings for warnings
-      this.errorChannel.send(message);
+      void this.errorChannel.send(message).catch(() => undefined);
     }
   }
 
@@ -67,7 +67,7 @@ export class LogHandler {
       if (this.devRole) {
         message = `<@&${this.devRole}>\n${message}`;
       }
-      this.errorChannel.send(message);
+      void this.errorChannel.send(message).catch(() => undefined);
     }
   }
 }
