@@ -46,10 +46,7 @@ export function getBotUser(channel?: Channel | null) {
 export async function getConfigMessage(channel?: Channel | null) {
   if (
     canUseChannel(channel) &&
-    checkChannelPermissions(
-      channel,
-      PermissionsBitField.Flags.ReadMessageHistory
-    )
+    checkChannelPermissions(channel, PermissionsBitField.Flags.PinMessages)
   ) {
     try {
       LOGGER.debug(
