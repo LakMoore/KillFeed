@@ -70,9 +70,10 @@ export async function getJaniceAppraisalValue(killmail: KillMail) {
       } else if (error.response.status >= 400 && error.response.status < 500) {
         // Bad request!?
         LOGGER.error(
-          `Janice Appraisal bad request.\n${
-            error.message
-          }\nRequest: ${JSON.stringify(error.request)}`
+          `Janice Appraisal bad request.\n${error.message}\nRequest: ${inspect(
+            error.request,
+            { depth: null, colors: true },
+          )}`,
         );
       }
     } else {

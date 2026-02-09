@@ -32,7 +32,7 @@ export const Test: Command = {
       if (kmId) {
         const zkb = await getOneZKill(kmId);
 
-        LOGGER.debug(JSON.stringify(zkb, null, 2));
+        LOGGER.debug(inspect(zkb, { depth: null, colors: true }));
 
         if (zkb?.zkb) {
           const response = await fetchKillmail(kmId, zkb.zkb.hash);
