@@ -42,7 +42,7 @@ export async function pollzKillboardOnce(client: Client) {
           retries: 0,
         },
         httpsAgent: localAgent,
-      }
+      },
     );
 
     // null and empty packages are normal, if there is no kill feed activity
@@ -58,7 +58,7 @@ export async function pollzKillboardOnce(client: Client) {
         const resp = await fetchKillmail(killId.toString(), hash);
 
         LOGGER.info(
-          `Fetched killmail from ESI for killID=${killId}, hash=${hash}`
+          `Fetched killmail from ESI for killID=${killId}, hash=${hash}`,
         );
 
         if (resp) {
@@ -71,7 +71,7 @@ export async function pollzKillboardOnce(client: Client) {
         }
       } catch (error) {
         LOGGER.error(
-          `Error fetching killmail from ESI for killID=${data.package.killID}, hash=${data.package.zkb.hash}: ${error}`
+          `Error fetching killmail from ESI for killID=${data.package.killID}, hash=${data.package.zkb.hash}: ${error}`,
         );
       }
     } else {
@@ -83,11 +83,11 @@ export async function pollzKillboardOnce(client: Client) {
       if (error.response.status >= 500 && error.response.status < 600) {
         // no ping for server-side errors
         LOGGER.warning(
-          `AxiosError\n${error.response?.status}\n${error.response?.statusText}\n${error.config?.url}`
+          `AxiosError\n${error.response?.status}\n${error.response?.statusText}\n${error.config?.url}`,
         );
       } else {
         LOGGER.error(
-          `AxiosError\n${error.response?.status}\n${error.response?.statusText}\n${error.config?.url}`
+          `AxiosError\n${error.response?.status}\n${error.response?.statusText}\n${error.config?.url}`,
         );
       }
     } else {
@@ -105,7 +105,7 @@ export async function getOneZKill(killmailId: string) {
   }
 
   const { data } = await axios.get<ZkbOnly[]>(
-    `https://zkillboard.com/api/killID/${killmailId}/`
+    `https://zkillboard.com/api/killID/${killmailId}/`,
   );
 
   return data[0];
@@ -114,15 +114,15 @@ export async function getOneZKill(killmailId: string) {
 export async function prepAndSend(
   client: Client,
   killmail: KillMail,
-  zkb: ZkbOnly
+  zkb: ZkbOnly,
 ) {
   try {
     LOGGER.info(
       `Kill ID: ${killmail.killmail_id} from ${
         killmail.killmail_time
       } (${msToTimeSpan(
-        Date.now() - new Date(killmail.killmail_time).getTime()
-      )} ago)`
+        Date.now() - new Date(killmail.killmail_time).getTime(),
+      )} ago)`,
     );
 
     const lossmailChannelIDs = new Set<string>();
@@ -203,7 +203,7 @@ export async function prepAndSend(
     // Handle Matched Regions
     try {
       const region = await CachedESI.getRegionForSystem(
-        killmail.solar_system_id
+        killmail.solar_system_id,
       );
       if (region) {
         // If we match on region and we haven't already matched on
@@ -217,14 +217,14 @@ export async function prepAndSend(
       }
     } catch (error) {
       LOGGER.error(
-        `Error while fetching region from system ${killmail.solar_system_id}. ${error}`
+        `Error while fetching region from system ${killmail.solar_system_id}. ${error}`,
       );
     }
 
     // Handle Matched Constellations
     try {
       const constellation = await CachedESI.getConstellationForSystem(
-        killmail.solar_system_id
+        killmail.solar_system_id,
       );
       if (constellation) {
         config.matchedConstellations
@@ -238,7 +238,7 @@ export async function prepAndSend(
       }
     } catch (error) {
       LOGGER.error(
-        `Error while fetching constellation from system ${killmail.solar_system_id}. ${error}`
+        `Error while fetching constellation from system ${killmail.solar_system_id}. ${error}`,
       );
     }
 
@@ -301,7 +301,7 @@ export async function prepAndSend(
         const matchedFilterTypes =
           channelMatchedFilters.get(channelId) || new Set();
         const allFiltersMatched = configuredFilterTypes.every((filterType) =>
-          matchedFilterTypes.has(filterType)
+          matchedFilterTypes.has(filterType),
         );
 
         if (!allFiltersMatched) {
@@ -309,8 +309,8 @@ export async function prepAndSend(
           LOGGER.debug(
             `Removing channel ${channelId} - RequireAllFilters enabled but not all filter types matched. ` +
               `Configured: [${configuredFilterTypes.join(
-                ", "
-              )}], Matched: [${Array.from(matchedFilterTypes).join(", ")}]`
+                ", ",
+              )}], Matched: [${Array.from(matchedFilterTypes).join(", ")}]`,
           );
         }
       });
@@ -328,27 +328,27 @@ export async function prepAndSend(
     savedData.stats.ISKAppraised += appraisalValue;
 
     await Promise.all([
-      Array.from(lossmailChannelIDs).map((channelId) =>
-        send(client, channelId, killmail, zkb, appraisalValue, ZKMailType.Loss)
+      ...Array.from(lossmailChannelIDs).map((channelId) =>
+        send(client, channelId, killmail, zkb, appraisalValue, ZKMailType.Loss),
       ),
-      Array.from(killmailChannelIDs).map((channelId) =>
-        send(client, channelId, killmail, zkb, appraisalValue, ZKMailType.Kill)
+      ...Array.from(killmailChannelIDs).map((channelId) =>
+        send(client, channelId, killmail, zkb, appraisalValue, ZKMailType.Kill),
       ),
-      Array.from(neutralmailChannelIDs).map((channelId) =>
+      ...Array.from(neutralmailChannelIDs).map((channelId) =>
         send(
           client,
           channelId,
           killmail,
           zkb,
           appraisalValue,
-          ZKMailType.Neutral
-        )
+          ZKMailType.Neutral,
+        ),
       ),
     ]);
   } catch (error) {
     if (error instanceof DiscordAPIError) {
       LOGGER.error(
-        `Discord Error while sending message [${error.code}]${error.message}`
+        `Discord Error while sending message [${error.code}]${error.message}`,
       );
     } else {
       LOGGER.error("Error sending message. " + error);
@@ -362,7 +362,7 @@ async function send(
   killmail: KillMail,
   zkb: ZkbOnly,
   appraisalValue: number,
-  type: ZKMailType
+  type: ZKMailType,
 ) {
   const channel = client.channels.cache.find((c) => c.id === channelId);
 
@@ -375,7 +375,7 @@ async function send(
 
   while (thisSubscription.PauseForChanges) {
     LOGGER.info(
-      `Pausing for changes on ${thisSubscription.Channel.guild.name} : ${thisSubscription.Channel.name}`
+      `Pausing for changes on ${thisSubscription.Channel.guild.name} : ${thisSubscription.Channel.name}`,
     );
     await sleep(5000);
   }
@@ -400,7 +400,7 @@ async function send(
     killmail,
     zkb,
     type,
-    appraisalValue
+    appraisalValue,
   );
 
   // check if we have a role to ping
@@ -420,7 +420,7 @@ async function send(
     return channel.send(msg);
   } else {
     LOGGER.error(
-      `Unable to send the ${ZKMailType[type]} mail on channel ${channelId}`
+      `Unable to send the ${ZKMailType[type]} mail on channel ${channelId}`,
     );
   }
 }

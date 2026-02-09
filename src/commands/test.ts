@@ -8,16 +8,17 @@ import { Command } from "../Command";
 import { fetchKillmail } from "../esi/fetch";
 import { getOneZKill, prepAndSend } from "../zKillboard/zKillboardService";
 import { LOGGER } from "../helpers/Logger";
+import { inspect } from "node:util";
 
 const KILLMAIL_ID = "killmail-id";
 
 const builder = new SlashCommandBuilder()
   .setName("test")
   .setDescription(
-    "Sends the next killmail to the feed. Optionally test specific kill against current channel config."
+    "Sends the next killmail to the feed. Optionally test specific kill against current channel config.",
   )
   .addStringOption((option) =>
-    option.setName(KILLMAIL_ID).setDescription("The Killmail ID to test")
+    option.setName(KILLMAIL_ID).setDescription("The Killmail ID to test"),
   );
 
 export const Test: Command = {

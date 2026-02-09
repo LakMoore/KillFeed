@@ -2,6 +2,7 @@ import axios, { AxiosRequestConfig } from "axios";
 import { PricerItem } from "../helpers/JaniceHelper";
 import { KillMail } from "../zKillboard/zKillboard";
 import { LOGGER } from "../helpers/Logger";
+import { inspect } from "node:util";
 
 const URL = "https://janice.e-351.com/api/rest/v2/pricer";
 const PARAMS = {
@@ -51,7 +52,7 @@ export async function getJaniceAppraisalValue(killmail: KillMail) {
     const { data } = await axios.post<PricerItem[]>(
       URL + "?" + query,
       payload,
-      janiceConfig
+      janiceConfig,
     );
 
     return janiceItems
