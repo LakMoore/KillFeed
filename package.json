@@ -3,7 +3,7 @@
   "version": "1.0.2",
   "description": "zKillboard bot for Eve Online",
   "engines": {
-    "node": "24.13.0"
+    "node": "24.13.1"
   },
   "main": "src/Bot.ts",
   "scripts": {
