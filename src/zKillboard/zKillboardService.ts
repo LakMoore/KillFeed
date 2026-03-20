@@ -1,15 +1,17 @@
 import axios from "axios";
 import { Client, DiscordAPIError, PermissionsBitField } from "discord.js";
 import { Config } from "../Config";
-import { EmbeddedFormat } from "../feedformats/EmbeddedFormat";
-import { InsightFormat } from "../feedformats/InsightFormat";
 import { InsightWithAppraisalFormat } from "../feedformats/InsightWithAppraisalFormat";
-import { ZKillLinkFormat } from "../feedformats/ZKillLinkFormat";
 import {
   canUseChannel,
   checkChannelPermissions,
 } from "../helpers/DiscordHelper";
-import { KillMail, Package, ZkbOnly } from "./zKillboard";
+import {
+  KillMail,
+  R2Z2KillmailPayload,
+  R2Z2Sequence,
+  ZkbOnly,
+} from "./zKillboard";
 import { ZKMailType } from "../feedformats/Fomat";
 import { getJaniceAppraisalValue } from "../Janice/Janice";
 import { CachedESI } from "../esi/cache";
@@ -17,68 +19,138 @@ import { LOGGER, msToTimeSpan } from "../helpers/Logger";
 import { savedData } from "../Bot";
 import { TYPE_KILLS, TYPE_LOSSES } from "../commands/show";
 import { sleep } from "../listeners/ready";
-import { fetchKillmail } from "../esi/fetch";
-import https from "https";
+import https from "node:https";
+
+const R2Z2_BASE_URL = "https://r2z2.zkillboard.com/ephemeral";
+const R2Z2_SEQUENCE_DELAY_MS = 100;
+const R2Z2_NO_NEW_DATA_DELAY_MS = 6000;
+const R2Z2_RATE_LIMIT_DELAY_MS = 5000;
+const R2Z2_FORBIDDEN_DELAY_MS = 60000;
+const R2Z2_ERROR_DELAY_MS = 10000;
+const DEDUPE_CACHE_MAX = 10000;
+const seenKillmailIds = new Map<number, number>();
+
+let nextSequenceId: number | null = null;
+
+function rememberKillmail(killmailId: number) {
+  seenKillmailIds.set(killmailId, Date.now());
+  while (seenKillmailIds.size > DEDUPE_CACHE_MAX) {
+    const oldest = seenKillmailIds.keys().next();
+    if (oldest.done) {
+      break;
+    }
+    seenKillmailIds.delete(oldest.value);
+  }
+}
+
+function hasSeenKillmail(killmailId: number): boolean {
+  return seenKillmailIds.has(killmailId);
+}
+
+async function getLatestSequence(localAgent?: https.Agent) {
+  const { data } = await axios.get<R2Z2Sequence>(
+    `${R2Z2_BASE_URL}/sequence.json`,
+    {
+      httpsAgent: localAgent,
+    },
+  );
+  return data.sequence;
+}
+
+async function getSequencePayload(sequence: number, localAgent?: https.Agent) {
+  const { data } = await axios.get<R2Z2KillmailPayload>(
+    `${R2Z2_BASE_URL}/${sequence}.json`,
+    {
+      "axios-retry": {
+        retries: 0,
+      },
+      httpsAgent: localAgent,
+    },
+  );
+  return data;
+}
 
 export async function pollzKillboardOnce(client: Client) {
+  savedData.stats.PollCount++;
+
+  const localAgent = process.env.OUTBOUND_IP
+    ? new https.Agent({
+        localAddress: process.env.OUTBOUND_IP,
+        family: 4,
+      })
+    : undefined;
+
   try {
-    savedData.stats.PollCount++;
-
-    const localAgent = process.env.OUTBOUND_IP
-      ? new https.Agent({
-          localAddress: process.env.OUTBOUND_IP,
-          family: 4,
-        })
-      : undefined;
-
-    // zKillboard could return immediately or could make us wait up to 10 seconds
-    // don't need to use axios-retry as the queue is managed on the zk server
-    const { data } = await axios.get<Package>(
-      `https://zkillredisq.stream/listen.php?queueID=${
-        process.env.QUEUE_ID ?? "NoQueueIDProvided"
-      }`,
-      {
-        "axios-retry": {
-          retries: 0,
-        },
-        httpsAgent: localAgent,
-      },
-    );
-
-    // null and empty packages are normal, if there is no kill feed activity
-    // in the last 10 seconds
-    if (data?.package) {
-      savedData.stats.KillMailCount++;
-      // We have a non-null response from zk. RedisQ no longer includes the killmail
-      // payload, so fetch it directly from ESI using the killID and hash.
-      try {
-        const killId = data.package.killID;
-        const hash = data.package.zkb.hash;
-
-        const resp = await fetchKillmail(killId.toString(), hash);
-
-        LOGGER.info(
-          `Fetched killmail from ESI for killID=${killId}, hash=${hash}`,
-        );
-
-        if (resp) {
-          const { data: killmail } = resp;
-
-          await prepAndSend(client, killmail, {
-            killmail_id: killId,
-            zkb: data.package.zkb,
-          });
-        }
-      } catch (error) {
-        LOGGER.error(
-          `Error fetching killmail from ESI for killID=${data.package.killID}, hash=${data.package.zkb.hash}: ${error}`,
+    if (nextSequenceId === null) {
+      if (savedData.stats.LastSequenceId > 0) {
+        nextSequenceId = savedData.stats.LastSequenceId + 1;
+        LOGGER.warning(`Resuming sequence stream from ${nextSequenceId}`);
+      } else {
+        nextSequenceId = await getLatestSequence(localAgent);
+        LOGGER.warning(
+          `Starting sequence stream from latest sequence ${nextSequenceId}`,
         );
       }
-    } else {
-      // No killmails
-      await sleep(2000); // sleep for a couple of seconds to save spamming zKillboard during quiet times
     }
+
+    const payload = await getSequencePayload(nextSequenceId, localAgent);
+
+    if (hasSeenKillmail(payload.killmail_id)) {
+      LOGGER.debug(
+        `Skipping duplicate killmail ${payload.killmail_id} from sequence ${payload.sequence_id}`,
+      );
+    } else {
+      savedData.stats.KillMailCount++;
+      await prepAndSend(client, payload.esi, {
+        killmail_id: payload.killmail_id,
+        zkb: payload.zkb,
+      });
+      rememberKillmail(payload.killmail_id);
+    }
+
+    savedData.stats.LastSequenceId = payload.sequence_id;
+    savedData.stats.LastSequenceSeenAt = new Date(payload.uploaded_at * 1000);
+    nextSequenceId = payload.sequence_id + 1;
+
+    await sleep(R2Z2_SEQUENCE_DELAY_MS);
   } catch (error) {
+    if (axios.isAxiosError(error) && error.response?.status === 404) {
+      if (nextSequenceId !== null) {
+        try {
+          const latestSequence = await getLatestSequence(localAgent);
+          if (latestSequence > nextSequenceId) {
+            LOGGER.warning(
+              `Sequence ${nextSequenceId} no longer available. Fast-forwarding to ${latestSequence}`,
+            );
+            nextSequenceId = latestSequence;
+          }
+        } catch (sequenceError) {
+          LOGGER.error(
+            "Error fetching latest sequence after 404\n" + sequenceError,
+          );
+        }
+      }
+
+      await sleep(R2Z2_NO_NEW_DATA_DELAY_MS);
+      return;
+    }
+
+    if (axios.isAxiosError(error) && error.response?.status === 429) {
+      LOGGER.warning(
+        "Rate limited by R2Z2 (429). Backing off before retrying.",
+      );
+      await sleep(R2Z2_RATE_LIMIT_DELAY_MS);
+      return;
+    }
+
+    if (axios.isAxiosError(error) && error.response?.status === 403) {
+      LOGGER.error(
+        "Access forbidden by R2Z2 (403). Backing off before retrying.",
+      );
+      await sleep(R2Z2_FORBIDDEN_DELAY_MS);
+      return;
+    }
+
     if (axios.isAxiosError(error) && error.response) {
       if (error.response.status >= 500 && error.response.status < 600) {
         // no ping for server-side errors
@@ -95,7 +167,7 @@ export async function pollzKillboardOnce(client: Client) {
     }
 
     // if there was an error then take a break
-    await sleep(10000);
+    await sleep(R2Z2_ERROR_DELAY_MS);
   }
 }
 

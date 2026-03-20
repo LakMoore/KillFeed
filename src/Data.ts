@@ -12,12 +12,14 @@ export interface Statistics {
   BotStarted: Date;
   ISKAppraised: number;
   ConfigCount: number;
+  LastSequenceId: number;
+  LastSequenceSeenAt: Date | null;
 }
 
 const SAVE_DELAY_MS = 30 * 1000; // 30 seconds in milliseconds
 
 export class Data {
-  private static DATA_KEY = "statistics";
+  private static readonly DATA_KEY = "statistics";
   private _stats: Statistics = {
     ServerCount: 0,
     ChannelCount: 0,
@@ -28,6 +30,8 @@ export class Data {
     BotStarted: new Date(),
     ISKAppraised: 0,
     ConfigCount: 0,
+    LastSequenceId: 0,
+    LastSequenceSeenAt: null,
   };
 
   public async init() {
@@ -37,8 +41,10 @@ export class Data {
       if (temp) {
         this._stats = temp;
       }
-      if (this._stats.ConfigCount === undefined) {
-        this._stats.ConfigCount = 0;
+      this._stats.ConfigCount ??= 0;
+      this._stats.LastSequenceId ??= 0;
+      if (this._stats.LastSequenceSeenAt === undefined) {
+        this._stats.LastSequenceSeenAt = null;
       }
     } catch (error) {
       LOGGER.error("Failed to load data from disk. " + error);

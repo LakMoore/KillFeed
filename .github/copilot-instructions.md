@@ -21,8 +21,8 @@ KillFeed is a Discord bot that streams EVE-Online killmails from zKillboard and 
 
 ### Data Flow
 
-1. **Poll Loop** (`listeners/ready.ts`): Infinite loop polls zKillboard RedisQ every ~1 second (rate-limited at 1 req/1.1s) with exponential backoff on errors
-2. **Fetch** (`zKillboard/zKillboardService.ts`): RedisQ returns package with killmail ID and hash; we fetch full killmail from ESI API
+1. **Poll Loop** (`listeners/ready.ts`): Infinite loop calls the zKillboard service poller, which controls pacing/backoff and sequence iteration
+2. **Fetch** (`zKillboard/zKillboardService.ts`): Poller reads R2Z2 `sequence.json`, fetches sequence files, and processes `esi` + `zkb` payload blocks
 3. **Filter** (`zKillboardService.ts`, `prepAndSend()`): Match killmail against all subscription filters using O(1) lookups
 4. **Format** (`feedformats/`): Convert killmail to Discord embed/message based on channel's ResponseFormat setting
 5. **Send**: Post to matching Discord channels with permission/rate limit handling
@@ -86,12 +86,11 @@ npm run prod-build-run  # Compile and run (used in Docker)
 Requires `.env` with:
 
 - `SECRET_TOKEN`: Discord bot token
-- `QUEUE_ID`: zKillboard RedisQ queue ID
 - Optional: `OUTBOUND_IP` for multi-NIC deployments, `NODE_ENV=development` for debug logging
 
 ## Key Integrations
 
-- **zKillboard RedisQ**: Stream killmails (timeout 10s per poll)
+- **zKillboard R2Z2**: Ephemeral sequence-based killmail stream
 - **EVE ESI API**: Fetch killmail details and entity name↔ID mappings
 - **Janice API**: Get appraisal values for kills
 - **discord.js v14**: Client API, slash commands, intents

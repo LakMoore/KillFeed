@@ -37,24 +37,8 @@ export interface KillMail {
   victim: Victim;
 }
 
-export interface Package {
-  package: {
-    killID: number;
-    zkb: {
-      locationID: number;
-      hash: string;
-      fittedValue: number;
-      droppedValue: number;
-      destroyedValue: number;
-      totalValue: number;
-      points: number;
-      npc: boolean;
-      solo: boolean;
-      awox: boolean;
-      labels: [string];
-      href: string;
-    };
-  };
+export interface R2Z2Sequence {
+  sequence: number;
 }
 
 export interface ZkbOnly {
@@ -71,4 +55,14 @@ export interface ZkbOnly {
     solo: boolean;
     awox: boolean;
   };
+}
+
+export interface R2Z2KillmailPayload {
+  killmail_id: number;
+  hash: string;
+  esi: KillMail;
+  zkb: ZkbOnly["zkb"];
+  sequence_id: number;
+  uploaded_at: number;
+  sequence_updated?: number;
 }

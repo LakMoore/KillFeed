@@ -5,10 +5,6 @@ import { updateGuild } from "../Servers";
 import { LOGGER } from "../helpers/Logger";
 import { savedData } from "../Bot";
 
-// 1 request per second limit
-const RATE_LIMIT_MAX_REQUESTS = 1;
-const RATE_LIMIT_WINDOW_MS = 1100;
-
 export default (client: Client): void => {
   client.on("clientReady", async () => {
     try {
@@ -46,29 +42,11 @@ export const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 let firstMem: NodeJS.MemoryUsage;
 
 async function pollLoop(client: Client, loopCount: number) {
-  const requestTimestamps: number[] = [];
   // eslint-disable-next-line no-constant-condition
   while (true) {
     // Explicit infinite loop
     try {
-      LOGGER.info("loop " + loopCount++);
-      const now = Date.now();
-      while (
-        requestTimestamps.length &&
-        now - requestTimestamps[0] >= RATE_LIMIT_WINDOW_MS
-      ) {
-        requestTimestamps.shift();
-      }
-      if (requestTimestamps.length >= RATE_LIMIT_MAX_REQUESTS) {
-        const waitTime = Math.max(
-          RATE_LIMIT_WINDOW_MS - (now - requestTimestamps[0]),
-          0
-        );
-        LOGGER.info(`Rate limited, waiting ${waitTime}ms before next request`);
-        await sleep(waitTime);
-        continue;
-      }
-      requestTimestamps.push(now);
+      LOGGER.debug("loop " + loopCount++);
       await pollzKillboardOnce(client);
     } catch (error) {
       if (error instanceof Error) {
@@ -95,7 +73,7 @@ async function pollLoop(client: Client, loopCount: number) {
         LOGGER.debug(
           `Memory: ${key}   ${
             Math.round(
-              (used[key as keyof NodeJS.MemoryUsage] / 1024 / 1024) * 100
+              (used[key as keyof NodeJS.MemoryUsage] / 1024 / 1024) * 100,
             ) / 100
           } MB  Diff: ${
             Math.round(
@@ -103,9 +81,9 @@ async function pollLoop(client: Client, loopCount: number) {
                 firstMem[key as keyof NodeJS.MemoryUsage]) /
                 1024 /
                 1024) *
-                100
+                100,
             ) / 100
-          }`
+          }`,
         );
       }
     }
