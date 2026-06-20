@@ -27,8 +27,8 @@
     "@marketgridsys/prettier": "^2.9.0-mgs.4",
     "@types/node": "^24.13.2",
     "@types/node-persist": "^3.1.8",
-    "@typescript-eslint/eslint-plugin": "^6.21.0",
-    "@typescript-eslint/parser": "^6.21.0",
+    "@typescript-eslint/eslint-plugin": "^8.61.1",
+    "@typescript-eslint/parser": "^8.61.1",
     "eslint-config-prettier": "^8.10.2",
     "eslint-plugin-prettier": "^4.2.5",
     "typescript": "^5.9.3"
