@@ -1,6 +1,7 @@
-import express, { Request, Response } from "express";
+import express, { NextFunction, Request, Response } from "express";
 import { Client } from "discord.js";
 import { createHmac, timingSafeEqual } from "node:crypto";
+import rateLimit from "express-rate-limit";
 import { LOGGER } from "../helpers/Logger";
 import { WandererConfig } from "./WandererConfig";
 import {
@@ -17,6 +18,22 @@ import {
 import { WandererSetupSessions } from "./WandererSetupSessions";
 
 const TIMESTAMP_TOLERANCE_MS = 5 * 60 * 1000;
+const SETUP_COMPLETE_RATE_LIMIT = { windowMs: 60 * 1000, max: 10 };
+const WEBHOOK_RATE_LIMIT = { windowMs: 60 * 1000, max: 120 };
+const setupCompleteLimiter = rateLimit({
+  windowMs: SETUP_COMPLETE_RATE_LIMIT.windowMs,
+  limit: SETUP_COMPLETE_RATE_LIMIT.max,
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+const webhookLimiter = rateLimit({
+  windowMs: WEBHOOK_RATE_LIMIT.windowMs,
+  limit: WEBHOOK_RATE_LIMIT.max,
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+const setupCompleteBuckets = new Map<string, { startAt: number; count: number }>();
+const webhookBuckets = new Map<string, { startAt: number; count: number }>();
 const SETUP_EVENTS = [
   "add_system",
   "deleted_system",
@@ -50,9 +67,49 @@ function isTimestampFresh(timestamp: string): boolean {
   return Number.isFinite(eventTime) && Math.abs(Date.now() - eventTime) <= TIMESTAMP_TOLERANCE_MS;
 }
 
-function getSetupPageHtml(channelId: string, setupToken: string): string {
+function createRateLimitMiddleware(limit: { windowMs: number; max: number }) {
+  const buckets = new Map<string, { startAt: number; count: number }>();
+
+  return (req: Request, res: Response, next: NextFunction): void => {
+    const key = `${req.ip}:${req.path}`;
+    const now = Date.now();
+    const bucket = buckets.get(key);
+
+    if (!bucket || now - bucket.startAt >= limit.windowMs) {
+      buckets.set(key, { startAt: now, count: 1 });
+      next();
+      return;
+    }
+
+    bucket.count++;
+    if (bucket.count > limit.max) {
+      res.status(429).json({ error: "Too many requests" });
+      return;
+    }
+
+    next();
+  };
+}
+
+function consumeRateLimit(
+  buckets: Map<string, { startAt: number; count: number }>,
+  key: string,
+  limit: { windowMs: number; max: number },
+): boolean {
+  const now = Date.now();
+  const bucket = buckets.get(key);
+
+  if (!bucket || now - bucket.startAt >= limit.windowMs) {
+    buckets.set(key, { startAt: now, count: 1 });
+    return true;
+  }
+
+  bucket.count++;
+  return bucket.count <= limit.max;
+}
+
+function getSetupPageHtml(): string {
   const publicBase = getWandererPublicBaseUrl();
-  const webhookUrl = getWandererWebhookUrl(channelId);
   const completeUrl = new URL("/api/wanderer/setup/complete", publicBase).toString();
 
   return `<!doctype html>
@@ -75,8 +132,8 @@ function getSetupPageHtml(channelId: string, setupToken: string): string {
   <body>
     <h1>Wanderer Connection Setup</h1>
     <p class="hint">Your Wanderer API key is only used in this page. KillFeed does not receive or store it.</p>
-    <p><strong>Channel:</strong> <code>${channelId}</code></p>
-    <p><strong>Webhook URL:</strong> <code>${webhookUrl}</code></p>
+    <p><strong>Channel:</strong> <code id="channel-display"></code></p>
+    <p><strong>Webhook URL:</strong> <code id="webhook-display"></code></p>
     <form id="setup-form">
       <label for="map-url">Wanderer map URL</label>
       <input id="map-url" name="map-url" type="url" placeholder="https://wanderer.ltd/maps/your-map-slug" required />
@@ -86,15 +143,22 @@ function getSetupPageHtml(channelId: string, setupToken: string): string {
     </form>
     <p class="status" id="status">Complete the form to enable webhooks.</p>
     <script>
-      const channelId = ${JSON.stringify(channelId)};
-      const setupToken = ${JSON.stringify(setupToken)};
-      const webhookUrl = ${JSON.stringify(webhookUrl)};
       const completeUrl = ${JSON.stringify(completeUrl)};
       const events = ${JSON.stringify(SETUP_EVENTS)};
+      const publicBase = ${JSON.stringify(publicBase)};
       const statusEl = document.getElementById("status");
       const form = document.getElementById("setup-form");
       const mapUrlInput = document.getElementById("map-url");
       const apiKeyInput = document.getElementById("api-key");
+      const channelDisplay = document.getElementById("channel-display");
+      const webhookDisplay = document.getElementById("webhook-display");
+      const params = new URLSearchParams(window.location.search);
+      const channelId = params.get("channelId") || "";
+      const setupToken = params.get("setupToken") || "";
+      const webhookUrl = publicBase + "/api/wanderer/webhook/killfeed/" + encodeURIComponent(channelId);
+
+      channelDisplay.textContent = channelId;
+      webhookDisplay.textContent = webhookUrl;
 
       function setStatus(message) {
         statusEl.textContent = message;
@@ -272,6 +336,11 @@ function webhookHandler(req: Request, res: Response): void {
     return;
   }
 
+  if (!consumeRateLimit(webhookBuckets, `${req.ip ?? "unknown"}:${channelId}`, WEBHOOK_RATE_LIMIT)) {
+    res.status(429).json({ error: "Too many requests" });
+    return;
+  }
+
   const connection = WandererConfig.getInstance().getConnectionByChannelId(channelId);
   const signature = req.headers["x-wanderer-signature"] as string | undefined;
   const timestamp = req.headers["x-wanderer-timestamp"] as string | undefined;
@@ -326,6 +395,16 @@ function webhookHandler(req: Request, res: Response): void {
   });
 }
 
+function webhookRouteHandler(req: Request, res: Response): void {
+  const channelId = typeof req.params.channelId === "string" ? req.params.channelId : "";
+  if (!consumeRateLimit(webhookBuckets, `${req.ip ?? "unknown"}:${channelId}`, WEBHOOK_RATE_LIMIT)) {
+    res.status(429).json({ error: "Too many requests" });
+    return;
+  }
+
+  webhookHandler(req, res);
+}
+
 async function processEvent(event: WandererWebhookEvent): Promise<void> {
   const { map_id: mapId, type, payload } = event;
 
@@ -360,7 +439,7 @@ function setupPageHandler(req: Request, res: Response): void {
     LOGGER.warning(`Wanderer setup page requested with invalid session for channel ${channelId}`);
   }
 
-  res.type("html").send(getSetupPageHtml(channelId, setupToken));
+  res.type("html").send(getSetupPageHtml());
 }
 
 async function setupCompleteHandler(
@@ -368,6 +447,13 @@ async function setupCompleteHandler(
   req: Request,
   res: Response,
 ): Promise<void> {
+  const requesterIp = req.ip ?? "unknown";
+
+  if (!consumeRateLimit(setupCompleteBuckets, requesterIp, SETUP_COMPLETE_RATE_LIMIT)) {
+    res.status(429).json({ error: "Too many requests" });
+    return;
+  }
+
   const payload = req.body as Partial<WandererSetupCompleteRequest>;
 
   if (
@@ -412,10 +498,10 @@ export function startWandererWebhookServer(client: Client): void {
   );
 
   app.get("/wanderer/setup", setupPageHandler);
-  app.post("/api/wanderer/setup/complete", (req, res) => {
+  app.post("/api/wanderer/setup/complete", setupCompleteLimiter, (req, res) => {
     void setupCompleteHandler(client, req, res);
   });
-  app.post("/api/wanderer/webhook/killfeed/:channelId", webhookHandler);
+  app.post("/api/wanderer/webhook/killfeed/:channelId", webhookLimiter, webhookRouteHandler);
 
   app.listen(port, () => {
     LOGGER.info(`Wanderer webhook server listening on port ${port}`);
