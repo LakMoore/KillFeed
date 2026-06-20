@@ -20,6 +20,7 @@ import { savedData } from "../Bot";
 import { TYPE_KILLS, TYPE_LOSSES } from "../commands/show";
 import { sleep } from "../listeners/ready";
 import https from "node:https";
+import { WandererConfig } from "../wanderer/WandererConfig";
 
 const R2Z2_BASE_URL = "https://r2z2.zkillboard.com/ephemeral";
 const R2Z2_SEQUENCE_DELAY_MS = 100;
@@ -394,6 +395,38 @@ export async function prepAndSend(
     applyAndFilterLogic(lossmailChannelIDs);
     applyAndFilterLogic(killmailChannelIDs);
     applyAndFilterLogic(neutralmailChannelIDs);
+
+    // Apply Wanderer map filter.
+    // For channels with a Wanderer connection:
+    //   - If the kill's solar system IS on the map, ensure the channel receives
+    //     the kill (adding it to neutralmailChannelIDs when no other filter
+    //     already matched it).
+    //   - If the system is NOT on the map, remove the channel from all sets so
+    //     that normal filter matches are also suppressed (the map IS the filter).
+    const wandererConfig = WandererConfig.getInstance();
+    if (wandererConfig.hasConnections()) {
+      wandererConfig.forEachConnection((channelId, connection) => {
+        const systemsForMap = wandererConfig.getSystemsForMap(connection.mapId);
+        const systemOnMap =
+          systemsForMap !== undefined &&
+          systemsForMap.has(killmail.solar_system_id);
+
+        if (systemOnMap) {
+          // Ensure the channel appears in at least one result set
+          if (
+            !lossmailChannelIDs.has(channelId) &&
+            !killmailChannelIDs.has(channelId)
+          ) {
+            neutralmailChannelIDs.add(channelId);
+          }
+        } else {
+          // System not on map: suppress all sends for this channel
+          lossmailChannelIDs.delete(channelId);
+          killmailChannelIDs.delete(channelId);
+          neutralmailChannelIDs.delete(channelId);
+        }
+      });
+    }
 
     const appraisalValue = await getJaniceAppraisalValue(killmail);
 

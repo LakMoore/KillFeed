@@ -9,6 +9,8 @@ import axiosRetry from "axios-retry";
 import { Data } from "./Data";
 import { LOGGER } from "./helpers/Logger";
 import error from "./listeners/error";
+import { WandererConfig } from "./wanderer/WandererConfig";
+import { startWandererWebhookServer } from "./wanderer/WandererWebhookServer";
 
 dotenv.config();
 export const savedData = new Data();
@@ -17,6 +19,9 @@ async function main() {
   LOGGER.info("Bot is starting...");
 
   await savedData.init();
+
+  // Initialise Wanderer config (uses the same node-persist store)
+  await WandererConfig.getInstance().init();
 
   const stats = savedData.stats;
   if (!stats.StatsStarted) {
@@ -36,6 +41,15 @@ async function main() {
 
   // set this up once
   axiosRetry(axios, { retries: 9, retryDelay: axiosRetry.exponentialDelay });
+
+  // Start the Wanderer webhook server (only if port is configured)
+  if (process.env.WANDERER_WEBHOOK_PORT) {
+    startWandererWebhookServer();
+  } else {
+    LOGGER.info(
+      "WANDERER_WEBHOOK_PORT not set — Wanderer webhook server not started.",
+    );
+  }
 
   // Error.stackTraceLimit = Infinity;
 

@@ -12,6 +12,7 @@ import { SetPingTarget } from "./commands/setPingTarget";
 import { Stats } from "./commands/stats";
 import { Show } from "./commands/show";
 import { FilterMode } from "./commands/filterMode";
+import { Wanderer } from "./commands/wanderer";
 
 export const Commands: Command[] = [
   Hello,
@@ -27,4 +28,5 @@ export const Commands: Command[] = [
   Stats,
   Show,
   FilterMode,
+  Wanderer,
 ];
