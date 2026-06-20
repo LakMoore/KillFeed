@@ -1,4 +1,5 @@
 import { EmbedBuilder } from "@discordjs/builders";
+import { MessageCreateOptions } from "discord.js";
 import { getCharacterNames } from "../esi/get";
 import { KillMail, ZkbOnly } from "../zKillboard/zKillboard";
 import { BaseFormat, ZKMailType } from "./Fomat";
@@ -11,12 +12,127 @@ const colours = {
   neutral: 0x0000ff,
 };
 
+type CharacterNames = Awaited<ReturnType<typeof getCharacterNames>>;
+type Attacker = KillMail["attackers"][number];
+
+function getAttackerShipName(shipName?: string) {
+  if (
+    shipName &&
+    ["a", "e", "i", "o", "u"].includes(shipName.toLowerCase()[0])
+  ) {
+    return "an " + shipName;
+  }
+
+  return "a " + shipName;
+}
+
+function getAttackerName(attacker: Attacker, attackerNames: CharacterNames) {
+  if (attackerNames.character) {
+    const attackerCorp = attackerNames.alliance
+      ? attackerNames.alliance
+      : attackerNames.corporation;
+
+    return `**[${attackerNames.character}](https://zkillboard.com/character/${attacker.character_id}/) (${attackerCorp})**`;
+  }
+
+  if (attackerNames.corporation) {
+    return `an NPC (${attackerNames.corporation})`;
+  }
+
+  return "an NPC";
+}
+
+function getVictimName(killmail: KillMail, victimNames: CharacterNames) {
+  if (victimNames.character) {
+    const victimCorp = victimNames.alliance
+      ? victimNames.alliance
+      : victimNames.corporation;
+
+    return `**[${victimNames.character}](https://zkillboard.com/character/${killmail.victim.character_id}/) (${victimCorp})**`;
+  }
+
+  if (victimNames.alliance) {
+    return `**[${victimNames.alliance}](https://zkillboard.com/alliance/${killmail.victim.alliance_id}/)**`;
+  }
+
+  return `**[${victimNames.corporation}](https://zkillboard.com/corporation/${killmail.victim.corporation_id}/)**`;
+}
+
+function getFleetPhrase(killmail: KillMail) {
+  if (killmail.attackers.length <= 1) {
+    return ", solo";
+  }
+
+  let fleetPhrase = ` and ${killmail.attackers.length - 1} other`;
+  if (killmail.attackers.length > 2) {
+    fleetPhrase += "s";
+  }
+
+  return fleetPhrase;
+}
+
+function getMailVisuals(mailType: ZKMailType) {
+  if (mailType == ZKMailType.Kill) {
+    return {
+      nameText: "Kill",
+      colour: colours.kill,
+    };
+  }
+
+  if (mailType == ZKMailType.Loss) {
+    return {
+      nameText: "Loss",
+      colour: colours.loss,
+    };
+  }
+
+  return {
+    nameText: "Neutral Kill",
+    colour: colours.neutral,
+  };
+}
+
+export function buildInsightFooterText(
+  zKillValueText: string,
+  janiceValueText?: string,
+) {
+  let footerText = ` • ZKill Value: ${zKillValueText}\n`;
+
+  if (janiceValueText) {
+    footerText += `• Janice Value: ${janiceValueText}\n`;
+  }
+
+  return footerText;
+}
+
+export function setInsightFooter(
+  message: MessageCreateOptions,
+  footerText: string,
+) {
+  const [firstEmbed, ...restEmbeds] = message.embeds ?? [];
+
+  if (!firstEmbed) {
+    return message;
+  }
+
+  const embedData = "toJSON" in firstEmbed ? firstEmbed.toJSON() : firstEmbed;
+  const embed =
+    firstEmbed instanceof EmbedBuilder
+      ? firstEmbed
+      : new EmbedBuilder(embedData);
+
+  embed.setFooter({ text: footerText });
+  message.embeds = [embed, ...restEmbeds];
+
+  return message;
+}
+
 export const InsightFormat: BaseFormat = {
   getMessage: async (
     killmail: KillMail,
     zkb: ZkbOnly,
     mailType: ZKMailType,
-    appraisedValue: number
+    appraisedValue: number,
   ) => {
     // not all Corps are in an Alliance!
     const badgeUrl = killmail.victim.alliance_id
@@ -24,10 +140,9 @@ export const InsightFormat: BaseFormat = {
       : `https://images.evetech.net/corporations/${killmail.victim.corporation_id}/logo?size=64`;
 
     const value = formatISKValue(zkb.zkb.totalValue);
-    const appraisedValueString = formatISKValue(appraisedValue);
 
-    let attacker = killmail.attackers.filter((char) => char.final_blow)[0];
-    if (!attacker) attacker = killmail.attackers[0];
+    let attacker = killmail.attackers.find((char) => char.final_blow);
+    attacker ??= killmail.attackers[0];
 
     const system = await CachedESI.getSystem(killmail.solar_system_id);
     const region = await CachedESI.getRegionForSystem(killmail.solar_system_id);
@@ -36,73 +151,19 @@ export const InsightFormat: BaseFormat = {
       getCharacterNames(killmail.victim),
       getCharacterNames(attacker),
     ]).then(([victimNames, attackerNames]) => {
-      let attackerShipName = attackerNames.ship;
-      if (
-        attackerShipName &&
-        ["a", "e", "i", "o", "u"].includes(attackerShipName.toLowerCase()[0])
-      ) {
-        attackerShipName = "an " + attackerShipName;
-      } else {
-        attackerShipName = "a " + attackerShipName;
-      }
-      let attackerName = "";
-      if (attackerNames.character) {
-        // not all Corps are in an Alliance!
-        const attackerCorp = attackerNames.alliance
-          ? attackerNames.alliance
-          : attackerNames.corporation;
-        attackerName = `**[${attackerNames.character}](https://zkillboard.com/character/${attacker.character_id}/) (${attackerCorp})**`;
-      } else {
-        if (attackerNames.corporation) {
-          attackerName = `an NPC (${attackerNames.corporation})`;
-        } else {
-          attackerName = "an NPC";
-        }
-      }
-      let victimName = "";
-      // not all Corps are in an Alliance!
-      if (victimNames.character) {
-        const victimCorp = victimNames.alliance
-          ? victimNames.alliance
-          : victimNames.corporation;
-        victimName = `**[${victimNames.character}](https://zkillboard.com/character/${killmail.victim.character_id}/) (${victimCorp})**`;
-      } else {
-        // structures don't have a character name!
-        if (victimNames.alliance) {
-          victimName = `**[${victimNames.alliance}](https://zkillboard.com/alliance/${killmail.victim.alliance_id}/)**`;
-        } else {
-          victimName = `**[${victimNames.corporation}](https://zkillboard.com/corporation/${killmail.victim.corporation_id}/)**`;
-        }
-      }
+      const attackerShipName = getAttackerShipName(attackerNames.ship);
+      const attackerName = getAttackerName(attacker, attackerNames);
+      const victimName = getVictimName(killmail, victimNames);
+      const fleetPhrase = getFleetPhrase(killmail);
 
-      let fleetPhrase = ", solo";
-      if (killmail.attackers.length > 1) {
-        fleetPhrase = ` and ${killmail.attackers.length - 1} other`;
-        if (killmail.attackers.length > 2) {
-          fleetPhrase += "s";
-        }
-      }
-
-      let nameText = "Neutral";
-      let colour = colours.neutral;
-      if (mailType == ZKMailType.Kill) {
-        nameText = "Kill";
-        colour = colours.kill;
-      }
-      if (mailType == ZKMailType.Loss) {
-        nameText = "Loss";
-        colour = colours.loss;
-      }
+      const visuals = getMailVisuals(mailType);
+      const nameText = `${visuals.nameText} in ${system.name} (${system.security_status.toFixed(1)}), ${region.name}`;
 
       return {
         embeds: [
           new EmbedBuilder()
-            .setColor(colour)
-            .setTitle(
-              `${victimNames.ship} destroyed in ${
-                system.name
-              } (${system.security_status.toFixed(1)}), ${region.name}`
-            )
+            .setColor(visuals.colour)
+            .setTitle(`${victimNames.ship} destroyed`)
             .setURL(`https://zkillboard.com/kill/${killmail.killmail_id}/`)
             .setAuthor({
               name: nameText,
@@ -110,14 +171,14 @@ export const InsightFormat: BaseFormat = {
               url: `https://zkillboard.com/kill/${killmail.killmail_id}/`,
             })
             .setDescription(
-              `${victimName} lost their ${victimNames.ship} to ${attackerName} flying ${attackerShipName}${fleetPhrase}.`
+              `${victimName} lost their ${victimNames.ship} to ${attackerName} flying ${attackerShipName}${fleetPhrase}.`,
             )
             .setThumbnail(
-              `https://images.evetech.net/types/${killmail.victim.ship_type_id}/render?size=64`
+              `https://images.evetech.net/types/${killmail.victim.ship_type_id}/render?size=64`,
             )
             .setTimestamp(new Date(killmail.killmail_time))
             .setFooter({
-              text: `Value: ${value} | Appraised: ${appraisedValueString}`,
+              text: buildInsightFooterText(value),
             }),
         ],
       };

@@ -1,16 +1,11 @@
 {
-  "ts-node": {
-    "compilerOptions": {
-      "module": "commonjs"
-    }
-  },
   "compilerOptions": {
     "target": "ESNext",
-    "module": "commonjs",
+    "module": "nodenext",
     "rootDir": "./src/",
     "outDir": "./dist",
     "strict": true,
-    "moduleResolution": "Node",
+    "moduleResolution": "nodenext",
     "importHelpers": true,
     "experimentalDecorators": true,
     "esModuleInterop": true,
@@ -20,8 +15,7 @@
     "forceConsistentCasingInFileNames": true,
     "removeComments": true,
     "typeRoots": ["node_modules/@types"],
-    "sourceMap": true,
-    "baseUrl": "./"
+    "sourceMap": true
   },
   "files": ["src/Bot.ts"],
   "include": ["./**/*.ts"],

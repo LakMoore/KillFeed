@@ -1,11 +1,7 @@
 import axios from "axios";
-import { Client, DiscordAPIError, PermissionsBitField } from "discord.js";
+import { Client } from "discord.js";
 import { Config } from "../Config";
-import { InsightWithAppraisalFormat } from "../feedformats/InsightWithAppraisalFormat";
-import {
-  canUseChannel,
-  checkChannelPermissions,
-} from "../helpers/DiscordHelper";
+import { sendKillmailMessage } from "../helpers/DiscordHelper";
 import {
   KillMail,
   R2Z2KillmailPayload,
@@ -17,7 +13,6 @@ import { getJaniceAppraisalValue } from "../Janice/Janice";
 import { CachedESI } from "../esi/cache";
 import { LOGGER, msToTimeSpan } from "../helpers/Logger";
 import { savedData } from "../Bot";
-import { TYPE_KILLS, TYPE_LOSSES } from "../commands/show";
 import { sleep } from "../listeners/ready";
 import https from "node:https";
 import { WandererConfig } from "../wanderer/WandererConfig";
@@ -25,7 +20,7 @@ import { WandererConfig } from "../wanderer/WandererConfig";
 const R2Z2_BASE_URL = "https://r2z2.zkillboard.com/ephemeral";
 const R2Z2_SEQUENCE_DELAY_MS = 100;
 const R2Z2_NO_NEW_DATA_DELAY_MS = 6000;
-const R2Z2_RATE_LIMIT_DELAY_MS = 5000;
+const R2Z2_RATE_LIMIT_DELAY_MS = 30000;
 const R2Z2_FORBIDDEN_DELAY_MS = 60000;
 const R2Z2_ERROR_DELAY_MS = 10000;
 const DEDUPE_CACHE_MAX = 10000;
@@ -434,13 +429,27 @@ export async function prepAndSend(
 
     await Promise.all([
       ...Array.from(lossmailChannelIDs).map((channelId) =>
-        send(client, channelId, killmail, zkb, appraisalValue, ZKMailType.Loss),
+        sendKillmailMessage(
+          client,
+          channelId,
+          killmail,
+          zkb,
+          appraisalValue,
+          ZKMailType.Loss,
+        ),
       ),
       ...Array.from(killmailChannelIDs).map((channelId) =>
-        send(client, channelId, killmail, zkb, appraisalValue, ZKMailType.Kill),
+        sendKillmailMessage(
+          client,
+          channelId,
+          killmail,
+          zkb,
+          appraisalValue,
+          ZKMailType.Kill,
+        ),
       ),
       ...Array.from(neutralmailChannelIDs).map((channelId) =>
-        send(
+        sendKillmailMessage(
           client,
           channelId,
           killmail,
@@ -451,81 +460,6 @@ export async function prepAndSend(
       ),
     ]);
   } catch (error) {
-    if (error instanceof DiscordAPIError) {
-      LOGGER.error(
-        `Discord Error while sending message [${error.code}]${error.message}`,
-      );
-    } else {
-      LOGGER.error("Error sending message. " + error);
-    }
-  }
-}
-
-async function send(
-  client: Client,
-  channelId: string,
-  killmail: KillMail,
-  zkb: ZkbOnly,
-  appraisalValue: number,
-  type: ZKMailType,
-) {
-  const channel = client.channels.cache.find((c) => c.id === channelId);
-
-  const thisSubscription = Config.getInstance().allSubscriptions.get(channelId);
-
-  if (thisSubscription == undefined) {
-    LOGGER.error(`No subscription found for ${channelId}`);
-    return;
-  }
-
-  while (thisSubscription.PauseForChanges) {
-    LOGGER.info(
-      `Pausing for changes on ${thisSubscription.Channel.guild.name} : ${thisSubscription.Channel.name}`,
-    );
-    await sleep(5000);
-  }
-
-  // check the minISK value filter
-  if (zkb.zkb.totalValue <= (thisSubscription?.MinISK ?? 0)) {
-    return;
-  }
-
-  // Don't send the mail if we don't want its type on this channel
-  if (
-    (thisSubscription.Show == TYPE_LOSSES && type != ZKMailType.Loss) ||
-    (thisSubscription.Show == TYPE_KILLS && type != ZKMailType.Kill)
-  ) {
-    return;
-  }
-
-  // TODO: Look up the desired message format for this channel
-
-  // Generate the message
-  const msg = await InsightWithAppraisalFormat.getMessage(
-    killmail,
-    zkb,
-    type,
-    appraisalValue,
-  );
-
-  // check if we have a role to ping
-  if (thisSubscription?.RoleToPing) {
-    msg.content = `<@&${thisSubscription.RoleToPing}>`;
-    msg.allowedMentions = {
-      roles: [thisSubscription.RoleToPing],
-    };
-  }
-
-  if (
-    canUseChannel(channel) &&
-    checkChannelPermissions(channel, PermissionsBitField.Flags.SendMessages)
-  ) {
-    savedData.stats.PostedCount++;
-    // send the message
-    return channel.send(msg);
-  } else {
-    LOGGER.error(
-      `Unable to send the ${ZKMailType[type]} mail on channel ${channelId}`,
-    );
+    LOGGER.error("Error sending message. " + error);
   }
 }

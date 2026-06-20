@@ -2,7 +2,12 @@ import { TextChannel } from "discord.js";
 
 export interface SubscriptionSettings {
   Channel: TextChannel;
-  ResponseFormat: "Embed" | "zKill";
+  ResponseFormat:
+    | "Embed"
+    | "EmbedFormat"
+    | "InsightWithAppraisal"
+    | "InsightWithPLEX"
+    | "zKill";
   FullTest: boolean;
   Alliances: Set<number>;
   Corporations: Set<number>;
