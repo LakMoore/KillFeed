@@ -1,16 +1,15 @@
 import {
   ChatInputCommandInteraction,
   Client,
-  ActionRowBuilder,
-  ButtonBuilder,
-  ButtonStyle,
   SlashCommandBuilder,
 } from "discord.js";
 import { Command } from "../Command";
 import { canUseChannel } from "../helpers/DiscordHelper";
-import { getWandererSetupUrl } from "../wanderer/WandererUrls";
-import { WandererSetupSessions } from "../wanderer/WandererSetupSessions";
 import { WandererConfig } from "../wanderer/WandererConfig";
+import {
+  connectWandererMap,
+  sendDiscordSuccessMessage,
+} from "../wanderer/WandererWebhookServer";
 
 const builder = new SlashCommandBuilder()
   .setName("wanderer")
@@ -18,7 +17,19 @@ const builder = new SlashCommandBuilder()
   .addSubcommand((sub) =>
     sub
       .setName("connect")
-      .setDescription("Start the Wanderer setup flow for this channel"),
+      .setDescription("Connect this channel to a Wanderer map")
+      .addStringOption((option) =>
+        option
+          .setName("map_url")
+          .setDescription("The Wanderer map URL to connect")
+          .setRequired(true),
+      )
+      .addStringOption((option) =>
+        option
+          .setName("api_key")
+          .setDescription("The Wanderer API key for this map")
+          .setRequired(true),
+      ),
   )
   .addSubcommand((sub) =>
     sub
@@ -30,13 +41,6 @@ const builder = new SlashCommandBuilder()
       .setName("status")
       .setDescription(
         "Show the current Wanderer connection and tracked system count for this channel",
-      ),
-  )
-  .addSubcommand((sub) =>
-    sub
-      .setName("setup")
-      .setDescription(
-        "Show instructions for setting up a Wanderer webhook",
       ),
   );
 
@@ -57,16 +61,13 @@ export const Wanderer: Command = {
 
     switch (subcommand) {
       case "connect":
-        await handleConnect(interaction, channel.id);
+        await handleConnect(client, interaction, channel.id);
         break;
       case "disconnect":
         await handleDisconnect(interaction, channel.id);
         break;
       case "status":
         await handleStatus(interaction, channel.id);
-        break;
-      case "setup":
-        await handleSetup(interaction);
         break;
       default:
         await interaction.followUp({
@@ -78,28 +79,35 @@ export const Wanderer: Command = {
 };
 
 async function handleConnect(
+  client: Client,
   interaction: ChatInputCommandInteraction,
   channelId: string,
 ): Promise<void> {
-  const setupToken = WandererSetupSessions.getInstance().create(
-    channelId,
-    interaction.user.id,
-  );
-  const setupUrl = getWandererSetupUrl(channelId, setupToken);
+  const mapUrl = interaction.options.getString("map_url", true).trim();
+  const apiKey = interaction.options.getString("api_key", true).trim();
 
-  await interaction.followUp({
-    ephemeral: true,
-    content:
-      "Open the Wanderer setup page to finish connecting this channel.",
-    components: [
-      new ActionRowBuilder<ButtonBuilder>().addComponents(
-        new ButtonBuilder()
-          .setStyle(ButtonStyle.Link)
-          .setLabel("Open Wanderer setup")
-          .setURL(setupUrl),
-      ),
-    ],
-  });
+  try {
+    const connection = await connectWandererMap({
+      channelId,
+      mapUrl,
+      apiKey,
+    });
+
+    await sendDiscordSuccessMessage(client, channelId, connection.mapId);
+    await interaction.followUp({
+      ephemeral: true,
+      content:
+        `✅ Wanderer connected for map \`${connection.mapId}\`.\n` +
+        `This channel will now receive mapped killmails.`,
+    });
+  } catch (error) {
+    await interaction.followUp({
+      ephemeral: true,
+      content:
+        "❌ Failed to connect Wanderer: " +
+        (error instanceof Error ? error.message : String(error)),
+    });
+  }
 }
 
 async function handleDisconnect(
@@ -146,26 +154,13 @@ async function handleStatus(
   }
 
   const systemCount = wandererConfig.getSystemCountForMap(connection.mapId);
-  const webhookIdInfo = connection.webhookId
-    ? `\n**Webhook ID:** \`${connection.webhookId}\``
-    : "";
 
   await interaction.followUp({
     ephemeral: true,
     content:
       `**Wanderer Integration Active**\n` +
-      `**Map ID:** \`${connection.mapId}\`${webhookIdInfo}\n` +
+      `**Map ID:** \`${connection.mapId}\`\n` +
       `**Tracked systems:** ${systemCount}\n` +
       `**Connected since:** ${new Date(connection.createdAt).toUTCString()}`,
-  });
-}
-
-async function handleSetup(
-  interaction: ChatInputCommandInteraction,
-): Promise<void> {
-  await interaction.followUp({
-    ephemeral: true,
-    content:
-      "Use `/wanderer connect` to open the setup page for this channel.",
   });
 }

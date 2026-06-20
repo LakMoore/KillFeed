@@ -1,4 +1,4 @@
-import express, { NextFunction, Request, Response } from "express";
+import express, { Request, Response } from "express";
 import { Client } from "discord.js";
 import { createHmac, timingSafeEqual } from "node:crypto";
 import rateLimit from "express-rate-limit";
@@ -6,33 +6,25 @@ import { LOGGER } from "../helpers/Logger";
 import { WandererConfig } from "./WandererConfig";
 import {
   WandererAddSystemPayload,
+  WandererCreateWebhookResponse,
   WandererDeletedSystemPayload,
-  WandererSetupCompleteRequest,
   WandererSystemMetadataPayload,
   WandererWebhookEvent,
+  WandererWebhookSetupResult,
 } from "./WandererTypes";
 import {
-  getWandererPublicBaseUrl,
   getWandererWebhookUrl,
+  parseWandererMapUrl,
 } from "./WandererUrls";
-import { WandererSetupSessions } from "./WandererSetupSessions";
 
 const TIMESTAMP_TOLERANCE_MS = 5 * 60 * 1000;
-const SETUP_COMPLETE_RATE_LIMIT = { windowMs: 60 * 1000, max: 10 };
 const WEBHOOK_RATE_LIMIT = { windowMs: 60 * 1000, max: 120 };
-const setupCompleteLimiter = rateLimit({
-  windowMs: SETUP_COMPLETE_RATE_LIMIT.windowMs,
-  limit: SETUP_COMPLETE_RATE_LIMIT.max,
-  standardHeaders: true,
-  legacyHeaders: false,
-});
 const webhookLimiter = rateLimit({
   windowMs: WEBHOOK_RATE_LIMIT.windowMs,
   limit: WEBHOOK_RATE_LIMIT.max,
   standardHeaders: true,
   legacyHeaders: false,
 });
-const setupCompleteBuckets = new Map<string, { startAt: number; count: number }>();
 const webhookBuckets = new Map<string, { startAt: number; count: number }>();
 const SETUP_EVENTS = [
   "add_system",
@@ -40,6 +32,9 @@ const SETUP_EVENTS = [
   "system_metadata_changed",
   "map_kill",
 ];
+type ResponseLike = {
+  text(): Promise<string>;
+};
 
 function verifySignature(
   secret: string,
@@ -64,13 +59,16 @@ function verifySignature(
 
 function isTimestampFresh(timestamp: string): boolean {
   const eventTime = new Date(timestamp).getTime();
-  return Number.isFinite(eventTime) && Math.abs(Date.now() - eventTime) <= TIMESTAMP_TOLERANCE_MS;
+  return (
+    Number.isFinite(eventTime) &&
+    Math.abs(Date.now() - eventTime) <= TIMESTAMP_TOLERANCE_MS
+  );
 }
 
 function createRateLimitMiddleware(limit: { windowMs: number; max: number }) {
   const buckets = new Map<string, { startAt: number; count: number }>();
 
-  return (req: Request, res: Response, next: NextFunction): void => {
+  return (req: Request, res: Response, next: () => void): void => {
     const key = `${req.ip}:${req.path}`;
     const now = Date.now();
     const bucket = buckets.get(key);
@@ -108,169 +106,122 @@ function consumeRateLimit(
   return bucket.count <= limit.max;
 }
 
-function getSetupPageHtml(): string {
-  const publicBase = getWandererPublicBaseUrl();
-  const completeUrl = new URL("/api/wanderer/setup/complete", publicBase).toString();
+async function readResponseBody(response: ResponseLike): Promise<unknown> {
+  const text = await response.text();
+  if (!text) {
+    return undefined;
+  }
 
-  return `<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Wanderer Connection Setup</title>
-    <style>
-      body { font-family: system-ui, sans-serif; max-width: 720px; margin: 3rem auto; padding: 0 1rem; line-height: 1.5; }
-      label { display: block; margin: 1rem 0 0.35rem; font-weight: 600; }
-      input, button { font: inherit; }
-      input { width: 100%; padding: 0.75rem; box-sizing: border-box; }
-      button { margin-top: 1rem; padding: 0.75rem 1rem; }
-      .status { margin-top: 1rem; white-space: pre-wrap; }
-      .hint { color: #555; }
-      code { word-break: break-all; }
-    </style>
-  </head>
-  <body>
-    <h1>Wanderer Connection Setup</h1>
-    <p class="hint">Your Wanderer API key is only used in this page. KillFeed does not receive or store it.</p>
-    <p><strong>Channel:</strong> <code id="channel-display"></code></p>
-    <p><strong>Webhook URL:</strong> <code id="webhook-display"></code></p>
-    <form id="setup-form">
-      <label for="map-url">Wanderer map URL</label>
-      <input id="map-url" name="map-url" type="url" placeholder="https://wanderer.ltd/maps/your-map-slug" required />
-      <label for="api-key">Wanderer API key</label>
-      <input id="api-key" name="api-key" type="password" autocomplete="off" required />
-      <button type="submit">Enable Wanderer webhooks</button>
-    </form>
-    <p class="status" id="status">Complete the form to enable webhooks.</p>
-    <script>
-      const completeUrl = ${JSON.stringify(completeUrl)};
-      const events = ${JSON.stringify(SETUP_EVENTS)};
-      const publicBase = ${JSON.stringify(publicBase)};
-      const statusEl = document.getElementById("status");
-      const form = document.getElementById("setup-form");
-      const mapUrlInput = document.getElementById("map-url");
-      const apiKeyInput = document.getElementById("api-key");
-      const channelDisplay = document.getElementById("channel-display");
-      const webhookDisplay = document.getElementById("webhook-display");
-      const params = new URLSearchParams(window.location.search);
-      const channelId = params.get("channelId") || "";
-      const setupToken = params.get("setupToken") || "";
-      const webhookUrl = publicBase + "/api/wanderer/webhook/killfeed/" + encodeURIComponent(channelId);
-
-      channelDisplay.textContent = channelId;
-      webhookDisplay.textContent = webhookUrl;
-
-      function setStatus(message) {
-        statusEl.textContent = message;
-      }
-
-      function parseMapUrl(input) {
-        const normalized = /^https?:\\/\\//i.test(input) ? input : "https://" + input;
-        const url = new URL(normalized);
-        const segments = url.pathname.split("/").filter(Boolean);
-        const index = segments.findIndex((part) => part === "maps" || part === "map");
-        const mapId = index >= 0 ? segments[index + 1] : segments.at(-1);
-        if (!mapId) {
-          throw new Error("Could not find a map slug in that URL.");
-        }
-        return { domain: url.origin, mapId };
-      }
-
-      form.addEventListener("submit", async (event) => {
-        event.preventDefault();
-        const mapUrl = mapUrlInput.value.trim();
-        const apiKey = apiKeyInput.value.trim();
-
-        if (!mapUrl || !apiKey) {
-          setStatus("Please provide both a Wanderer map URL and API key.");
-          return;
-        }
-
-        try {
-          const { domain, mapId } = parseMapUrl(mapUrl);
-          const headers = {
-            Authorization: "Bearer " + apiKey,
-            "Content-Type": "application/json",
-          };
-
-          setStatus("Enabling webhooks in Wanderer...");
-          const toggleResponse = await fetch(
-            domain + "/api/maps/" + encodeURIComponent(mapId) + "/webhooks/toggle",
-            {
-              method: "PUT",
-              headers,
-              body: JSON.stringify({ enabled: true }),
-            },
-          );
-          if (!toggleResponse.ok) {
-            throw new Error("Failed to enable webhooks (" + toggleResponse.status + ").");
-          }
-
-          setStatus("Creating the webhook subscription...");
-          const createResponse = await fetch(
-            domain + "/api/maps/" + encodeURIComponent(mapId) + "/webhooks",
-            {
-              method: "POST",
-              headers,
-              body: JSON.stringify({
-                url: webhookUrl,
-                events,
-                active: true,
-              }),
-            },
-          );
-
-          const createResult = await createResponse.json().catch(() => ({}));
-          if (!createResponse.ok) {
-            throw new Error(
-              createResult?.error ||
-                "Failed to create the webhook (" + createResponse.status + ").",
-            );
-          }
-
-          const webhookSecret = createResult?.data?.secret ?? createResult?.secret;
-          if (!webhookSecret) {
-            throw new Error("Wanderer did not return a shared secret.");
-          }
-
-          const webhookId = createResult?.data?.id ?? createResult?.id;
-          setStatus("Saving the shared secret with KillFeed...");
-          const completeResponse = await fetch(completeUrl, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              channelId,
-              setupToken,
-              mapId,
-              webhookSecret,
-              webhookId,
-            }),
-          });
-
-          const completeResult = await completeResponse.json().catch(() => ({}));
-          if (!completeResponse.ok) {
-            throw new Error(
-              completeResult?.error ||
-                "Failed to finish setup (" + completeResponse.status + ").",
-            );
-          }
-
-          apiKeyInput.value = "";
-          setStatus("Success! You can close this page now.");
-        } catch (error) {
-          setStatus(
-            "Setup failed: " +
-              (error instanceof Error ? error.message : String(error)) +
-              "\nYou can close this page and try again.",
-          );
-        }
-      });
-    </script>
-  </body>
-</html>`;
+  try {
+    return JSON.parse(text) as unknown;
+  } catch {
+    return text;
+  }
 }
 
-async function sendDiscordSuccessMessage(
+function extractApiError(body: unknown, fallback: string): string {
+  if (typeof body === "string" && body.trim()) {
+    return body;
+  }
+
+  if (body && typeof body === "object") {
+    const response = body as {
+      error?: unknown;
+      message?: unknown;
+      detail?: unknown;
+    };
+
+    for (const value of [response.error, response.message, response.detail]) {
+      if (typeof value === "string" && value.trim()) {
+        return value;
+      }
+    }
+  }
+
+  return fallback;
+}
+
+export async function connectWandererMap(params: {
+  channelId: string;
+  mapUrl: string;
+  apiKey: string;
+}): Promise<WandererWebhookSetupResult> {
+  const { domain, mapId } = parseWandererMapUrl(params.mapUrl);
+  const webhookUrl = getWandererWebhookUrl(params.channelId);
+  const headers = {
+    Authorization: "Bearer " + params.apiKey,
+    "Content-Type": "application/json",
+  };
+
+  const toggleResponse = await fetch(
+    `${domain}/api/maps/${encodeURIComponent(mapId)}/webhooks/toggle`,
+    {
+      method: "PUT",
+      headers,
+      body: JSON.stringify({ enabled: true }),
+    },
+  );
+  const toggleBody = await readResponseBody(toggleResponse);
+  if (!toggleResponse.ok) {
+    throw new Error(
+      extractApiError(
+        toggleBody,
+        `Failed to enable webhooks (${toggleResponse.status}).`,
+      ),
+    );
+  }
+
+  const createResponse = await fetch(
+    `${domain}/api/maps/${encodeURIComponent(mapId)}/webhooks`,
+    {
+      method: "POST",
+      headers,
+      body: JSON.stringify({
+        url: webhookUrl,
+        events: SETUP_EVENTS,
+        active: true,
+      }),
+    },
+  );
+  const createBody = (await readResponseBody(createResponse)) as
+    | (Partial<WandererCreateWebhookResponse> & {
+        error?: unknown;
+        message?: unknown;
+        detail?: unknown;
+      })
+    | undefined;
+
+  if (!createResponse.ok) {
+    throw new Error(
+      extractApiError(
+        createBody,
+        `Failed to create the webhook (${createResponse.status}).`,
+      ),
+    );
+  }
+
+  const webhookSecret = createBody?.data?.secret ?? createBody?.secret;
+  if (!webhookSecret) {
+    throw new Error("Wanderer did not return a shared secret.");
+  }
+
+  const connection: WandererWebhookSetupResult = {
+    mapId,
+    webhookSecret,
+  };
+
+  WandererConfig.getInstance().addConnection({
+    channelId: params.channelId,
+    mapId: connection.mapId,
+    webhookSecret: connection.webhookSecret,
+    createdAt: new Date().toISOString(),
+  });
+  await WandererConfig.getInstance().save();
+
+  return connection;
+}
+
+export async function sendDiscordSuccessMessage(
   client: Client,
   channelId: string,
   mapId: string,
@@ -278,7 +229,9 @@ async function sendDiscordSuccessMessage(
   try {
     const channel = await client.channels.fetch(channelId);
     if (!channel || !("send" in channel)) {
-      LOGGER.warning(`Unable to post Wanderer success message on channel ${channelId}`);
+      LOGGER.warning(
+        `Unable to post Wanderer success message on channel ${channelId}`,
+      );
       return;
     }
 
@@ -286,7 +239,9 @@ async function sendDiscordSuccessMessage(
       `✅ Wanderer connected for map \`${mapId}\`. This channel will now receive mapped killmails.`,
     );
   } catch (error) {
-    LOGGER.warning(`Failed to send Wanderer success message for channel ${channelId}: ${error}`);
+    LOGGER.warning(
+      `Failed to send Wanderer success message for channel ${channelId}: ${error}`,
+    );
   }
 }
 
@@ -336,16 +291,25 @@ function webhookHandler(req: Request, res: Response): void {
     return;
   }
 
-  if (!consumeRateLimit(webhookBuckets, `${req.ip ?? "unknown"}:${channelId}`, WEBHOOK_RATE_LIMIT)) {
+  if (
+    !consumeRateLimit(
+      webhookBuckets,
+      `${req.ip ?? "unknown"}:${channelId}`,
+      WEBHOOK_RATE_LIMIT,
+    )
+  ) {
     res.status(429).json({ error: "Too many requests" });
     return;
   }
 
-  const connection = WandererConfig.getInstance().getConnectionByChannelId(channelId);
+  const connection = WandererConfig.getInstance().getConnectionByChannelId(
+    channelId,
+  );
   const signature = req.headers["x-wanderer-signature"] as string | undefined;
   const timestamp = req.headers["x-wanderer-timestamp"] as string | undefined;
   const rawBody: Buffer =
-    (req as Request & { rawBody?: Buffer }).rawBody ?? Buffer.from(JSON.stringify(req.body));
+    (req as Request & { rawBody?: Buffer }).rawBody ??
+    Buffer.from(JSON.stringify(req.body));
 
   if (!connection) {
     res.status(404).json({ error: "Unknown channel" });
@@ -397,7 +361,13 @@ function webhookHandler(req: Request, res: Response): void {
 
 function webhookRouteHandler(req: Request, res: Response): void {
   const channelId = typeof req.params.channelId === "string" ? req.params.channelId : "";
-  if (!consumeRateLimit(webhookBuckets, `${req.ip ?? "unknown"}:${channelId}`, WEBHOOK_RATE_LIMIT)) {
+  if (
+    !consumeRateLimit(
+      webhookBuckets,
+      `${req.ip ?? "unknown"}:${channelId}`,
+      WEBHOOK_RATE_LIMIT,
+    )
+  ) {
     res.status(429).json({ error: "Too many requests" });
     return;
   }
@@ -419,70 +389,13 @@ async function processEvent(event: WandererWebhookEvent): Promise<void> {
       await handleSystemMetadataChanged(mapId, payload as WandererSystemMetadataPayload);
       break;
     case "map_kill":
-      LOGGER.debug(`Wanderer [${mapId}]: map_kill event received (handled via zKillboard feed)`);
+      LOGGER.debug(
+        `Wanderer [${mapId}]: map_kill event received (handled via zKillboard feed)`,
+      );
       break;
     default:
       LOGGER.debug(`Wanderer [${mapId}]: unhandled event type "${type}"`);
   }
-}
-
-function setupPageHandler(req: Request, res: Response): void {
-  const channelId = typeof req.query.channelId === "string" ? req.query.channelId : "";
-  const setupToken = typeof req.query.setupToken === "string" ? req.query.setupToken : "";
-
-  if (!channelId || !setupToken) {
-    res.status(400).send("Missing setup parameters.");
-    return;
-  }
-
-  if (!WandererSetupSessions.getInstance().validate(setupToken, channelId)) {
-    LOGGER.warning(`Wanderer setup page requested with invalid session for channel ${channelId}`);
-  }
-
-  res.type("html").send(getSetupPageHtml());
-}
-
-async function setupCompleteHandler(
-  client: Client,
-  req: Request,
-  res: Response,
-): Promise<void> {
-  const requesterIp = req.ip ?? "unknown";
-
-  if (!consumeRateLimit(setupCompleteBuckets, requesterIp, SETUP_COMPLETE_RATE_LIMIT)) {
-    res.status(429).json({ error: "Too many requests" });
-    return;
-  }
-
-  const payload = req.body as Partial<WandererSetupCompleteRequest>;
-
-  if (
-    typeof payload.channelId !== "string" ||
-    typeof payload.setupToken !== "string" ||
-    typeof payload.mapId !== "string" ||
-    typeof payload.webhookSecret !== "string"
-  ) {
-    res.status(400).json({ error: "Invalid setup payload" });
-    return;
-  }
-
-  const session = WandererSetupSessions.getInstance().consume(payload.setupToken);
-  if (!session || session.channelId !== payload.channelId) {
-    res.status(401).json({ error: "Expired or invalid setup session" });
-    return;
-  }
-
-  WandererConfig.getInstance().addConnection({
-    channelId: payload.channelId,
-    mapId: payload.mapId,
-    webhookId: payload.webhookId,
-    webhookSecret: payload.webhookSecret,
-    createdAt: new Date().toISOString(),
-  });
-  await WandererConfig.getInstance().save();
-
-  res.json({ ok: true });
-  void sendDiscordSuccessMessage(client, payload.channelId, payload.mapId);
 }
 
 export function startWandererWebhookServer(client: Client): void {
@@ -497,10 +410,6 @@ export function startWandererWebhookServer(client: Client): void {
     }),
   );
 
-  app.get("/wanderer/setup", setupPageHandler);
-  app.post("/api/wanderer/setup/complete", setupCompleteLimiter, (req, res) => {
-    void setupCompleteHandler(client, req, res);
-  });
   app.post("/api/wanderer/webhook/killfeed/:channelId", webhookLimiter, webhookRouteHandler);
 
   app.listen(port, () => {

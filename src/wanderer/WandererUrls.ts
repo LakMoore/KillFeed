@@ -24,16 +24,6 @@ export function getWandererPublicBaseUrl(): string {
   }
 }
 
-export function getWandererSetupUrl(
-  channelId: string,
-  setupToken: string,
-): string {
-  const url = new URL("/wanderer/setup", getWandererPublicBaseUrl());
-  url.searchParams.set("channelId", channelId);
-  url.searchParams.set("setupToken", setupToken);
-  return url.toString();
-}
-
 export function getWandererWebhookUrl(channelId: string): string {
   return new URL(
     `/api/wanderer/webhook/${WEBHOOK_PATH_SLUG}/${encodeURIComponent(channelId)}`,
@@ -47,7 +37,7 @@ export function parseWandererMapUrl(input: string): {
 } {
   const trimmed = input.trim();
   const normalized = /^[a-zA-Z][a-zA-Z\d+\-.]*:\/\//.test(trimmed)
-    ? trimmed
+    ? trimmed.replace(/^http:\/\//i, "https://")
     : `https://${trimmed}`;
 
   const url = new URL(normalized);

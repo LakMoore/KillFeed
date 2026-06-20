@@ -1,17 +1,8 @@
 export interface WandererConnection {
   channelId: string;
   mapId: string;
-  webhookId?: string;
   webhookSecret: string;
   createdAt: string;
-}
-
-export interface WandererSetupCompleteRequest {
-  channelId: string;
-  setupToken: string;
-  mapId: string;
-  webhookSecret: string;
-  webhookId?: string;
 }
 
 export interface WandererCreateWebhookResponse {
@@ -21,6 +12,11 @@ export interface WandererCreateWebhookResponse {
   };
   id?: string;
   secret?: string;
+}
+
+export interface WandererWebhookSetupResult {
+  mapId: string;
+  webhookSecret: string;
 }
 
 export interface WandererAddSystemPayload {
