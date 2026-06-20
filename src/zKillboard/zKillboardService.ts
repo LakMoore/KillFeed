@@ -24,7 +24,7 @@ import https from "node:https";
 const R2Z2_BASE_URL = "https://r2z2.zkillboard.com/ephemeral";
 const R2Z2_SEQUENCE_DELAY_MS = 100;
 const R2Z2_NO_NEW_DATA_DELAY_MS = 6000;
-const R2Z2_RATE_LIMIT_DELAY_MS = 5000;
+const R2Z2_RATE_LIMIT_DELAY_MS = 30000;
 const R2Z2_FORBIDDEN_DELAY_MS = 60000;
 const R2Z2_ERROR_DELAY_MS = 10000;
 const DEDUPE_CACHE_MAX = 10000;
