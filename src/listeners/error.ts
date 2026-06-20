@@ -61,6 +61,6 @@ export default (client: Client): void => {
   );
 
   client.rest.on("restDebug", (info: string) => {
-    LOGGER.error("Discord restDebug : " + info);
+    LOGGER.debug("Discord restDebug : " + info);
   });
 };
