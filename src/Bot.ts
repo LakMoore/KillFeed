@@ -42,14 +42,8 @@ async function main() {
   // set this up once
   axiosRetry(axios, { retries: 9, retryDelay: axiosRetry.exponentialDelay });
 
-  // Start the Wanderer webhook server (only if port is configured)
-  if (process.env.WANDERER_WEBHOOK_PORT) {
-    startWandererWebhookServer();
-  } else {
-    LOGGER.info(
-      "WANDERER_WEBHOOK_PORT not set — Wanderer webhook server not started.",
-    );
-  }
+  // Start the Wanderer webhook/setup server.
+  startWandererWebhookServer(client);
 
   // Error.stackTraceLimit = Infinity;
 

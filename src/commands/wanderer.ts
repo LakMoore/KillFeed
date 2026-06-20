@@ -1,16 +1,16 @@
 import {
   ChatInputCommandInteraction,
   Client,
+  ActionRowBuilder,
+  ButtonBuilder,
+  ButtonStyle,
   SlashCommandBuilder,
 } from "discord.js";
 import { Command } from "../Command";
-import { WandererConfig } from "../wanderer/WandererConfig";
-import { WandererConnection } from "../wanderer/WandererTypes";
 import { canUseChannel } from "../helpers/DiscordHelper";
-import { LOGGER } from "../helpers/Logger";
-
-const WANDERER_WEBHOOK_URL =
-  process.env.WANDERER_WEBHOOK_URL ?? "https://<your-domain>/api/wanderer/webhook";
+import { getWandererSetupUrl } from "../wanderer/WandererUrls";
+import { WandererSetupSessions } from "../wanderer/WandererSetupSessions";
+import { WandererConfig } from "../wanderer/WandererConfig";
 
 const builder = new SlashCommandBuilder()
   .setName("wanderer")
@@ -18,29 +18,7 @@ const builder = new SlashCommandBuilder()
   .addSubcommand((sub) =>
     sub
       .setName("connect")
-      .setDescription(
-        "Connect this channel to a Wanderer map (shows kills from mapped systems only)",
-      )
-      .addStringOption((opt) =>
-        opt
-          .setName("map_id")
-          .setDescription("Your Wanderer map ID")
-          .setRequired(true),
-      )
-      .addStringOption((opt) =>
-        opt
-          .setName("webhook_secret")
-          .setDescription(
-            "The web_secret from your Wanderer webhook (shown when you create the webhook)",
-          )
-          .setRequired(true),
-      )
-      .addStringOption((opt) =>
-        opt
-          .setName("webhook_id")
-          .setDescription("Optional: the webhook ID from Wanderer for reference")
-          .setRequired(false),
-      ),
+      .setDescription("Start the Wanderer setup flow for this channel"),
   )
   .addSubcommand((sub) =>
     sub
@@ -103,46 +81,24 @@ async function handleConnect(
   interaction: ChatInputCommandInteraction,
   channelId: string,
 ): Promise<void> {
-  const mapId = interaction.options.getString("map_id", true).trim();
-  const webhookSecret = interaction.options.getString("webhook_secret", true).trim();
-  const webhookId = interaction.options.getString("webhook_id") ?? undefined;
-
-  if (!mapId || !webhookSecret) {
-    await interaction.followUp({
-      ephemeral: true,
-      content: "Both `map_id` and `webhook_secret` are required.",
-    });
-    return;
-  }
-
-  const wandererConfig = WandererConfig.getInstance();
-  const existing = wandererConfig.getConnectionByChannelId(channelId);
-
-  const connection: WandererConnection = {
+  const setupToken = WandererSetupSessions.getInstance().create(
     channelId,
-    mapId,
-    webhookId,
-    webhookSecret,
-    createdAt: new Date().toISOString(),
-  };
-
-  wandererConfig.addConnection(connection);
-  await wandererConfig.save();
-
-  LOGGER.info(
-    `Wanderer connected: channel ${channelId} → map ${mapId}` +
-      (webhookId ? ` (webhook ${webhookId})` : ""),
+    interaction.user.id,
   );
+  const setupUrl = getWandererSetupUrl(channelId, setupToken);
 
-  const action = existing ? "updated" : "connected";
   await interaction.followUp({
     ephemeral: true,
     content:
-      `✅ Wanderer ${action}! This channel will now receive killmails from systems on map \`${mapId}\`.\n` +
-      (existing
-        ? `Previous connection to map \`${existing.mapId}\` has been replaced.\n`
-        : "") +
-      `\nMake sure your Wanderer webhook is pointing to:\n\`${WANDERER_WEBHOOK_URL}\``,
+      "Open the Wanderer setup page to finish connecting this channel.",
+    components: [
+      new ActionRowBuilder<ButtonBuilder>().addComponents(
+        new ButtonBuilder()
+          .setStyle(ButtonStyle.Link)
+          .setLabel("Open Wanderer setup")
+          .setURL(setupUrl),
+      ),
+    ],
   });
 }
 
@@ -163,10 +119,6 @@ async function handleDisconnect(
   }
 
   await wandererConfig.save();
-
-  LOGGER.info(
-    `Wanderer disconnected: channel ${channelId} (was map ${removed.mapId})`,
-  );
 
   await interaction.followUp({
     ephemeral: true,
@@ -214,14 +166,6 @@ async function handleSetup(
   await interaction.followUp({
     ephemeral: true,
     content:
-      `**How to connect Wanderer to KillFeed:**\n\n` +
-      `1. Open your Wanderer map settings at https://wanderer.ltd\n` +
-      `2. Navigate to **Webhooks** and create a new webhook with URL:\n` +
-      `   \`${WANDERER_WEBHOOK_URL}\`\n` +
-      `3. Select events: \`add_system\`, \`deleted_system\`, \`system_metadata_changed\`, \`map_kill\`\n` +
-      `4. Copy the **web_secret** shown after creation\n` +
-      `5. Run this command in the channel you want to receive kills:\n` +
-      `   \`/wanderer connect map_id:<your-map-id> webhook_secret:<web_secret>\`\n\n` +
-      `⚠️ Your Wanderer API token is **never** sent to KillFeed — only the webhook secret is stored.`,
+      "Use `/wanderer connect` to open the setup page for this channel.",
   });
 }

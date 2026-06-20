@@ -6,6 +6,23 @@ export interface WandererConnection {
   createdAt: string;
 }
 
+export interface WandererSetupCompleteRequest {
+  channelId: string;
+  setupToken: string;
+  mapId: string;
+  webhookSecret: string;
+  webhookId?: string;
+}
+
+export interface WandererCreateWebhookResponse {
+  data?: {
+    id?: string;
+    secret?: string;
+  };
+  id?: string;
+  secret?: string;
+}
+
 export interface WandererAddSystemPayload {
   solar_system_id: number;
   name: string;
