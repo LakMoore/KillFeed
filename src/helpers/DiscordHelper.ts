@@ -68,7 +68,6 @@ export async function getConfigMessage(channel?: Channel | null) {
       );
       // Get pinned messages
       const pinned = await channel.messages.fetchPins();
-      await sleep(1100);
 
       // Filter for those authored by this bo
       const myPinned = pinned.items
@@ -78,11 +77,26 @@ export async function getConfigMessage(channel?: Channel | null) {
       LOGGER.debug(`Found ${myPinned.length} pinned messages for this bot`);
 
       return myPinned[0];
-    } catch {
-      // We probably don't have sufficient permission to read pinned messages
-      LOGGER.debug(
-        `Insufficient Permissions to fetch Pinned Messages on channel ${channel?.name} on ${channel?.guild.name}`,
-      );
+    } catch (error: unknown) {
+      if (error instanceof DiscordAPIError && error.code === 50013) {
+        LOGGER.debug(
+          `Discord rejected fetchPins on channel ${channel?.name} on ${channel?.guild.name} with Missing Permissions (50013). Check channel overrides, view channel, and read message history permissions.`,
+        );
+        // check for 429 rate limit error from discord
+      } else if (
+        error instanceof DiscordAPIError &&
+        (error.code === 429 || error.status === 429)
+      ) {
+        LOGGER.error(
+          `Rate limit exceeded while fetching pinned messages on channel ${channel?.name} on ${channel?.guild.name}.`,
+        );
+      } else {
+        LOGGER.debug(
+          `Unknown error while fetching pinned messages on channel ${channel?.name} on ${channel?.guild.name}: ${
+            error instanceof Error ? error.message : String(error)
+          }`,
+        );
+      }
     }
   }
 }

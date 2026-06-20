@@ -7,16 +7,16 @@ export default (client: Client): void => {
   });
 
   client.on("warn", async (warning) => {
-    LOGGER.error("Discord warning: " + warning);
+    LOGGER.warning("Discord warning: " + warning);
   });
 
   client.rest.on("rateLimited", (rateLimitInfo) => {
-    LOGGER.info("Discord rate limited: " + JSON.stringify(rateLimitInfo));
+    LOGGER.error("Discord rate limited: " + JSON.stringify(rateLimitInfo));
   });
 
   client.rest.on("invalidRequestWarning", (invalidRequestInfo) => {
-    LOGGER.info(
-      "Discord invalid request warning: " + JSON.stringify(invalidRequestInfo)
+    LOGGER.warning(
+      "Discord invalid request warning: " + JSON.stringify(invalidRequestInfo),
     );
   });
 
@@ -32,7 +32,7 @@ export default (client: Client): void => {
             path: request.path,
             route: request.route,
             retries: request.retries,
-          })
+          }),
       );
 
       let bodyPreview: string | undefined;
@@ -55,12 +55,12 @@ export default (client: Client): void => {
             status: response.status,
             statusText: response.statusText,
             ok: response.ok,
-          })
+          }),
       );
-    }
+    },
   );
 
   client.rest.on("restDebug", (info: string) => {
-    LOGGER.info("Discord restDebug : " + info);
+    LOGGER.error("Discord restDebug : " + info);
   });
 };
