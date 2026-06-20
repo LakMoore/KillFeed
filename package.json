@@ -16,7 +16,11 @@
   "author": "Lak Moore",
   "license": "ISC",
   "dependencies": {
+<<<<<<< HEAD
     "axios": "^1.15.0",
+=======
+    "axios": "^1.15.2",
+>>>>>>> origin/dependabot/npm_and_yarn/axios-1.15.2
     "axios-retry": "^3.9.1",
     "discord.js": "^14.25.1",
     "dotenv": "^16.6.1",
