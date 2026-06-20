@@ -18,13 +18,13 @@ export function generateConfigMessage(settings: SubscriptionSettings): string {
       }
       return value;
     },
-    2
+    2,
   );
 }
 
 export function parseConfigMessage(
   message: string,
-  channel: Channel
+  channel: Channel,
 ): SubscriptionSettings {
   let result = undefined;
 
@@ -41,7 +41,7 @@ export function parseConfigMessage(
   } catch (error) {
     if (error instanceof Error) {
       LOGGER.debug(
-        `Error while parsing the config: ${message}\n${error.message}`
+        `Error while parsing the config: ${message}\n${error.message}`,
       );
     } else {
       LOGGER.debug(`Error while parsing the config: ${message}`);
@@ -73,13 +73,20 @@ export function parseConfigMessage(
     result = { ...result, RequireAllFilters: false };
   }
 
+  if (result?.ResponseFormat === "Embed") {
+    // Embed format was the original format, before formats were added.
+    // These settings need an upgrade!
+    // InsightWithPLEX format is the new default
+    result = { ...result, ResponseFormat: "InsightWithPLEX" };
+  }
+
   if (result?.ResponseFormat) {
     return result;
   }
 
   return {
     Channel: channel as TextChannel,
-    ResponseFormat: "Embed",
+    ResponseFormat: "InsightWithPLEX",
     FullTest: false,
     Alliances: new Set<number>(),
     Corporations: new Set<number>(),
@@ -99,7 +106,7 @@ export function parseConfigMessage(
 export function addListener(
   listener: Map<number, Set<string>>,
   id: number,
-  channelId: string
+  channelId: string,
 ) {
   let s = listener.get(id);
   if (!s) {
@@ -112,7 +119,7 @@ export function addListener(
 export function removeListener(
   listener: Map<number, Set<string>> | undefined,
   id: number,
-  channelId: string
+  channelId: string,
 ) {
   // remove the ID from the current filters
   if (listener) {

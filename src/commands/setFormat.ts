@@ -12,7 +12,8 @@ import { updateChannel } from "../Channels";
 
 const FORMAT_NAME = "type";
 
-export const FORMAT_EMBED = "Embed";
+export const FORMAT_NONE = "Embed"; // format value before formats were added, used for migration of old settings
+export const FORMAT_EMBED = "EmbedFormat";
 export const FORMAT_INSIGHT_WITH_APPRAISAL = "InsightWithAppraisal";
 export const FORMAT_INSIGHT_WITH_PLEX = "InsightWithPLEX";
 export const FORMAT_ZKILL = "zKill";
@@ -22,13 +23,13 @@ const formatOptions = new SlashCommandStringOption()
   .setDescription("How KillFeed should post to this channel")
   .setRequired(true)
   .addChoices(
-    { name: "Insight (default embed)", value: FORMAT_EMBED },
+    { name: "Insight", value: FORMAT_EMBED },
     {
       name: "Insight with Janice appraisal",
       value: FORMAT_INSIGHT_WITH_APPRAISAL,
     },
     {
-      name: "Insight with Janice + PLEX/USD",
+      name: "Insight with Janice + USD (default)",
       value: FORMAT_INSIGHT_WITH_PLEX,
     },
     { name: "zKill link (plain text)", value: FORMAT_ZKILL },
@@ -59,7 +60,7 @@ export const SetFormat: Command = {
         settings.PauseForChanges = true;
 
         const format = interaction.options.getString(FORMAT_NAME, true) as
-          | "Embed"
+          | "EmbedFormat"
           | "InsightWithAppraisal"
           | "InsightWithPLEX"
           | "zKill";

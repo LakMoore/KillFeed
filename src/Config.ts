@@ -4,6 +4,7 @@ export interface SubscriptionSettings {
   Channel: TextChannel;
   ResponseFormat:
     | "Embed"
+    | "EmbedFormat"
     | "InsightWithAppraisal"
     | "InsightWithPLEX"
     | "zKill";
