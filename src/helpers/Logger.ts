@@ -4,8 +4,6 @@ import { TextChannel } from "discord.js";
 dotenv.config();
 const DEBUG = process.env.NODE_ENV === "development";
 
-export const OUR_GUILD = "KillFeed by Lak Moore";
-export const ERROR_CHANNEL = "bot-errors";
 export const DEV_ROLE = "Developer";
 
 export class LogHandler {
@@ -104,12 +102,12 @@ export function msToTimeSpan(milliseconds: number): string {
   }
   if (remainingMinutes > 0) {
     parts.push(
-      remainingMinutes + " minute" + (remainingMinutes == 1 ? "" : "s")
+      remainingMinutes + " minute" + (remainingMinutes == 1 ? "" : "s"),
     );
   }
   if (remainingSeconds > 0) {
     parts.push(
-      remainingSeconds + " second" + (remainingSeconds == 1 ? "" : "s")
+      remainingSeconds + " second" + (remainingSeconds == 1 ? "" : "s"),
     );
   }
 
@@ -117,7 +115,7 @@ export function msToTimeSpan(milliseconds: number): string {
     parts.push(
       remainingMilliseconds +
         " millisecond" +
-        (remainingMilliseconds == 1 ? "" : "s")
+        (remainingMilliseconds == 1 ? "" : "s"),
     );
   }
 

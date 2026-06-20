@@ -3,12 +3,12 @@ import { SubscriptionSettings, Config } from "./Config";
 import { canUseChannel, getConfigMessage } from "./helpers/DiscordHelper";
 import { addListener, parseConfigMessage } from "./helpers/KillFeedHelpers";
 import { savedData } from "./Bot";
-import { DEV_ROLE, ERROR_CHANNEL, LOGGER, OUR_GUILD } from "./helpers/Logger";
+import { LOGGER } from "./helpers/Logger";
 
 export async function updateChannel(
   client: Client<boolean>,
   channelId: string,
-  guildName: string
+  guildName: string,
 ) {
   const channel = await client.channels.fetch(channelId, { cache: true });
   // If this is a purely text based channel that we can use
@@ -16,21 +16,8 @@ export async function updateChannel(
     LOGGER.info(`Server ${guildName}: Found a channel '${channel.name}'`);
     savedData.stats.ChannelCount++;
 
-    if (OUR_GUILD == guildName && ERROR_CHANNEL == channel.name) {
-      // this is the KillFeed Errors channel
-      LOGGER.info(`Server ${guildName}: Found our channel '${channel.name}'`);
-      LOGGER.setErrorChannel(channel);
-
-      const devRole = channel.guild.roles.cache.find(
-        (r) => r.name === DEV_ROLE
-      );
-      if (devRole) {
-        LOGGER.setDevRole(devRole.id);
-      }
-    }
-
     let thisSubscription = Config.getInstance().allSubscriptions.get(
-      channel.id
+      channel.id,
     );
     if (thisSubscription !== undefined) {
       // If we already had a config loaded for this channel
@@ -91,7 +78,7 @@ export async function updateChannel(
 // and remove that registration
 export function clearChannel(
   subscription: SubscriptionSettings,
-  channel: TextChannel
+  channel: TextChannel,
 ) {
   const config = Config.getInstance();
   subscription.Alliances.forEach((allianceId) => {
@@ -117,7 +104,7 @@ export function clearChannel(
   subscription.Constellations.forEach((constellationId) => {
     config.matchedConstellations.get(constellationId)?.delete(channel.id);
     LOGGER.info(
-      `Deleted constellation ${constellationId} from server ${channel.id}`
+      `Deleted constellation ${constellationId} from server ${channel.id}`,
     );
   });
   subscription.Systems.forEach((systemId) => {
