@@ -15,9 +15,9 @@ const STREAM_RETRY_DELAY_MS = 5000;
 
 type FetchResponseBody = {
   data?: {
-    systems?: Array<{ solar_system_id?: number | string }>;
+    systems?: Array<{ solar_system_id?: number | string; id?: number | string }>;
   };
-  systems?: Array<{ solar_system_id?: number | string }>;
+  systems?: Array<{ solar_system_id?: number | string; id?: number | string }>;
 };
 
 type FatalError = Error & { fatal?: boolean };
@@ -35,7 +35,7 @@ function extractSystems(body: unknown): number[] {
   const systems = payload?.data?.systems ?? payload?.systems ?? [];
 
   return systems
-    .map((system) => Number(system.solar_system_id))
+    .map((system) => Number(system.solar_system_id ?? system.id))
     .filter((solarSystemId) => Number.isFinite(solarSystemId));
 }
 
