@@ -1,22 +1,14 @@
 export interface WandererConnection {
   channelId: string;
   mapId: string;
-  webhookSecret: string;
+  domain: string;
+  apiKey: string;
   createdAt: string;
 }
 
-export interface WandererCreateWebhookResponse {
-  data?: {
-    id?: string;
-    secret?: string;
-  };
-  id?: string;
-  secret?: string;
-}
-
-export interface WandererWebhookSetupResult {
+export interface WandererEventsSetupResult {
   mapId: string;
-  webhookSecret: string;
+  domain: string;
 }
 
 export interface WandererAddSystemPayload {
@@ -44,7 +36,7 @@ export type WandererEventType =
   | "deleted_system"
   | "system_metadata_changed";
 
-export interface WandererWebhookEvent {
+export interface WandererEvent {
   map_id: string;
   type: WandererEventType;
   payload:

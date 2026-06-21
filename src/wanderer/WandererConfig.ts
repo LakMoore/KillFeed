@@ -27,7 +27,15 @@ export class WandererConfig {
       const savedConnections: [string, WandererConnection][] | undefined =
         await storage.getItem(CONNECTIONS_KEY);
       if (savedConnections) {
-        this.connections = new Map(savedConnections);
+        this.connections = new Map(
+          savedConnections.filter(([, connection]) => {
+            return (
+              typeof connection?.apiKey === "string" &&
+              typeof connection?.domain === "string" &&
+              typeof connection?.mapId === "string"
+            );
+          }),
+        );
       }
 
       const savedSystems: [string, number[]][] | undefined =
@@ -121,6 +129,10 @@ export class WandererConfig {
 
   public removeSystem(mapId: string, solarSystemId: number): void {
     this.systems.get(mapId)?.delete(solarSystemId);
+  }
+
+  public setSystemsForMap(mapId: string, solarSystemIds: Iterable<number>): void {
+    this.systems.set(mapId, new Set(solarSystemIds));
   }
 
   public getSystemsForMap(mapId: string): Set<number> | undefined {

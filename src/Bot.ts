@@ -10,7 +10,7 @@ import { Data } from "./Data";
 import { LOGGER } from "./helpers/Logger";
 import error from "./listeners/error";
 import { WandererConfig } from "./wanderer/WandererConfig";
-import { startWandererWebhookServer } from "./wanderer/WandererWebhookServer";
+import { startWandererEventStreams } from "./wanderer/WandererEventsClient";
 
 dotenv.config();
 export const savedData = new Data();
@@ -42,8 +42,8 @@ async function main() {
   // set this up once
   axiosRetry(axios, { retries: 9, retryDelay: axiosRetry.exponentialDelay });
 
-  // Start the Wanderer webhook/setup server.
-  startWandererWebhookServer(client);
+  // Start the Wanderer Server-to-Server event streams.
+  void startWandererEventStreams();
 
   // Error.stackTraceLimit = Infinity;
 

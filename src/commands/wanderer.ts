@@ -8,8 +8,9 @@ import { canUseChannel } from "../helpers/DiscordHelper";
 import { WandererConfig } from "../wanderer/WandererConfig";
 import {
   connectWandererMap,
-  sendDiscordSuccessMessage,
-} from "../wanderer/WandererWebhookServer";
+  disconnectWandererMap,
+  getWandererSystemCount,
+} from "../wanderer/WandererEventsClient";
 
 const builder = new SlashCommandBuilder()
   .setName("wanderer")
@@ -93,7 +94,6 @@ async function handleConnect(
       apiKey,
     });
 
-    await sendDiscordSuccessMessage(client, channelId, connection.mapId);
     await interaction.followUp({
       ephemeral: true,
       content:
@@ -114,8 +114,7 @@ async function handleDisconnect(
   interaction: ChatInputCommandInteraction,
   channelId: string,
 ): Promise<void> {
-  const wandererConfig = WandererConfig.getInstance();
-  const removed = wandererConfig.removeConnection(channelId);
+  const removed = await disconnectWandererMap(channelId);
 
   if (!removed) {
     await interaction.followUp({
@@ -126,14 +125,11 @@ async function handleDisconnect(
     return;
   }
 
-  await wandererConfig.save();
-
   await interaction.followUp({
     ephemeral: true,
     content:
       `✅ Wanderer disconnected. This channel will now use its normal kill filters again.\n` +
-      `Map \`${removed.mapId}\` is no longer tracked for this channel.\n\n` +
-      `Note: To fully remove the webhook, delete it from your Wanderer map settings.`,
+      `Map \`${removed.mapId}\` is no longer tracked for this channel.`,
   });
 }
 
@@ -153,7 +149,7 @@ async function handleStatus(
     return;
   }
 
-  const systemCount = wandererConfig.getSystemCountForMap(connection.mapId);
+  const systemCount = getWandererSystemCount(connection.mapId);
 
   await interaction.followUp({
     ephemeral: true,
