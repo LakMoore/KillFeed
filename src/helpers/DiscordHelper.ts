@@ -19,6 +19,68 @@ import { KillMail, ZkbOnly } from "../zKillboard/zKillboard";
 import { LOGGER } from "./Logger";
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+const CHANNEL_MESSAGE_WINDOW_MS = 5000;
+const CHANNEL_MESSAGE_LIMIT = 5;
+
+type ChannelRateLimitState = {
+  history: number[];
+  queue: Promise<void>;
+};
+
+const channelRateLimitStates = new Map<string, ChannelRateLimitState>();
+
+function getChannelRateLimitState(channelId: string) {
+  let state = channelRateLimitStates.get(channelId);
+  if (!state) {
+    state = {
+      history: [],
+      queue: Promise.resolve(),
+    };
+    channelRateLimitStates.set(channelId, state);
+  }
+
+  return state;
+}
+
+async function waitForChannelRateLimitSlot(state: ChannelRateLimitState) {
+  while (true) {
+    const now = Date.now();
+    state.history = state.history.filter(
+      (timestamp) => now - timestamp < CHANNEL_MESSAGE_WINDOW_MS,
+    );
+
+    if (state.history.length < CHANNEL_MESSAGE_LIMIT) {
+      state.history.push(now);
+      return;
+    }
+
+    const oldestTimestamp = state.history[0];
+    const waitMs = CHANNEL_MESSAGE_WINDOW_MS - (now - oldestTimestamp);
+    await sleep(Math.max(waitMs, 0));
+  }
+}
+
+async function withChannelRateLimit<T>(
+  channelId: string,
+  action: () => Promise<T>,
+) {
+  const state = getChannelRateLimitState(channelId);
+  const previous = state.queue;
+  let release: () => void = () => {};
+
+  state.queue = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+
+  await previous;
+
+  try {
+    await waitForChannelRateLimitSlot(state);
+    return await action();
+  } finally {
+    release();
+  }
+}
 
 export function canUseChannel(
   channel?: Channel | null,
@@ -294,7 +356,9 @@ export async function sendKillmailMessage(
   }
 
   try {
-    return await sendMessageWithFallback(channel, killmail, msg, type);
+    return await withChannelRateLimit(channel.id, () =>
+      sendMessageWithFallback(channel, killmail, msg, type),
+    );
   } catch (error) {
     if (error instanceof DiscordAPIError && error.code === 50013) {
       LOGGER.error(
