@@ -19,6 +19,50 @@ import { KillMail, ZkbOnly } from "../zKillboard/zKillboard";
 import { LOGGER } from "./Logger";
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+const CHANNEL_MESSAGE_WINDOW_MS = 5000;
+const CHANNEL_MESSAGE_LIMIT = 5;
+
+type ChannelRateLimitState = {
+  history: number[];
+  queue: Promise<void>;
+};
+
+const channelRateLimitStates = new Map<string, ChannelRateLimitState>();
+
+function getChannelRateLimitState(channelId: string) {
+  let state = channelRateLimitStates.get(channelId);
+  if (!state) {
+    state = {
+      history: [],
+      queue: Promise.resolve(),
+    };
+    channelRateLimitStates.set(channelId, state);
+  }
+
+  return state;
+}
+
+async function waitForChannelRateLimitSlot(state: ChannelRateLimitState) {
+  const now = Date.now();
+
+  while (true) {
+    // clear out expired timestamps from the history
+    state.history = state.history.filter(
+      (timestamp) => now - timestamp < CHANNEL_MESSAGE_WINDOW_MS,
+    );
+
+    // if we have room in the history, add the current timestamp and allow the message to be sent
+    if (state.history.length < CHANNEL_MESSAGE_LIMIT) {
+      state.history.push(now);
+      return;
+    }
+
+    // history is full, wait for the oldest timestamp to expire
+    const oldestTimestamp = state.history[0];
+    const waitMs = CHANNEL_MESSAGE_WINDOW_MS - (now - oldestTimestamp);
+    await sleep(Math.max(waitMs, 0));
+  }
+}
 
 export function canUseChannel(
   channel?: Channel | null,
@@ -224,6 +268,10 @@ async function sendMessageWithFallback(
   msg: MessageCreateOptions,
   type: ZKMailType,
 ) {
+  // respect Discord rate limits for sending messages
+  const state = getChannelRateLimitState(channel.id);
+  await waitForChannelRateLimitSlot(state);
+
   const missingEmbedPermission =
     !!msg.embeds?.length &&
     !checkChannelPermissions(channel, PermissionsBitField.Flags.EmbedLinks);
