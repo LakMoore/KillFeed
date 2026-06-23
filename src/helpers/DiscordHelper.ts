@@ -43,42 +43,24 @@ function getChannelRateLimitState(channelId: string) {
 }
 
 async function waitForChannelRateLimitSlot(state: ChannelRateLimitState) {
+  const now = Date.now();
+
   while (true) {
-    const now = Date.now();
+    // clear out expired timestamps from the history
     state.history = state.history.filter(
       (timestamp) => now - timestamp < CHANNEL_MESSAGE_WINDOW_MS,
     );
 
+    // if we have room in the history, add the current timestamp and allow the message to be sent
     if (state.history.length < CHANNEL_MESSAGE_LIMIT) {
       state.history.push(now);
       return;
     }
 
+    // history is full, wait for the oldest timestamp to expire
     const oldestTimestamp = state.history[0];
     const waitMs = CHANNEL_MESSAGE_WINDOW_MS - (now - oldestTimestamp);
     await sleep(Math.max(waitMs, 0));
-  }
-}
-
-async function withChannelRateLimit<T>(
-  channelId: string,
-  action: () => Promise<T>,
-) {
-  const state = getChannelRateLimitState(channelId);
-  const previous = state.queue;
-  let release: () => void = () => {};
-
-  state.queue = new Promise<void>((resolve) => {
-    release = resolve;
-  });
-
-  await previous;
-
-  try {
-    await waitForChannelRateLimitSlot(state);
-    return await action();
-  } finally {
-    release();
   }
 }
 
@@ -286,6 +268,10 @@ async function sendMessageWithFallback(
   msg: MessageCreateOptions,
   type: ZKMailType,
 ) {
+  // respect Discord rate limits for sending messages
+  const state = getChannelRateLimitState(channel.id);
+  await waitForChannelRateLimitSlot(state);
+
   const missingEmbedPermission =
     !!msg.embeds?.length &&
     !checkChannelPermissions(channel, PermissionsBitField.Flags.EmbedLinks);
@@ -356,9 +342,7 @@ export async function sendKillmailMessage(
   }
 
   try {
-    return await withChannelRateLimit(channel.id, () =>
-      sendMessageWithFallback(channel, killmail, msg, type),
-    );
+    return await sendMessageWithFallback(channel, killmail, msg, type);
   } catch (error) {
     if (error instanceof DiscordAPIError && error.code === 50013) {
       LOGGER.error(
