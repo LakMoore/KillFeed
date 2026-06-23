@@ -12,6 +12,9 @@ https://discord.gg/VNF7Dt43b8
 v1.0.12 [June 2026]
 
 - add `/set_format` command to change the format of the message sent to Discord for each kill mail
+- Discord fixed their rate limits for pinned message, so we can remove out delay during startup
+- Add per-channel Discord send rate-limiter
+- update eslint and associated packages to latest
 
 v1.0.11 [March 2026]
 
