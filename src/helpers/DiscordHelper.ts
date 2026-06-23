@@ -269,8 +269,10 @@ async function sendMessageWithFallback(
   type: ZKMailType,
 ) {
   // respect Discord rate limits for sending messages
-  const state = getChannelRateLimitState(channel.id);
-  await waitForChannelRateLimitSlot(state);
+
+  // TODO: FIX DEADLOCK!!!
+  // const state = getChannelRateLimitState(channel.id);
+  // await waitForChannelRateLimitSlot(state);
 
   const missingEmbedPermission =
     !!msg.embeds?.length &&
