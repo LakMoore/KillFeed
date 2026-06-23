@@ -43,9 +43,9 @@ function getChannelRateLimitState(channelId: string) {
 }
 
 async function waitForChannelRateLimitSlot(state: ChannelRateLimitState) {
-  const now = Date.now();
-
   while (true) {
+    const now = Date.now();
+
     // clear out expired timestamps from the history
     state.history = state.history.filter(
       (timestamp) => now - timestamp < CHANNEL_MESSAGE_WINDOW_MS,
@@ -60,6 +60,9 @@ async function waitForChannelRateLimitSlot(state: ChannelRateLimitState) {
     // history is full, wait for the oldest timestamp to expire
     const oldestTimestamp = state.history[0];
     const waitMs = CHANNEL_MESSAGE_WINDOW_MS - (now - oldestTimestamp);
+    LOGGER.debug(
+      `Channel rate limit reached. Waiting ${waitMs}ms before sending next message.`,
+    );
     await sleep(Math.max(waitMs, 0));
   }
 }
@@ -270,9 +273,8 @@ async function sendMessageWithFallback(
 ) {
   // respect Discord rate limits for sending messages
 
-  // TODO: FIX DEADLOCK!!!
-  // const state = getChannelRateLimitState(channel.id);
-  // await waitForChannelRateLimitSlot(state);
+  const state = getChannelRateLimitState(channel.id);
+  await waitForChannelRateLimitSlot(state);
 
   const missingEmbedPermission =
     !!msg.embeds?.length &&
