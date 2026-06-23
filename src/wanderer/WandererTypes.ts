@@ -1,14 +1,8 @@
-export interface WandererConnection {
-  channelId: string;
-  mapId: string;
-  domain: string;
-  apiKey: string;
-  createdAt: string;
-}
-
 export interface WandererEventsSetupResult {
-  mapId: string;
+  slug: string;
   domain: string;
+  EncryptedDetails?: string;
+  createdAt?: string;
 }
 
 export interface WandererAddSystemPayload {

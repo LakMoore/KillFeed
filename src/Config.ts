@@ -16,6 +16,13 @@ export interface SubscriptionSettings {
   Regions: Set<number>;
   Constellations: Set<number>;
   Systems: Set<number>;
+  WandererSettings?: {
+    Slug: string;
+    EncryptedDetails: string;
+    Domain: string;
+    createdAt?: string;
+    ExcludeSystemIDs: Set<string>;
+  };
   MinISK: number | undefined;
   RoleToPing: string | undefined;
   PauseForChanges: boolean;

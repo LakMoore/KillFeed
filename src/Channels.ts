@@ -8,7 +8,7 @@ import { DEV_ROLE, ERROR_CHANNEL, LOGGER, OUR_GUILD } from "./helpers/Logger";
 export async function updateChannel(
   client: Client<boolean>,
   channelId: string,
-  guildName: string
+  guildName: string,
 ) {
   const channel = await client.channels.fetch(channelId, { cache: true });
   // If this is a purely text based channel that we can use
@@ -22,7 +22,7 @@ export async function updateChannel(
       LOGGER.setErrorChannel(channel);
 
       const devRole = channel.guild.roles.cache.find(
-        (r) => r.name === DEV_ROLE
+        (r) => r.name === DEV_ROLE,
       );
       if (devRole) {
         LOGGER.setDevRole(devRole.id);
@@ -30,7 +30,7 @@ export async function updateChannel(
     }
 
     let thisSubscription = Config.getInstance().allSubscriptions.get(
-      channel.id
+      channel.id,
     );
     if (thisSubscription !== undefined) {
       // If we already had a config loaded for this channel
@@ -49,6 +49,19 @@ export async function updateChannel(
       // found a pinned message in this channel
       // rework config for this channel
       thisSubscription = parseConfigMessage(message.content, channel);
+
+      // Ensure WandererSettings.ExcludeSystemIDs exists (no legacy handling)
+      try {
+        if (
+          thisSubscription?.WandererSettings &&
+          !thisSubscription.WandererSettings.ExcludeSystemIDs
+        ) {
+          thisSubscription.WandererSettings.ExcludeSystemIDs =
+            new Set<string>();
+        }
+      } catch (err) {
+        LOGGER.debug(`Error initializing Wanderer exclusions: ${err}`);
+      }
 
       const config = Config.getInstance();
       config.allSubscriptions.set(channel.id, thisSubscription);
@@ -91,7 +104,7 @@ export async function updateChannel(
 // and remove that registration
 export function clearChannel(
   subscription: SubscriptionSettings,
-  channel: TextChannel
+  channel: TextChannel,
 ) {
   const config = Config.getInstance();
   subscription.Alliances.forEach((allianceId) => {
@@ -117,7 +130,7 @@ export function clearChannel(
   subscription.Constellations.forEach((constellationId) => {
     config.matchedConstellations.get(constellationId)?.delete(channel.id);
     LOGGER.info(
-      `Deleted constellation ${constellationId} from server ${channel.id}`
+      `Deleted constellation ${constellationId} from server ${channel.id}`,
     );
   });
   subscription.Systems.forEach((systemId) => {

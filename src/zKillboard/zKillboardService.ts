@@ -15,7 +15,7 @@ import { LOGGER, msToTimeSpan } from "../helpers/Logger";
 import { savedData } from "../Bot";
 import { sleep } from "../listeners/ready";
 import https from "node:https";
-import { WandererConfig } from "../wanderer/WandererConfig";
+import { WandererMaps } from "../wanderer/WandererMaps";
 
 const R2Z2_BASE_URL = "https://r2z2.zkillboard.com/ephemeral";
 const R2Z2_SEQUENCE_DELAY_MS = 100;
@@ -340,7 +340,7 @@ export async function prepAndSend(
         const subscription = config.allSubscriptions.get(channelId);
 
         // Skip if subscription not found or AND filtering not enabled
-        if (!subscription || !subscription.RequireAllFilters) {
+        if (!subscription?.RequireAllFilters) {
           return;
         }
 
@@ -398,27 +398,44 @@ export async function prepAndSend(
     //     already matched it).
     //   - If the system is NOT on the map, remove the channel from all sets so
     //     that normal filter matches are also suppressed (the map IS the filter).
-    const wandererConfig = WandererConfig.getInstance();
-    if (wandererConfig.hasConnections()) {
-      wandererConfig.forEachConnection((channelId, connection) => {
-        const systemsForMap = wandererConfig.getSystemsForMap(connection.mapId);
-        const systemOnMap =
-          systemsForMap !== undefined &&
-          systemsForMap.has(killmail.solar_system_id);
+    const wandererConfig = WandererMaps.getInstance();
+    const connections: Array<{ channelId: string; mapPath: string }> = [];
+    wandererConfig.forEachConnection((channelId, mapPath) => {
+      connections.push({ channelId, mapPath });
+    });
+    if (connections.length > 0) {
+      connections.forEach(({ channelId, mapPath }) => {
+        const subscription = config.allSubscriptions.get(channelId);
+        const excludedIds = subscription?.WandererSettings?.ExcludeSystemIDs;
+
+        // Determine if there was already a rule-based kill or loss match.
+        const hadRuleMatch =
+          lossmailChannelIDs.has(channelId) ||
+          killmailChannelIDs.has(channelId);
+
+        // If the channel has an exclusion for this system ID, skip map-based handling.
+        // This preserves any rule-based sends; exclusions only prevent map-originated sends.
+        if (excludedIds?.has(String(killmail.solar_system_id))) {
+          return;
+        }
+
+        const systemsForMap = wandererConfig.getSystemsForMap(mapPath);
+        const systemOnMap = systemsForMap?.has(killmail.solar_system_id);
 
         if (systemOnMap) {
-          // Ensure the channel appears in at least one result set
-          if (
-            !lossmailChannelIDs.has(channelId) &&
-            !killmailChannelIDs.has(channelId)
-          ) {
+          // If the channel already matched by rules, keep those sends. If not,
+          // add a neutral-style send for channels covered by the map.
+          if (!hadRuleMatch && !neutralmailChannelIDs.has(channelId)) {
             neutralmailChannelIDs.add(channelId);
           }
         } else {
-          // System not on map: suppress all sends for this channel
-          lossmailChannelIDs.delete(channelId);
-          killmailChannelIDs.delete(channelId);
-          neutralmailChannelIDs.delete(channelId);
+          // System not on map: only suppress sends for channels that did not
+          // already have a rule-based match. Rule-based sends are preserved.
+          if (!hadRuleMatch) {
+            lossmailChannelIDs.delete(channelId);
+            killmailChannelIDs.delete(channelId);
+            neutralmailChannelIDs.delete(channelId);
+          }
         }
       });
     }

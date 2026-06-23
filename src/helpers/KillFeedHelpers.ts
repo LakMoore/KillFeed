@@ -58,6 +58,20 @@ export function parseConfigMessage(
     result = { ...result, Systems: new Set<number>() };
   }
 
+  if (result != undefined && !Object.hasOwn(result, "WandererSettings")) {
+    // WandererSettings added later.
+    result = {
+      ...result,
+      WandererSettings: {
+        Slug: "",
+        EncryptedDetails: "",
+        Domain: "",
+        createdAt: undefined,
+        ExcludeSystemIDs: new Set<string>(),
+      },
+    };
+  }
+
   if (result != undefined && !Object.hasOwn(result, "Constellations")) {
     // Constellations object was added later.  These settings need an upgrade!
     result = { ...result, Constellations: new Set<number>() };
@@ -95,6 +109,12 @@ export function parseConfigMessage(
     Ships: new Set<number>(),
     Systems: new Set<number>(),
     Constellations: new Set<number>(),
+    WandererSettings: {
+      Slug: "",
+      EncryptedDetails: "",
+      Domain: "",
+      ExcludeSystemIDs: new Set<string>(),
+    },
     MinISK: 0,
     RoleToPing: undefined,
     PauseForChanges: false,
@@ -109,9 +129,7 @@ export function addListener(
   channelId: string,
 ) {
   let s = listener.get(id);
-  if (!s) {
-    s = new Set<string>();
-  }
+  s ??= new Set<string>();
   s.add(channelId);
   listener.set(id, s);
 }

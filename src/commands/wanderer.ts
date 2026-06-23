@@ -4,13 +4,17 @@ import {
   SlashCommandBuilder,
 } from "discord.js";
 import { Command } from "../Command";
-import { canUseChannel } from "../helpers/DiscordHelper";
-import { WandererConfig } from "../wanderer/WandererConfig";
+import { canUseChannel, getConfigMessage } from "../helpers/DiscordHelper";
 import {
   connectWandererMap,
   disconnectWandererMap,
   getWandererSystemCount,
 } from "../wanderer/WandererEventsClient";
+import { updateChannel } from "../Channels";
+import { generateConfigMessage } from "../helpers/KillFeedHelpers";
+import { Config } from "../Config";
+import { fetchESIIDs } from "../esi/fetch";
+import { CachedESI } from "../esi/cache";
 
 const builder = new SlashCommandBuilder()
   .setName("wanderer")
@@ -43,6 +47,41 @@ const builder = new SlashCommandBuilder()
       .setDescription(
         "Show the current Wanderer connection and tracked system count for this channel",
       ),
+  )
+  .addSubcommand((sub) =>
+    sub
+      .setName("exclude")
+      .setDescription(
+        "Exclude a solar system from Wanderer notifications for this channel (e.g. Jita)",
+      )
+      .addStringOption((option) =>
+        option
+          .setName("system")
+          .setDescription(
+            "Name of the solar system to exclude (case sensitive)",
+          )
+          .setRequired(true),
+      ),
+  )
+  .addSubcommand((sub) =>
+    sub
+      .setName("unexclude")
+      .setDescription(
+        "Remove a system from the Wanderer exclusion list for this channel",
+      )
+      .addStringOption((option) =>
+        option
+          .setName("system")
+          .setDescription("System name to remove")
+          .setRequired(true),
+      ),
+  )
+  .addSubcommand((sub) =>
+    sub
+      .setName("list-excludes")
+      .setDescription(
+        "List systems excluded from Wanderer notifications for this channel",
+      ),
   );
 
 export const Wanderer: Command = {
@@ -54,8 +93,7 @@ export const Wanderer: Command = {
     if (!canUseChannel(channel)) {
       await interaction.followUp({
         ephemeral: true,
-        content:
-          "KillFeed needs permission to send messages in this channel.",
+        content: "KillFeed needs permission to send messages in this channel.",
       });
       return;
     }
@@ -63,6 +101,15 @@ export const Wanderer: Command = {
     switch (subcommand) {
       case "connect":
         await handleConnect(client, interaction, channel.id);
+        break;
+      case "exclude":
+        await handleExclude(client, interaction, channel.id);
+        break;
+      case "unexclude":
+        await handleUnexclude(client, interaction, channel.id);
+        break;
+      case "list-excludes":
+        await handleListExcludes(client, interaction, channel.id);
         break;
       case "disconnect":
         await handleDisconnect(interaction, channel.id);
@@ -94,10 +141,37 @@ async function handleConnect(
       apiKey,
     });
 
+    // Persist connection metadata into the channel's subscription message
+    const thisSubscription =
+      Config.getInstance().allSubscriptions.get(channelId);
+    if (thisSubscription) {
+      thisSubscription.PauseForChanges = true;
+      thisSubscription.WandererSettings ??= {
+        Slug: "",
+        EncryptedDetails: "",
+        Domain: "",
+        ExcludeSystemIDs: new Set<string>(),
+      };
+
+      const wsRef = thisSubscription.WandererSettings;
+      wsRef.Slug = connection.slug || "";
+      wsRef.EncryptedDetails = connection.EncryptedDetails || "";
+      wsRef.Domain = connection.domain;
+      wsRef.createdAt = connection.createdAt;
+
+      const message = await getConfigMessage(interaction.channel!);
+      if (message) {
+        await message.edit(generateConfigMessage(thisSubscription));
+        await updateChannel(client, channelId, interaction.guild!.name);
+      }
+
+      thisSubscription.PauseForChanges = false;
+    }
+
     await interaction.followUp({
       ephemeral: true,
       content:
-        `✅ Wanderer connected for map \`${connection.mapId}\`.\n` +
+        `✅ Wanderer connected for map \`${connection.slug}\`.\n` +
         `This channel will now receive mapped killmails.`,
     });
   } catch (error) {
@@ -114,22 +188,28 @@ async function handleDisconnect(
   interaction: ChatInputCommandInteraction,
   channelId: string,
 ): Promise<void> {
-  const removed = await disconnectWandererMap(channelId);
+  await disconnectWandererMap(channelId);
 
-  if (!removed) {
-    await interaction.followUp({
-      ephemeral: true,
-      content:
-        "This channel has no Wanderer connection to remove.",
-    });
-    return;
+  // Remove WandererSettings from the channel's subscription and update pinned message
+  const thisSubscription = Config.getInstance().allSubscriptions.get(channelId);
+  if (thisSubscription?.WandererSettings) {
+    thisSubscription.PauseForChanges = true;
+    delete thisSubscription.WandererSettings;
+    const message = await getConfigMessage(interaction.channel!);
+    if (message) {
+      await message.edit(generateConfigMessage(thisSubscription));
+      await updateChannel(
+        interaction.client,
+        channelId,
+        interaction.guild!.name,
+      );
+    }
+    thisSubscription.PauseForChanges = false;
   }
 
   await interaction.followUp({
     ephemeral: true,
-    content:
-      `✅ Wanderer disconnected. This channel will now use its normal kill filters again.\n` +
-      `Map \`${removed.mapId}\` is no longer tracked for this channel.`,
+    content: `✅ Wanderer disconnected. This channel will now use its normal kill filters again.`,
   });
 }
 
@@ -137,10 +217,10 @@ async function handleStatus(
   interaction: ChatInputCommandInteraction,
   channelId: string,
 ): Promise<void> {
-  const wandererConfig = WandererConfig.getInstance();
-  const connection = wandererConfig.getConnectionByChannelId(channelId);
+  const sub = Config.getInstance().allSubscriptions.get(channelId);
+  const ws = sub?.WandererSettings;
 
-  if (!connection) {
+  if (!ws?.Slug || !ws.Domain) {
     await interaction.followUp({
       ephemeral: true,
       content:
@@ -148,15 +228,196 @@ async function handleStatus(
     });
     return;
   }
-
-  const systemCount = getWandererSystemCount(connection.mapId);
+  const mapPath = ws.Domain + "/" + ws.Slug;
+  const systemCount = getWandererSystemCount(mapPath);
 
   await interaction.followUp({
     ephemeral: true,
     content:
       `**Wanderer Integration Active**\n` +
-      `**Map ID:** \`${connection.mapId}\`\n` +
+      `**Map Slug:** \`${ws.Slug}\`\n` +
       `**Tracked systems:** ${systemCount}\n` +
-      `**Connected since:** ${new Date(connection.createdAt).toUTCString()}`,
+      `**Connected since:** ${ws.createdAt ? new Date(ws.createdAt).toUTCString() : "unknown"}`,
+  });
+}
+
+async function handleExclude(
+  client: Client,
+  interaction: ChatInputCommandInteraction,
+  channelId: string,
+): Promise<void> {
+  const thisSubscription = Config.getInstance().allSubscriptions.get(channelId);
+  if (!thisSubscription) {
+    await interaction.followUp({
+      ephemeral: true,
+      content: "No subscription found in channel. Use /init to start.",
+    });
+    return;
+  }
+
+  if (!thisSubscription?.WandererSettings) {
+    await interaction.followUp({
+      ephemeral: true,
+      content: "Wanderer is not configured on this channel.",
+    });
+    return;
+  }
+
+  const systemNameOrId = interaction.options.getString("system", true).trim();
+  const wsRef = thisSubscription.WandererSettings;
+
+  // If this was already stored as an ID string, check that first
+  if (wsRef.ExcludeSystemIDs.has(systemNameOrId)) {
+    await interaction.followUp({
+      ephemeral: true,
+      content: `System ${systemNameOrId} is already excluded.`,
+    });
+    return;
+  }
+
+  thisSubscription.PauseForChanges = true;
+
+  // Add either the numeric ID (if provided) or resolve the name to an ID
+  const numeric = Number(systemNameOrId);
+  if (Number.isNaN(numeric)) {
+    // resolve via ESI
+    const ids = await fetchESIIDs([systemNameOrId]);
+    if (!ids?.systems?.[0]) {
+      thisSubscription.PauseForChanges = false;
+      await interaction.followUp({
+        ephemeral: true,
+        content: `❌ Could not resolve system name '${systemNameOrId}' to an ESI ID.`,
+      });
+      return;
+    }
+    // add all matched systems as IDs (usually one)
+    ids.systems.forEach((s) => wsRef.ExcludeSystemIDs.add(String(s.id)));
+  } else {
+    wsRef.ExcludeSystemIDs.add(String(numeric));
+  }
+
+  const message = await getConfigMessage(interaction.channel!);
+  if (message) {
+    await message.edit(generateConfigMessage(thisSubscription));
+    await updateChannel(client, channelId, interaction.guild!.name);
+  }
+
+  thisSubscription.PauseForChanges = false;
+
+  await interaction.followUp({
+    ephemeral: true,
+    content: `Excluded system ${systemNameOrId} for this channel.`,
+  });
+}
+
+async function handleUnexclude(
+  client: Client,
+  interaction: ChatInputCommandInteraction,
+  channelId: string,
+): Promise<void> {
+  const thisSubscription = Config.getInstance().allSubscriptions.get(channelId);
+
+  if (!thisSubscription) {
+    await interaction.followUp({
+      ephemeral: true,
+      content: `KillFeed is not configured on this channel.\nUse /init to begin.`,
+    });
+    return;
+  }
+
+  if (!thisSubscription?.WandererSettings) {
+    await interaction.followUp({
+      ephemeral: true,
+      content: "Wanderer is not configured on this channel.",
+    });
+    return;
+  }
+
+  const systemNameOrId = interaction.options.getString("system", true).trim();
+  thisSubscription.PauseForChanges = true;
+
+  // If user provided numeric ID, delete that; otherwise resolve name(s) and delete IDs
+  const numeric = Number(systemNameOrId);
+  if (Number.isNaN(numeric)) {
+    const ids = await fetchESIIDs([systemNameOrId]);
+    if (!ids?.systems?.[0]) {
+      thisSubscription.PauseForChanges = false;
+      await interaction.followUp({
+        ephemeral: true,
+        content: `❌ Could not resolve system name '${systemNameOrId}' to an ESI ID.`,
+      });
+      return;
+    }
+    ids.systems.forEach((s) =>
+      thisSubscription.WandererSettings?.ExcludeSystemIDs.delete(String(s.id)),
+    );
+  } else {
+    thisSubscription.WandererSettings.ExcludeSystemIDs.delete(systemNameOrId);
+  }
+
+  const message = await getConfigMessage(interaction.channel!);
+  if (message) {
+    await message.edit(generateConfigMessage(thisSubscription));
+    await updateChannel(client, channelId, interaction.guild!.name);
+  } else {
+    await interaction.followUp({
+      ephemeral: true,
+      content: `Found no pinned configuration message.\nUse /init to begin.`,
+    });
+  }
+
+  thisSubscription.PauseForChanges = false;
+
+  await interaction.followUp({
+    ephemeral: true,
+    content: `Removed exclusion ${systemNameOrId} for this channel.`,
+  });
+}
+
+async function handleListExcludes(
+  client: Client,
+  interaction: ChatInputCommandInteraction,
+  channelId: string,
+): Promise<void> {
+  const thisSubscription = Config.getInstance().allSubscriptions.get(channelId);
+
+  if (!thisSubscription) {
+    await interaction.followUp({
+      ephemeral: true,
+      content: `KillFeed is not configured on this channel.\nUse /init to begin.`,
+    });
+    return;
+  }
+
+  if (!thisSubscription?.WandererSettings) {
+    await interaction.followUp({
+      ephemeral: true,
+      content: "Wanderer not configured for this channel.",
+    });
+    return;
+  }
+
+  const ids = Array.from(
+    thisSubscription.WandererSettings.ExcludeSystemIDs || [],
+  );
+
+  const resolved = await Promise.all(
+    ids.map(async (idStr) => {
+      const id = Number(idStr);
+      if (Number.isNaN(id)) return idStr;
+      try {
+        const sys = await CachedESI.getSystem(id);
+        return sys?.name ?? idStr;
+      } catch {
+        return idStr;
+      }
+    }),
+  );
+
+  await interaction.followUp({
+    ephemeral: true,
+    content: ids.length
+      ? `Excluded systems:\n${resolved.join("\n")}`
+      : "No excluded systems.",
   });
 }

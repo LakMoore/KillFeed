@@ -9,7 +9,6 @@ import axiosRetry from "axios-retry";
 import { Data } from "./Data";
 import { LOGGER } from "./helpers/Logger";
 import error from "./listeners/error";
-import { WandererConfig } from "./wanderer/WandererConfig";
 import { startWandererEventStreams } from "./wanderer/WandererEventsClient";
 
 dotenv.config();
@@ -19,9 +18,6 @@ async function main() {
   LOGGER.info("Bot is starting...");
 
   await savedData.init();
-
-  // Initialise Wanderer config (uses the same node-persist store)
-  await WandererConfig.getInstance().init();
 
   const stats = savedData.stats;
   if (!stats.StatsStarted) {
@@ -42,9 +38,6 @@ async function main() {
   // set this up once
   axiosRetry(axios, { retries: 9, retryDelay: axiosRetry.exponentialDelay });
 
-  // Start the Wanderer Server-to-Server event streams.
-  void startWandererEventStreams();
-
   // Error.stackTraceLimit = Infinity;
 
   error(client);
@@ -52,6 +45,9 @@ async function main() {
   interactionCreate(client);
   guild(client);
   channel(client);
+
+  // Start the Wanderer Server-to-Server event streams.
+  void startWandererEventStreams(client);
 
   client.login(process.env.SECRET_TOKEN);
 

@@ -1,21 +1,23 @@
+import { Client, TextChannel } from "discord.js";
 import { LOGGER } from "../helpers/Logger";
-import { WandererConfig } from "./WandererConfig";
-import {
-  WandererConnection,
-  WandererEvent,
-  WandererEventsSetupResult,
-} from "./WandererTypes";
+import { WandererMaps } from "./WandererMaps";
+import { WandererEvent, WandererEventsSetupResult } from "./WandererTypes";
 import {
   getWandererEventsStreamUrl,
   getWandererSystemsUrl,
   parseWandererMapUrl,
 } from "./WandererApi";
+import crypto from "node:crypto";
+import { Config } from "../Config";
 
 const STREAM_RETRY_DELAY_MS = 5000;
 
 type FetchResponseBody = {
   data?: {
-    systems?: Array<{ solar_system_id?: number | string; id?: number | string }>;
+    systems?: Array<{
+      solar_system_id?: number | string;
+      id?: number | string;
+    }>;
   };
   systems?: Array<{ solar_system_id?: number | string; id?: number | string }>;
 };
@@ -39,7 +41,9 @@ function extractSystems(body: unknown): number[] {
     .filter((solarSystemId) => Number.isFinite(solarSystemId));
 }
 
-function getEventPayload(event: Record<string, unknown>): Record<string, unknown> {
+function getEventPayload(
+  event: Record<string, unknown>,
+): Record<string, unknown> {
   const payload = event.payload ?? event.data ?? event.event_data ?? event;
   return payload && typeof payload === "object"
     ? (payload as Record<string, unknown>)
@@ -71,10 +75,7 @@ function isWandererEvent(value: unknown): value is WandererEvent {
   }
 
   const event = value as WandererEvent;
-  return (
-    typeof event.map_id === "string" &&
-    typeof event.type === "string"
-  );
+  return typeof event.map_id === "string" && typeof event.type === "string";
 }
 
 async function readResponseBody(response: Response): Promise<unknown> {
@@ -114,8 +115,9 @@ function extractErrorMessage(body: unknown, fallback: string): string {
 
 class WandererEventsClient {
   private static instance: WandererEventsClient;
+  private readonly controllers = new Map<string, AbortController>();
 
-  private controllers = new Map<string, AbortController>();
+  public static client: Client;
 
   public static getInstance(): WandererEventsClient {
     if (!WandererEventsClient.instance) {
@@ -125,7 +127,7 @@ class WandererEventsClient {
   }
 
   public async startAllConnections(): Promise<void> {
-    WandererConfig.getInstance().forEachConnection((channelId) => {
+    WandererMaps.getInstance().forEachConnection((channelId) => {
       void this.startConnectionLoop(channelId);
     });
   }
@@ -136,43 +138,87 @@ class WandererEventsClient {
     apiKey: string;
   }): Promise<WandererEventsSetupResult> {
     const { domain, mapId } = parseWandererMapUrl(params.mapUrl);
-    const connection: WandererConnection = {
+    const slug = mapId;
+
+    LOGGER.warning(
+      `Connecting Wanderer map for channel ${params.channelId}: domain=${domain}, mapId=${mapId}`,
+    );
+
+    // Encrypt the API key before persisting. Use WANDERER_SECRET env var
+    // combined with the map path to derive an encryption key.
+    // Use HKDF (SHA-256) + AES-256-GCM (AEAD) to provide confidentiality
+    // and authenticity. Store as: saltB64:ivB64:cipherB64:tagB64
+    const mapPath = domain + "/" + slug;
+    const secret = process.env.WANDERER_SECRET || "";
+
+    // Per-record random salt (16 bytes) and 12-byte IV for GCM
+    const salt = crypto.randomBytes(16);
+    const iv = crypto.randomBytes(12);
+
+    // Derive a 32-byte key with HKDF using mapPath as context/info
+    const key = (crypto as any).hkdfSync(
+      "sha256",
+      Buffer.from(secret, "utf8"),
+      salt,
+      Buffer.from(mapPath, "utf8"),
+      32,
+    );
+
+    const cipher = crypto.createCipheriv("aes-256-gcm", key, iv);
+    // Bind the mapPath as AAD to tie ciphertext to this map context
+    cipher.setAAD(Buffer.from(mapPath, "utf8"));
+    const encryptedBuf = Buffer.concat([
+      cipher.update(params.apiKey, "utf8"),
+      cipher.final(),
+    ]);
+    const tag = cipher.getAuthTag();
+    const encryptedBlob =
+      salt.toString("base64") +
+      ":" +
+      iv.toString("base64") +
+      ":" +
+      encryptedBuf.toString("base64") +
+      ":" +
+      tag.toString("base64");
+
+    const createdAt = new Date().toISOString();
+    const connectionMeta = {
       channelId: params.channelId,
-      mapId,
+      slug,
       domain,
-      apiKey: params.apiKey,
-      createdAt: new Date().toISOString(),
+      EncryptedDetails: encryptedBlob,
+      createdAt,
     };
 
-    await this.syncMapSystems(connection);
-
-    WandererConfig.getInstance().addConnection(connection);
-    await WandererConfig.getInstance().save();
+    await this.syncMapSystems(connectionMeta);
 
     this.stopConnection(params.channelId);
     void this.startConnectionLoop(params.channelId);
 
-    return { mapId, domain };
+    return {
+      slug,
+      domain,
+      EncryptedDetails: encryptedBlob,
+      createdAt,
+    };
   }
 
-  public async disconnectWandererMap(channelId: string): Promise<WandererConnection | undefined> {
+  public async disconnectWandererMap(channelId: string): Promise<void> {
     this.stopConnection(channelId);
-
-    const wandererConfig = WandererConfig.getInstance();
-    const removed = wandererConfig.removeConnection(channelId);
-    if (removed) {
-      await wandererConfig.save();
-    }
-
-    return removed;
   }
 
-  public getConnection(channelId: string): WandererConnection | undefined {
-    return WandererConfig.getInstance().getConnectionByChannelId(channelId);
+  public getConnection(channelId: string): { mapPath?: string } | undefined {
+    const cfg = Config.getInstance();
+    const sub = cfg.allSubscriptions.get(channelId);
+    if (!sub) return undefined;
+    const ws = sub.WandererSettings;
+    const mapPath =
+      ws?.Domain && ws.Slug ? `${ws.Domain}/${ws.Slug}` : undefined;
+    return { mapPath };
   }
 
   public getSystemCount(mapId: string): number {
-    return WandererConfig.getInstance().getSystemCountForMap(mapId);
+    return WandererMaps.getInstance().getSystemCountForMap(mapId);
   }
 
   private stopConnection(channelId: string): void {
@@ -185,10 +231,10 @@ class WandererEventsClient {
       return;
     }
 
-    const connection = WandererConfig.getInstance().getConnectionByChannelId(
-      channelId,
-    );
-    if (!connection) {
+    const cfg = Config.getInstance();
+    const sub = cfg.allSubscriptions.get(channelId);
+    const ws = sub?.WandererSettings;
+    if (!ws?.Slug || !ws.EncryptedDetails || !ws.Domain) {
       return;
     }
 
@@ -197,11 +243,17 @@ class WandererEventsClient {
 
     try {
       while (!controller.signal.aborted) {
-        const latestConnection =
-          WandererConfig.getInstance().getConnectionByChannelId(channelId);
-        if (!latestConnection) {
+        const latestSub = Config.getInstance().allSubscriptions.get(channelId);
+        const latestWs = latestSub?.WandererSettings;
+        if (!latestWs?.Slug || !latestWs.EncryptedDetails || !latestWs.Domain) {
           break;
         }
+        const latestConnection = {
+          domain: latestWs.Domain,
+          slug: latestWs.Slug,
+          EncryptedDetails: latestWs.EncryptedDetails,
+          channelId,
+        };
 
         try {
           await this.syncMapSystems(latestConnection);
@@ -217,6 +269,38 @@ class WandererEventsClient {
               `Wanderer events stream issue for channel ${channelId}: ${error}`,
             );
           }
+
+          let channelMessage =
+            "Unable to connect to the Wanderer events stream for this channel.";
+          switch (error instanceof Error ? error.message : String(error)) {
+            case "Server-Sent Events are disabled on this server":
+              channelMessage +=
+                "\n\nAsk the server owner to enable Server-Sent Events globally (WANDERER_SSE_ENABLED=true in .env) for Wanderer.";
+              break;
+            case "Server-Sent Events are disabled for this map":
+              channelMessage +=
+                "\n\nAsk the map owner to enable Server-Sent Events for this map in Wanderer. Only the Map Owner can do this.";
+              break;
+            case "Active subscription required for Server-Sent Events":
+              channelMessage +=
+                "\n\nActive subscription required for Server-Sent Events";
+              break;
+            default:
+              channelMessage += "\n\nUnknown error occurred.";
+              break;
+          }
+
+          await WandererEventsClient.client.channels
+            .fetch(channelId)
+            .then((channel) => {
+              if (channel?.isTextBased()) {
+                (channel as TextChannel).send({
+                  content: channelMessage,
+                  allowedMentions: { parse: [] },
+                });
+              }
+            });
+
           if (fatal) {
             break;
           }
@@ -231,13 +315,18 @@ class WandererEventsClient {
     }
   }
 
-  private async syncMapSystems(connection: WandererConnection): Promise<void> {
+  private async syncMapSystems(connection: {
+    domain: string;
+    slug: string;
+    EncryptedDetails?: string;
+    channelId?: string;
+  }): Promise<void> {
+    const mapPath = connection.domain + "/" + connection.slug;
+    const apiKey = this.decryptApiKey(mapPath, connection.EncryptedDetails);
     const response = await fetch(
-      getWandererSystemsUrl(connection.domain, connection.mapId),
+      getWandererSystemsUrl(connection.domain, connection.slug),
       {
-        headers: {
-          Authorization: "Bearer " + connection.apiKey,
-        },
+        headers: { Authorization: "Bearer " + apiKey },
       },
     );
     const body = await readResponseBody(response);
@@ -254,22 +343,28 @@ class WandererEventsClient {
       throw error;
     }
 
-    WandererConfig.getInstance().setSystemsForMap(
-      connection.mapId,
-      extractSystems(body),
-    );
-    await WandererConfig.getInstance().save();
+    // Update in-memory map systems for runtime filtering. Do not persist to disk; will be fetched on each startup.
+    // Use MapPath (domain/mapId) as the canonical map key for systems
+    WandererMaps.getInstance().setSystemsForMap(mapPath, extractSystems(body));
   }
 
   private async streamMapEvents(
-    connection: WandererConnection,
+    connection: {
+      domain: string;
+      slug: string;
+      EncryptedDetails?: string;
+      channelId?: string;
+    },
     signal: AbortSignal,
   ): Promise<void> {
+    const mapPath = connection.domain + "/" + connection.slug;
     const response = await fetch(
-      getWandererEventsStreamUrl(connection.domain, connection.mapId),
+      getWandererEventsStreamUrl(connection.domain, connection.slug),
       {
         headers: {
-          Authorization: "Bearer " + connection.apiKey,
+          Authorization:
+            "Bearer " +
+            this.decryptApiKey(mapPath, connection.EncryptedDetails),
           Accept: "text/event-stream",
         },
         signal,
@@ -376,7 +471,7 @@ class WandererEventsClient {
   }
 
   private async applyEvent(
-    connection: WandererConnection,
+    connection: { channelId?: string; slug: string },
     event: WandererEvent,
     eventName: string,
     eventId: string,
@@ -400,17 +495,15 @@ class WandererEventsClient {
       return;
     }
 
-    const config = WandererConfig.getInstance();
+    const config = WandererMaps.getInstance();
 
     switch (event.type) {
       case "add_system":
       case "system_metadata_changed":
-        config.addSystem(connection.mapId, solarSystemId);
-        await config.save();
+        config.addSystem(connection.slug, solarSystemId);
         break;
       case "deleted_system":
-        config.removeSystem(connection.mapId, solarSystemId);
-        await config.save();
+        config.removeSystem(connection.slug, solarSystemId);
         break;
       case "map_kill":
         break;
@@ -420,11 +513,51 @@ class WandererEventsClient {
         );
     }
   }
+
+  private decryptApiKey(mapPath?: string, encryptedDetails?: string): string {
+    try {
+      if (!encryptedDetails || !mapPath) return "";
+      const secret = process.env.WANDERER_SECRET || "";
+
+      // Expect new format: salt:iv:cipher:tag (4 parts)
+      const parts = encryptedDetails.split(":");
+      if (parts.length !== 4) {
+        LOGGER.error("Invalid Wanderer encryptedDetails format");
+        return "";
+      }
+
+      const [saltB64, ivB64, cipherB64, tagB64] = parts;
+      const salt = Buffer.from(saltB64, "base64");
+      const iv = Buffer.from(ivB64, "base64");
+      const encrypted = Buffer.from(cipherB64, "base64");
+      const tag = Buffer.from(tagB64, "base64");
+
+      // Derive key with same parameters used for encryption
+      const key = (crypto as any).hkdfSync(
+        "sha256",
+        Buffer.from(secret, "utf8"),
+        salt,
+        Buffer.from(mapPath, "utf8"),
+        32,
+      );
+
+      const decipher = crypto.createDecipheriv("aes-256-gcm", key, iv);
+      decipher.setAAD(Buffer.from(mapPath, "utf8"));
+      decipher.setAuthTag(tag);
+      let decrypted = decipher.update(encrypted, undefined, "utf8");
+      decrypted += decipher.final("utf8");
+      return decrypted;
+    } catch (error) {
+      LOGGER.error("Failed to decrypt Wanderer API key: " + error);
+      return "";
+    }
+  }
 }
 
 const wandererEventsClient = WandererEventsClient.getInstance();
 
-export async function startWandererEventStreams(): Promise<void> {
+export async function startWandererEventStreams(client: Client): Promise<void> {
+  WandererEventsClient.client = client;
   await wandererEventsClient.startAllConnections();
 }
 
@@ -436,9 +569,7 @@ export async function connectWandererMap(params: {
   return wandererEventsClient.connectWandererMap(params);
 }
 
-export async function disconnectWandererMap(
-  channelId: string,
-): Promise<WandererConnection | undefined> {
+export async function disconnectWandererMap(channelId: string): Promise<void> {
   return wandererEventsClient.disconnectWandererMap(channelId);
 }
 

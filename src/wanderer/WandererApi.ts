@@ -39,7 +39,7 @@ export function parseWandererMapUrl(input: string): {
 
 export function getWandererSystemsUrl(domain: string, mapId: string): string {
   return new URL(
-    `/api/v1/maps/${encodeURIComponent(mapId)}/systems`,
+    `/api/maps/${encodeURIComponent(mapId)}/systems`,
     normalizeBaseUrl(domain),
   ).toString();
 }
@@ -49,7 +49,7 @@ export function getWandererEventsStreamUrl(
   mapId: string,
 ): string {
   return new URL(
-    `/api/v1/maps/${encodeURIComponent(mapId)}/events/stream?events=${EVENT_TYPES.join(",")}&format=legacy`,
+    `/api/maps/${encodeURIComponent(mapId)}/events/stream?events=${EVENT_TYPES.join(",")}&format=legacy`,
     normalizeBaseUrl(domain),
   ).toString();
 }
