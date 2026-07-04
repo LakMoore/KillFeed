@@ -14,6 +14,7 @@ export interface Statistics {
   ConfigCount: number;
   LastSequenceId: number;
   LastSequenceSeenAt: Date | null;
+  LastVersion: string;
 }
 
 const SAVE_DELAY_MS = 30 * 1000; // 30 seconds in milliseconds
@@ -32,6 +33,7 @@ export class Data {
     ConfigCount: 0,
     LastSequenceId: 0,
     LastSequenceSeenAt: null,
+    LastVersion: "",
   };
 
   public async init() {
@@ -46,6 +48,7 @@ export class Data {
       if (this._stats.LastSequenceSeenAt === undefined) {
         this._stats.LastSequenceSeenAt = null;
       }
+      this._stats.LastVersion ??= "";
     } catch (error) {
       LOGGER.error("Failed to load data from disk. " + error);
     }

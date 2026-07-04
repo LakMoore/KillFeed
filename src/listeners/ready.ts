@@ -1,9 +1,17 @@
-import { Client, TextChannel } from "discord.js";
+import { Client, TextChannel, PermissionsBitField, DiscordAPIError } from "discord.js";
 import { pollzKillboardOnce } from "../zKillboard/zKillboardService";
 import { Commands } from "../Commands";
 import { updateGuild } from "../Servers";
 import { DEV_ROLE, LOGGER } from "../helpers/Logger";
 import { savedData } from "../Bot";
+import { Config } from "../Config";
+import { checkChannelPermissions } from "../helpers/DiscordHelper";
+import { readFileSync } from "fs";
+import { join } from "path";
+
+const pkgVersion: string = JSON.parse(
+  readFileSync(join(__dirname, "../../package.json"), "utf-8"),
+).version as string;
 
 export default (client: Client): void => {
   client.on("clientReady", async () => {
@@ -79,6 +87,17 @@ export default (client: Client): void => {
       LOGGER.warning(
         `Imported all servers and now ready. Startup took ${duration} seconds.`,
       );
+
+      const currentVersion = pkgVersion;
+      if (savedData.stats.LastVersion !== currentVersion) {
+        LOGGER.info(
+          `Bot updated from v${savedData.stats.LastVersion} to v${currentVersion}. Posting update notice to all channels.`,
+        );
+        await postUpdateMessage();
+        savedData.stats.LastVersion = currentVersion;
+        await savedData.save();
+      }
+
       LOGGER.info("Starting Poll");
       await pollLoop(client, 0);
     } catch (err) {
@@ -88,6 +107,36 @@ export default (client: Client): void => {
 };
 
 export const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+const UPDATE_MESSAGE =
+  "KillFeed has been updated! Join the Eve Apps by Lak Moore Discord for news and support: https://discord.gg/9xgRvQf5A";
+
+async function postUpdateMessage() {
+  const config = Config.getInstance();
+  for (const [, subscription] of config.allSubscriptions) {
+    const channel = subscription.Channel;
+    try {
+      if (
+        !checkChannelPermissions(
+          channel,
+          PermissionsBitField.Flags.ViewChannel,
+        ) ||
+        !checkChannelPermissions(channel, PermissionsBitField.Flags.SendMessages)
+      ) {
+        continue;
+      }
+      await channel.send(UPDATE_MESSAGE);
+    } catch (err) {
+      if (err instanceof DiscordAPIError) {
+        LOGGER.debug(
+          `Could not post update notice to ${channel.name} on ${channel.guild.name}: ${err.message}`,
+        );
+      } else {
+        LOGGER.debug(`Could not post update notice to ${channel.name}: ${err}`);
+      }
+    }
+  }
+}
 
 let firstMem: NodeJS.MemoryUsage;
 
