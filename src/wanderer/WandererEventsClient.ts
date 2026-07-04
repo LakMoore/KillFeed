@@ -471,7 +471,7 @@ class WandererEventsClient {
   }
 
   private async applyEvent(
-    connection: { channelId?: string; slug: string },
+    connection: { channelId?: string; slug: string; domain?: string },
     event: WandererEvent,
     eventName: string,
     eventId: string,
@@ -497,13 +497,17 @@ class WandererEventsClient {
 
     const config = WandererMaps.getInstance();
 
+    const mapPath = (connection as any).domain
+      ? `${(connection as any).domain}/${connection.slug}`
+      : connection.slug;
+
     switch (event.type) {
       case "add_system":
       case "system_metadata_changed":
-        config.addSystem(connection.slug, solarSystemId);
+        config.addSystem(mapPath, solarSystemId);
         break;
       case "deleted_system":
-        config.removeSystem(connection.slug, solarSystemId);
+        config.removeSystem(mapPath, solarSystemId);
         break;
       case "map_kill":
         break;
