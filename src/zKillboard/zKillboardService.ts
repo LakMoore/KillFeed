@@ -27,6 +27,7 @@ const DEDUPE_CACHE_MAX = 10000;
 const seenKillmailIds = new Map<number, number>();
 
 let nextSequenceId: number | null = null;
+let sequential404Count = 0;
 
 function rememberKillmail(killmailId: number) {
   seenKillmailIds.set(killmailId, Date.now());
@@ -76,20 +77,32 @@ export async function pollzKillboardOnce(client: Client) {
       })
     : undefined;
 
+  let thisSequenceId: number | null = null;
+
   try {
     if (nextSequenceId === null) {
       if (savedData.stats.LastSequenceId > 0) {
-        nextSequenceId = savedData.stats.LastSequenceId + 1;
-        LOGGER.warning(`Resuming sequence stream from ${nextSequenceId}`);
       } else {
-        nextSequenceId = await getLatestSequence(localAgent);
+        thisSequenceId = savedData.stats.LastSequenceId + 1;
+        LOGGER.warning(`Resuming sequence stream from ${thisSequenceId}`);
+        thisSequenceId = await getLatestSequence(localAgent);
         LOGGER.warning(
           `Starting sequence stream from latest sequence ${nextSequenceId}`,
         );
       }
     }
+    else {
+      thisSequenceId = nextSequenceId;
+    }
 
-    const payload = await getSequencePayload(nextSequenceId, localAgent);
+    if (thisSequenceId === null) {
+      LOGGER.error(
+        'thisSequenceId is null, cannot proceed with polling zKillboard.'
+      );
+      return;
+    }
+
+    const payload = await getSequencePayload(thisSequenceId, localAgent);
 
     if (hasSeenKillmail(payload.killmail_id)) {
       LOGGER.debug(
@@ -107,18 +120,43 @@ export async function pollzKillboardOnce(client: Client) {
     savedData.stats.LastSequenceId = payload.sequence_id;
     savedData.stats.LastSequenceSeenAt = new Date(payload.uploaded_at * 1000);
     nextSequenceId = payload.sequence_id + 1;
+    sequential404Count = 0;
 
     await sleep(R2Z2_SEQUENCE_DELAY_MS);
   } catch (error) {
     if (axios.isAxiosError(error) && error.response?.status === 404) {
-      if (nextSequenceId !== null) {
+      sequential404Count++;
+
+      if (nextSequenceId === null) {
         try {
+          // just started the application and the sequence we want is no longer available, so fast-forward to the latest sequence
           const latestSequence = await getLatestSequence(localAgent);
-          if (latestSequence > nextSequenceId) {
-            LOGGER.warning(
-              `Sequence ${nextSequenceId} no longer available. Fast-forwarding to ${latestSequence}`,
-            );
-            nextSequenceId = latestSequence;
+          LOGGER.warning(
+            `Sequence ${thisSequenceId} no longer available. Fast-forwarding to ${latestSequence}`
+          );
+          nextSequenceId = latestSequence;
+          sequential404Count = 0;
+        }
+        catch (sequenceError) {
+          LOGGER.error(
+            'Error fetching latest sequence after 404\n' + sequenceError
+          );
+        }
+      }
+      else if (sequential404Count > 50) {
+        try {
+          if (sequential404Count % 10 === 0) {
+            const latestSequence = await getLatestSequence(localAgent);
+            if (
+              latestSequence > nextSequenceId + 52
+              || latestSequence < nextSequenceId
+            ) {
+              LOGGER.warning(
+                `Sequence ${nextSequenceId} not available. Fast-forwarding to ${latestSequence}`
+              );
+              nextSequenceId = latestSequence;
+              sequential404Count = 0;
+            }
           }
         } catch (sequenceError) {
           LOGGER.error(
