@@ -12,17 +12,16 @@ import { savedData } from '../Bot';
 import { startWandererEventStreams } from '../wanderer/WandererEventsClient';
 import { Config } from '../Config';
 import { checkChannelPermissions } from '../helpers/DiscordHelper';
-import { readFileSync } from 'fs';
-import { join } from 'path';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 
 const pkgVersion: string = JSON.parse(
   readFileSync(join(__dirname, '../../package.json'), 'utf-8')
 ).version as string;
 
-export default function ready(client: Client): void {
-  client.on(
-    'clientReady',
-    async () => {
+export default async function ready(client: Client): Promise<void> {
+  for await (const clients of Client.on(client, 'clientReady')) {
+    for (const client of clients) {
       try {
         if (!client.user || !client.application) return;
 
@@ -123,7 +122,7 @@ export default function ready(client: Client): void {
         LOGGER.error('Error in ready handler: ' + err);
       }
     }
-  );
+  }
 }
 
 export const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));

@@ -3,6 +3,7 @@ import {
   Client,
   DiscordAPIError,
   MessageCreateOptions,
+  MessageMentionOptions,
   PermissionResolvable,
   PermissionsBitField,
   TextChannel,
@@ -296,7 +297,10 @@ function addConfiguredRolePings(
     // merge allowedMentions.roles
     const existing = msg.allowedMentions?.roles ?? [];
     const merged = Array.from(new Set([...existing, ...uniqueRoleIds]));
-    msg.allowedMentions = { ...(msg.allowedMentions ?? {}), roles: merged };
+    msg.allowedMentions = {
+      ...(msg.allowedMentions ?? ({} as MessageMentionOptions)),
+      roles: merged,
+    };
   }
 
   if (failedPings.length > 0) {

@@ -8,7 +8,7 @@ import axios from 'axios';
 import axiosRetry from 'axios-retry';
 import { Data } from './Data';
 import { LOGGER } from './helpers/Logger';
-import error from './listeners/error';
+import errorListeners from './listeners/error';
 
 dotenv.config();
 export const savedData = new Data();
@@ -25,7 +25,7 @@ async function main() {
   stats.BotStarted = new Date();
 
   // Start the auto-save loop in the background
-  savedData.startAutoSaving(); // don't await this
+  const autoSavePromise = savedData.startAutoSaving(); // don't await this
 
   const client = new Client({
     intents: [IntentsBitField.Flags.Guilds],
@@ -37,15 +37,23 @@ async function main() {
   // set this up once
   axiosRetry(axios, { retries: 9, retryDelay: axiosRetry.exponentialDelay });
 
-  error(client);
-  ready(client);
+  const errorPromise = errorListeners(client);
+  const readyPromise = ready(client);
   interactionCreate(client);
-  guild(client);
+  const guildPromise = guild(client);
   channel(client);
 
-  client.login(process.env.SECRET_TOKEN);
+  const loginPromise = client.login(process.env.SECRET_TOKEN);
 
   LOGGER.info('===============');
+
+  await Promise.all([
+    readyPromise,
+    autoSavePromise,
+    errorPromise,
+    loginPromise,
+    guildPromise,
+  ]);
 }
 
 process.on(

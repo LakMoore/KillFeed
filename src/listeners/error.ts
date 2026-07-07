@@ -1,40 +1,41 @@
-import { APIRequest, Client, ResponseLike } from 'discord.js';
+import { Client, REST } from 'discord.js';
 import { LOGGER } from '../helpers/Logger';
 
-export default (client: Client): void => {
-  client.on(
-    'error',
-    async (error) => {
+export default async function errorListeners(client: Client) {
+  const doErrors = async () => {
+    for await (const error of Client.on(client, 'error')) {
       LOGGER.error('Discord error: ' + error);
     }
-  );
+  };
 
-  client.on(
-    'warn',
-    async (warning) => {
+  const doWarnings = async () => {
+    for await (const warning of Client.on(client, 'warn')) {
       LOGGER.warning('Discord warning: ' + warning);
     }
-  );
+  };
 
-  client.rest.on(
-    'rateLimited',
-    (rateLimitInfo) => {
+  const doRateLimits = async () => {
+    for await (const rateLimitInfo of REST.on(client.rest, 'rateLimited')) {
       LOGGER.error('Discord rate limited: ' + JSON.stringify(rateLimitInfo));
     }
-  );
+  };
 
-  client.rest.on(
-    'invalidRequestWarning',
-    (invalidRequestInfo) => {
-      LOGGER.warning(
-        'Discord invalid request warning: ' + JSON.stringify(invalidRequestInfo)
-      );
+  const doInvalidRequestWarnings = async () => {
+    for await (const invalidRequestWarnings of REST.on(
+      client.rest,
+      'invalidRequestWarning'
+    )) {
+      for (const invalidRequestInfo of invalidRequestWarnings) {
+        LOGGER.warning(
+          'Discord invalid request warning: '
+            + JSON.stringify(invalidRequestInfo)
+        );
+      }
     }
-  );
+  };
 
-  client.rest.on(
-    'response',
-    async (request: APIRequest, response: ResponseLike) => {
+  const doRestResponses = async () => {
+    for await (const [request, response] of REST.on(client.rest, 'response')) {
       // Do not log full request/response objects; they may contain sensitive headers (Authorization)
       // and are extremely noisy.
       LOGGER.info(
@@ -71,12 +72,20 @@ export default (client: Client): void => {
           })
       );
     }
-  );
+  };
 
-  client.rest.on(
-    'restDebug',
-    (info: string) => {
-      LOGGER.debug('Discord restDebug : ' + info);
+  const doRestDebug = async () => {
+    for await (const debugInfo of REST.on(client.rest, 'restDebug')) {
+      LOGGER.debug('Discord restDebug: ' + debugInfo);
     }
-  );
-};
+  };
+
+  return Promise.all([
+    doErrors(),
+    doWarnings(),
+    doRateLimits(),
+    doInvalidRequestWarnings(),
+    doRestResponses(),
+    doRestDebug(),
+  ]);
+}

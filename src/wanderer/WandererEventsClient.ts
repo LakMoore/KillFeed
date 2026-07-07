@@ -308,7 +308,7 @@ class WandererEventsClient {
   public async restartConnection(channelId: string): Promise<boolean> {
     // If already connected, nothing to do
     const state = this.connectionStates.get(channelId);
-    if (state && state.connected) return false;
+    if (state?.connected) return false;
 
     // Stop any existing controller just in case
     this.stopConnection(channelId);

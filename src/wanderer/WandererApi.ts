@@ -8,7 +8,11 @@ const EVENT_TYPES = [
 ] as const;
 
 function normalizeBaseUrl(value: string): string {
-  return value.trim().replace(/\/+$/, '');
+  let s = value.trim();
+  while (s.endsWith('/')) {
+    s = s.slice(0, -1);
+  }
+  return s;
 }
 
 export function parseWandererMapUrl(input: string): {

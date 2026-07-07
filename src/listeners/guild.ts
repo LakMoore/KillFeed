@@ -4,21 +4,19 @@ import { Config } from '../Config';
 import { updateGuild } from '../Servers';
 import { LOGGER } from '../helpers/Logger';
 
-export default (client: Client): void => {
+export default async function guildListeners(client: Client) {
   //joined a server
-  client.on(
-    'guildCreate',
-    async (guild) => {
+  const guildCreateHandler = async () => {
+    for await (const [guild] of Client.on(client, 'guildCreate')) {
       LOGGER.info('Joined a new guild: ' + guild.name);
       //Your other stuff like adding to guildArray
       await updateGuild(client, guild.id, guild.name);
     }
-  );
+  };
 
   //removed from a server
-  client.on(
-    'guildDelete',
-    (guild) => {
+  const guildDeleteHandler = async () => {
+    for await (const [guild] of Client.on(client, 'guildDelete')) {
       LOGGER.info('Left a guild: ' + guild.name);
 
       //go through all of the channels we were tracking on this server
@@ -39,5 +37,7 @@ export default (client: Client): void => {
           }
         });
     }
-  );
-};
+  };
+
+  return Promise.all([guildCreateHandler(), guildDeleteHandler()]);
+}
