@@ -3,9 +3,9 @@ import {
   GetUniverseRegionsRegionIdOk,
   GetUniverseSystemsSystemIdOk,
   UniverseApiFactory,
-} from "eve-client-ts";
-import { Name } from "./fetch";
-import { FancyMap } from "./FancyMap";
+} from 'eve-client-ts';
+import { Name } from './fetch';
+import { FancyMap } from './FancyMap';
 
 export class CachedESI {
   private static instance: CachedESI;
@@ -43,8 +43,9 @@ export class CachedESI {
   }
 
   public static getSystem(systemId: number) {
-    return CachedESI.getInstance().systems.getOrDefault(systemId, (systemId) =>
-      UniverseApiFactory().getUniverseSystemsSystemId(systemId)
+    return CachedESI.getInstance().systems.getOrDefault(
+      systemId,
+      (systemId) => UniverseApiFactory().getUniverseSystemsSystemId(systemId)
     );
   }
 
@@ -59,15 +60,15 @@ export class CachedESI {
   }
 
   public static getRegion(regionId: number) {
-    return CachedESI.getInstance().regions.getOrDefault(regionId, (regionId) =>
-      UniverseApiFactory().getUniverseRegionsRegionId(regionId)
+    return CachedESI.getInstance().regions.getOrDefault(
+      regionId,
+      (regionId) => UniverseApiFactory().getUniverseRegionsRegionId(regionId)
     );
   }
 
   public static async getRegionForSystem(solar_system_id: number) {
-    const constellation = await CachedESI.getConstellationForSystem(
-      solar_system_id
-    );
+    const constellation =
+      await CachedESI.getConstellationForSystem(solar_system_id);
     return await CachedESI.getRegion(constellation.region_id);
   }
 
@@ -104,18 +105,18 @@ export class CachedESI {
 
   public static addItem(item: Name) {
     switch (item.category) {
-      case "character":
-        this.setCharacterName(item.id, item.name);
-        break;
-      case "corporation":
-        this.setCorporationName(item.id, item.name);
-        break;
-      case "alliance":
-        this.setAllianceName(item.id, item.name);
-        break;
-      case "inventory_type":
-        this.setItemName(item.id, item.name);
-        break;
+    case 'character':
+      this.setCharacterName(item.id, item.name);
+      break;
+    case 'corporation':
+      this.setCorporationName(item.id, item.name);
+      break;
+    case 'alliance':
+      this.setAllianceName(item.id, item.name);
+      break;
+    case 'inventory_type':
+      this.setItemName(item.id, item.name);
+      break;
     }
   }
 }

@@ -3,22 +3,22 @@ import {
   Client,
   SlashCommandBuilder,
   SlashCommandRoleOption,
-} from "discord.js";
-import { Config } from "../Config";
-import { getConfigMessage } from "../helpers/DiscordHelper";
-import { generateConfigMessage } from "../helpers/KillFeedHelpers";
-import { Command } from "../Command";
-import { updateChannel } from "../Channels";
+} from 'discord.js';
+import { Config } from '../Config';
+import { getConfigMessage } from '../helpers/DiscordHelper';
+import { generateConfigMessage } from '../helpers/KillFeedHelpers';
+import { Command } from '../Command';
+import { updateChannel } from '../Channels';
 
-export const NAME_VALUE = "ping-target-value";
+export const NAME_VALUE = 'ping-target-value';
 
 const OPTION_VALUE = new SlashCommandRoleOption()
   .setName(NAME_VALUE)
-  .setDescription("Discord Role to ping")
+  .setDescription('Discord Role to ping')
   .setRequired(false);
 
 const builder = new SlashCommandBuilder()
-  .setName("ping_target")
+  .setName('ping_target')
   .setDescription(
     "Set the Discord Role to Ping on every kill posted (use '' to clear)."
   )
@@ -27,20 +27,21 @@ const builder = new SlashCommandBuilder()
 export const SetPingTarget: Command = {
   ...builder.toJSON(),
   run: async (client: Client, interaction: CommandInteraction) => {
-    let response = "Something went wrong!";
+    let response = 'Something went wrong!';
 
     if (
-      interaction.isChatInputCommand() &&
-      interaction.channel &&
-      interaction.guild
+      interaction.isChatInputCommand()
+      && interaction.channel
+      && interaction.guild
     ) {
       const thisSubscription = Config.getInstance().allSubscriptions.get(
         interaction.channel.id
       );
 
       if (!thisSubscription) {
-        response = "No subscription found in channel. Use /init to start.";
-      } else {
+        response = 'No subscription found in channel. Use /init to start.';
+      }
+      else {
         thisSubscription.PauseForChanges = true;
 
         const roleToPing = interaction.options.getRole(NAME_VALUE);
@@ -48,8 +49,9 @@ export const SetPingTarget: Command = {
         if (!roleToPing) {
           thisSubscription.RoleToPing = undefined;
           response =
-            "Cleared the Role. Kills will be posted with no specific ping.";
-        } else {
+            'Cleared the Role. Kills will be posted with no specific ping.';
+        }
+        else {
           thisSubscription.RoleToPing = roleToPing.id;
           response = `${roleToPing.name} will be pinged on every kill posted to this channel.`;
         }
@@ -65,7 +67,8 @@ export const SetPingTarget: Command = {
             interaction.channel.id,
             interaction.guild.name
           );
-        } else {
+        }
+        else {
           response = `No subscription found in channel. Use /init to start.`;
         }
         thisSubscription.PauseForChanges = false;

@@ -61,7 +61,7 @@ export interface R2Z2KillmailPayload {
   killmail_id: number;
   hash: string;
   esi: KillMail;
-  zkb: ZkbOnly["zkb"];
+  zkb: ZkbOnly['zkb'];
   sequence_id: number;
   uploaded_at: number;
   sequence_updated?: number;

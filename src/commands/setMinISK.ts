@@ -3,45 +3,46 @@ import {
   Client,
   SlashCommandBuilder,
   SlashCommandNumberOption,
-} from "discord.js";
-import { Config } from "../Config";
-import { getConfigMessage } from "../helpers/DiscordHelper";
-import { generateConfigMessage } from "../helpers/KillFeedHelpers";
-import { Command } from "../Command";
-import { updateChannel } from "../Channels";
-import { formatISKValue } from "../helpers/JaniceHelper";
+} from 'discord.js';
+import { Config } from '../Config';
+import { getConfigMessage } from '../helpers/DiscordHelper';
+import { generateConfigMessage } from '../helpers/KillFeedHelpers';
+import { Command } from '../Command';
+import { updateChannel } from '../Channels';
+import { formatISKValue } from '../helpers/JaniceHelper';
 
-export const NAME_VALUE = "min-isk-value";
+export const NAME_VALUE = 'min-isk-value';
 
 const OPTION_VALUE = new SlashCommandNumberOption()
   .setName(NAME_VALUE)
-  .setDescription("Minimum KillMail value for filter")
+  .setDescription('Minimum KillMail value for filter')
   .setRequired(true);
 
 const builder = new SlashCommandBuilder()
-  .setName("min_isk")
+  .setName('min_isk')
   .setDescription(
-    "Set the minimum ISK value for the channel subscription (use 0 to clear)."
+    'Set the minimum ISK value for the channel subscription (use 0 to clear).'
   )
   .addNumberOption(OPTION_VALUE);
 
 export const SetMinISK: Command = {
   ...builder.toJSON(),
   run: async (client: Client, interaction: CommandInteraction) => {
-    let response = "Something went wrong!";
+    let response = 'Something went wrong!';
 
     if (
-      interaction.isChatInputCommand() &&
-      interaction.channel &&
-      interaction.guild
+      interaction.isChatInputCommand()
+      && interaction.channel
+      && interaction.guild
     ) {
       const thisSubscription = Config.getInstance().allSubscriptions.get(
         interaction.channel.id
       );
 
       if (!thisSubscription) {
-        response = "No subscription found in channel. Use /init to start.";
-      } else {
+        response = 'No subscription found in channel. Use /init to start.';
+      }
+      else {
         // create some breathing room for the server to catch up
         thisSubscription.PauseForChanges = true;
 
@@ -50,8 +51,9 @@ export const SetMinISK: Command = {
         if (!minISKValue) {
           thisSubscription.MinISK = 0;
           response =
-            "Cleared minimum ISK value. Now showing Killmails of any value.";
-        } else {
+            'Cleared minimum ISK value. Now showing Killmails of any value.';
+        }
+        else {
           thisSubscription.MinISK = minISKValue;
           response = `Channel will now only show KillMails worth more than ${formatISKValue(
             minISKValue
@@ -69,7 +71,8 @@ export const SetMinISK: Command = {
             interaction.channel.id,
             interaction.guild.name
           );
-        } else {
+        }
+        else {
           response = `No subscription found in channel. Use /init to start.`;
         }
         thisSubscription.PauseForChanges = false;

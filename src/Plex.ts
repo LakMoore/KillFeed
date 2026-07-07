@@ -1,5 +1,5 @@
-import { getPLEXPrice } from "./esi/get";
-import { LOGGER } from "./helpers/Logger";
+import { getPLEXPrice } from './esi/get';
+import { LOGGER } from './helpers/Logger';
 
 export class PLEX {
   private static instance: PLEX;
@@ -23,15 +23,15 @@ export class PLEX {
 
   public static async convertISKtoUSD(ISK_amount: number) {
     if (ISK_amount <= 0) {
-      return "0 USD";
+      return '0 USD';
     }
 
-    LOGGER.debug("Converting " + ISK_amount + " ISK to USD");
+    LOGGER.debug('Converting ' + ISK_amount + ' ISK to USD');
 
     if (
-      PLEX.ISK_per_PLEX <= 0 ||
-      PLEX.last_updated.getTime() <
-        new Date().getTime() - PLEX.PLEX_PRICE_UPDATE_INTERVAL
+      PLEX.ISK_per_PLEX <= 0
+      || PLEX.last_updated.getTime()
+        < new Date().getTime() - PLEX.PLEX_PRICE_UPDATE_INTERVAL
     ) {
       const newPrice = await getPLEXPrice();
       if (newPrice > 0) {
@@ -46,6 +46,6 @@ export class PLEX {
       )} USD`;
     }
 
-    return "";
+    return '';
   }
 }

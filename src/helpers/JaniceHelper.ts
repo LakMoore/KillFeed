@@ -55,13 +55,15 @@ export interface PricerItemValues {
 }
 
 export function formatISKValue(isk: number): string {
-  let value = "0 ISK";
+  let value = '0 ISK';
   if (isk >= 1000000000) {
-    value = Math.round(isk / 100000000) / 10 + "B ISK";
-  } else if (isk >= 1000000) {
-    value = Math.round(isk / 100000) / 10 + "M ISK";
-  } else if (isk >= 1000) {
-    value = Math.round(isk / 100) / 10 + "k ISK";
+    value = Math.round(isk / 100000000) / 10 + 'B ISK';
+  }
+  else if (isk >= 1000000) {
+    value = Math.round(isk / 100000) / 10 + 'M ISK';
+  }
+  else if (isk >= 1000) {
+    value = Math.round(isk / 100) / 10 + 'k ISK';
   }
   return value;
 }

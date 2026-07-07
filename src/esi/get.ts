@@ -1,8 +1,8 @@
-import { Character } from "../zKillboard/zKillboard";
-import { CachedESI } from "./cache";
-import { fetchESINames } from "./fetch";
-import { MarketApi } from "eve-client-ts";
-import { LOGGER } from "../helpers/Logger";
+import { Character } from '../zKillboard/zKillboard';
+import { CachedESI } from './cache';
+import { fetchESINames } from './fetch';
+import { MarketApi } from 'eve-client-ts';
+import { LOGGER } from '../helpers/Logger';
 
 export interface Result {
   character?: string;
@@ -58,28 +58,28 @@ export async function getPLEXPrice(): Promise<number> {
     const PLEX_ID = 44992;
     const GLOBAL_MARKET_ID = 19000001;
 
-    LOGGER.debug("Fetching PLEX price from ESI");
+    LOGGER.debug('Fetching PLEX price from ESI');
 
     const marketApi = new MarketApi();
 
     const orders = await marketApi.getMarketsRegionIdOrders(
-      "sell",
+      'sell',
       GLOBAL_MARKET_ID,
-      "tranquility",
+      'tranquility',
       undefined,
       undefined,
       PLEX_ID
     );
 
     if (!orders || orders.length === 0) {
-      LOGGER.warning("No PLEX sell orders found in global market");
+      LOGGER.warning('No PLEX sell orders found in global market');
       return 0;
     }
 
     const sellOrders = orders.filter((order) => !order.is_buy_order);
 
     if (sellOrders.length === 0) {
-      LOGGER.warning("No PLEX sell orders found after filtering");
+      LOGGER.warning('No PLEX sell orders found after filtering');
       return 0;
     }
 
@@ -88,8 +88,9 @@ export async function getPLEXPrice(): Promise<number> {
     LOGGER.debug(`Found PLEX price: ${lowestPrice}`);
 
     return lowestPrice;
-  } catch (error) {
-    LOGGER.error("ESI getPLEXPrice error: " + error);
+  }
+  catch (error) {
+    LOGGER.error('ESI getPLEXPrice error: ' + error);
     return 0;
   }
 }

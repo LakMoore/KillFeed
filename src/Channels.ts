@@ -1,14 +1,14 @@
-import { Client, TextChannel } from "discord.js";
-import { SubscriptionSettings, Config } from "./Config";
-import { canUseChannel, getConfigMessage } from "./helpers/DiscordHelper";
-import { addListener, parseConfigMessage } from "./helpers/KillFeedHelpers";
-import { savedData } from "./Bot";
-import { LOGGER } from "./helpers/Logger";
+import { Client, TextChannel } from 'discord.js';
+import { SubscriptionSettings, Config } from './Config';
+import { canUseChannel, getConfigMessage } from './helpers/DiscordHelper';
+import { addListener, parseConfigMessage } from './helpers/KillFeedHelpers';
+import { savedData } from './Bot';
+import { LOGGER } from './helpers/Logger';
 
 export async function updateChannel(
   client: Client<boolean>,
   channelId: string,
-  guildName: string,
+  guildName: string
 ) {
   const channel = await client.channels.fetch(channelId, { cache: true });
   // If this is a purely text based channel that we can use
@@ -17,7 +17,7 @@ export async function updateChannel(
     savedData.stats.ChannelCount++;
 
     let thisSubscription = Config.getInstance().allSubscriptions.get(
-      channel.id,
+      channel.id
     );
     if (thisSubscription !== undefined) {
       // If we already had a config loaded for this channel
@@ -40,13 +40,14 @@ export async function updateChannel(
       // Ensure WandererSettings.ExcludeSystemIDs exists (no legacy handling)
       try {
         if (
-          thisSubscription?.WandererSettings &&
-          !thisSubscription.WandererSettings.ExcludeSystemIDs
+          thisSubscription?.WandererSettings
+          && !thisSubscription.WandererSettings.ExcludeSystemIDs
         ) {
           thisSubscription.WandererSettings.ExcludeSystemIDs =
             new Set<string>();
         }
-      } catch (err) {
+      }
+      catch (err) {
         LOGGER.debug(`Error initializing Wanderer exclusions: ${err}`);
       }
 
@@ -81,7 +82,8 @@ export async function updateChannel(
       thisSubscription.Systems.forEach((id) => {
         addListener(config.matchedSystems, id, channel.id);
       });
-    } else {
+    }
+    else {
       LOGGER.debug(`No config message found in channel ${channel.name}`);
     }
   }
@@ -91,7 +93,7 @@ export async function updateChannel(
 // and remove that registration
 export function clearChannel(
   subscription: SubscriptionSettings,
-  channel: TextChannel,
+  channel: TextChannel
 ) {
   const config = Config.getInstance();
   subscription.Alliances.forEach((allianceId) => {
@@ -117,7 +119,7 @@ export function clearChannel(
   subscription.Constellations.forEach((constellationId) => {
     config.matchedConstellations.get(constellationId)?.delete(channel.id);
     LOGGER.info(
-      `Deleted constellation ${constellationId} from server ${channel.id}`,
+      `Deleted constellation ${constellationId} from server ${channel.id}`
     );
   });
   subscription.Systems.forEach((systemId) => {

@@ -1,12 +1,12 @@
-import axios, { AxiosRequestConfig } from "axios";
-import { PricerItem } from "../helpers/JaniceHelper";
-import { KillMail } from "../zKillboard/zKillboard";
-import { LOGGER } from "../helpers/Logger";
-import { inspect } from "node:util";
+import axios, { AxiosRequestConfig } from 'axios';
+import { PricerItem } from '../helpers/JaniceHelper';
+import { KillMail } from '../zKillboard/zKillboard';
+import { LOGGER } from '../helpers/Logger';
+import { inspect } from 'node:util';
 
-const URL = "https://janice.e-351.com/api/rest/v2/pricer";
+const URL = 'https://janice.e-351.com/api/rest/v2/pricer';
 const PARAMS = {
-  market: "2",
+  market: '2',
 };
 
 /**
@@ -25,8 +25,8 @@ export async function getJaniceAppraisalValue(killmail: KillMail) {
         return {
           id: item.item_type_id,
           amount:
-            (item.quantity_destroyed ? item.quantity_destroyed : 0) +
-            (item.quantity_dropped ? item.quantity_dropped : 0),
+            (item.quantity_destroyed ? item.quantity_destroyed : 0)
+            + (item.quantity_dropped ? item.quantity_dropped : 0),
         };
       });
     }
@@ -38,21 +38,21 @@ export async function getJaniceAppraisalValue(killmail: KillMail) {
 
     const query = new URLSearchParams(PARAMS).toString();
 
-    const payload = janiceItems.map((i) => i.id).join("\n");
+    const payload = janiceItems.map((i) => i.id).join('\n');
 
     const janiceConfig: AxiosRequestConfig = {
       headers: {
-        "X-ApiKey": process.env.JANICE_KEY,
-        accept: "application/json",
-        "Content-Type": "text/plain",
+        'X-ApiKey': process.env.JANICE_KEY,
+        accept: 'application/json',
+        'Content-Type': 'text/plain',
       },
     };
 
     // Need an API Key and lots of testing before this will work
     const { data } = await axios.post<PricerItem[]>(
-      URL + "?" + query,
+      URL + '?' + query,
       payload,
-      janiceConfig,
+      janiceConfig
     );
 
     return janiceItems
@@ -62,22 +62,25 @@ export async function getJaniceAppraisalValue(killmail: KillMail) {
         return (price ?? 0) * ji.amount;
       })
       .reduce((a, b) => a + b, 0);
-  } catch (error) {
+  }
+  catch (error) {
     if (axios.isAxiosError(error) && error.response) {
       if (error.response.status >= 500 && error.response.status < 600) {
         // if this is a 5xx, just raise a warning
-        LOGGER.warning("Janice Appraisal server-side error.\n" + error.message);
-      } else if (error.response.status >= 400 && error.response.status < 500) {
+        LOGGER.warning('Janice Appraisal server-side error.\n' + error.message);
+      }
+      else if (error.response.status >= 400 && error.response.status < 500) {
         // Bad request!?
         LOGGER.error(
           `Janice Appraisal bad request.\n${error.message}\nRequest: ${inspect(
             error.request,
-            { depth: null, colors: true },
-          )}`,
+            { depth: null, colors: true }
+          )}`
         );
       }
-    } else {
-      LOGGER.error("Janice Appraisal error.\n" + error);
+    }
+    else {
+      LOGGER.error('Janice Appraisal error.\n' + error);
     }
   }
 

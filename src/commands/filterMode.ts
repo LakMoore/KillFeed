@@ -3,43 +3,43 @@ import {
   Client,
   SlashCommandBuilder,
   SlashCommandStringOption,
-} from "discord.js";
-import { Config } from "../Config";
-import { getConfigMessage } from "../helpers/DiscordHelper";
-import { generateConfigMessage } from "../helpers/KillFeedHelpers";
-import { Command } from "../Command";
-import { updateChannel } from "../Channels";
+} from 'discord.js';
+import { Config } from '../Config';
+import { getConfigMessage } from '../helpers/DiscordHelper';
+import { generateConfigMessage } from '../helpers/KillFeedHelpers';
+import { Command } from '../Command';
+import { updateChannel } from '../Channels';
 
-const FILTER_MODE = "mode";
+const FILTER_MODE = 'mode';
 
-export const MODE_OR = "or";
-export const MODE_AND = "and";
+export const MODE_OR = 'or';
+export const MODE_AND = 'and';
 
 const modeOptions = new SlashCommandStringOption()
   .setName(FILTER_MODE)
-  .setDescription("Filter mode")
+  .setDescription('Filter mode')
   .setRequired(true)
   .addChoices(
-    { name: "OR (any filter matches)", value: MODE_OR },
-    { name: "AND (all filter types must match)", value: MODE_AND }
+    { name: 'OR (any filter matches)', value: MODE_OR },
+    { name: 'AND (all filter types must match)', value: MODE_AND }
   );
 
 const builder = new SlashCommandBuilder()
-  .setName("filter_mode")
+  .setName('filter_mode')
   .setDescription(
-    "Set filter mode: OR (any match) or AND (all filter types must match)."
+    'Set filter mode: OR (any match) or AND (all filter types must match).'
   )
   .addStringOption(modeOptions);
 
 export const FilterMode: Command = {
   ...builder.toJSON(),
   run: async (client: Client, interaction: CommandInteraction) => {
-    let response = "Something went wrong!";
+    let response = 'Something went wrong!';
 
     if (
-      interaction.isChatInputCommand() &&
-      interaction.channel &&
-      interaction.guild
+      interaction.isChatInputCommand()
+      && interaction.channel
+      && interaction.guild
     ) {
       const settings = Config.getInstance().allSubscriptions.get(
         interaction.channel.id
@@ -47,8 +47,9 @@ export const FilterMode: Command = {
 
       if (!settings) {
         response =
-          "Unable to find settings for this channel. Use /init to start.";
-      } else {
+          'Unable to find settings for this channel. Use /init to start.';
+      }
+      else {
         // create some breathing room for the server to catch up
         settings.PauseForChanges = true;
 
@@ -69,12 +70,14 @@ export const FilterMode: Command = {
 
           if (settings.RequireAllFilters) {
             response =
-              "Success! Filter mode set to AND. Killmails will only be sent if ALL configured filter types match.";
-          } else {
-            response =
-              "Success! Filter mode set to OR. Killmails will be sent if ANY filter matches.";
+              'Success! Filter mode set to AND. Killmails will only be sent if ALL configured filter types match.';
           }
-        } else {
+          else {
+            response =
+              'Success! Filter mode set to OR. Killmails will be sent if ANY filter matches.';
+          }
+        }
+        else {
           response = `No settings found in channel. Use /init to start.`;
         }
         settings.PauseForChanges = false;

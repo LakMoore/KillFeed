@@ -1,28 +1,28 @@
-import { CommandInteraction, Client } from "discord.js";
-import { Command } from "../Command";
-import { savedData } from "../Bot";
-import { formatISKValue } from "../helpers/JaniceHelper";
+import { CommandInteraction, Client } from 'discord.js';
+import { Command } from '../Command';
+import { savedData } from '../Bot';
+import { formatISKValue } from '../helpers/JaniceHelper';
 
 export const Stats: Command = {
-  name: "stats",
-  description: "Output some global statistics about this bot",
+  name: 'stats',
+  description: 'Output some global statistics about this bot',
   run: async (client: Client, interaction: CommandInteraction) => {
-    let response = "Found no stats";
+    let response = 'Found no stats';
 
     const stats = savedData.stats;
 
     if (stats) {
       response =
-        `Serving KillMails on ${stats.ConfigCount} Discord channels.\n` +
-        `Can contribute to ${stats.ChannelCount} Channels on ${stats.ServerCount} servers.\n` +
-        `First server stats recorded ${getRelativeDiscordTime(
+        `Serving KillMails on ${stats.ConfigCount} Discord channels.\n`
+        + `Can contribute to ${stats.ChannelCount} Channels on ${stats.ServerCount} servers.\n`
+        + `First server stats recorded ${getRelativeDiscordTime(
           stats.StatsStarted
-        )}\n` +
-        `Bot started ${getRelativeDiscordTime(stats.BotStarted)}\n` +
-        `Polled zKill ${stats.PollCount} times\n` +
-        `Received ${stats.KillMailCount} killmails from zKill\n` +
-        `Posted ${stats.PostedCount} killmails into Discord\n` +
-        `Appraised ${formatISKValue(stats.ISKAppraised)} with Janice\n`;
+        )}\n`
+        + `Bot started ${getRelativeDiscordTime(stats.BotStarted)}\n`
+        + `Polled zKill ${stats.PollCount} times\n`
+        + `Received ${stats.KillMailCount} killmails from zKill\n`
+        + `Posted ${stats.PostedCount} killmails into Discord\n`
+        + `Appraised ${formatISKValue(stats.ISKAppraised)} with Janice\n`;
     }
 
     await interaction.followUp({

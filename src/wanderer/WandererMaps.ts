@@ -1,4 +1,4 @@
-import { Config } from "../Config";
+import { Config } from '../Config';
 
 export class WandererMaps {
   private static instance: WandererMaps;
@@ -20,7 +20,7 @@ export class WandererMaps {
 
   // Iterate active wanderer connections derived from SubscriptionSettings
   public forEachConnection(
-    cb: (channelId: string, mapPath: string) => void,
+    cb: (channelId: string, mapPath: string) => void
   ): void {
     const cfg = Config.getInstance();
     cfg.allSubscriptions.forEach((sub, channelId) => {
@@ -52,7 +52,7 @@ export class WandererMaps {
 
   public setSystemsForMap(
     mapId: string,
-    solarSystemIds: Iterable<number>,
+    solarSystemIds: Iterable<number>
   ): void {
     const map = new Map<number, { createdAt: string }>();
     const now = new Date().toISOString();
@@ -63,7 +63,7 @@ export class WandererMaps {
   }
 
   public getSystemsForMap(
-    mapId: string,
+    mapId: string
   ): Map<number, { createdAt: string }> | undefined {
     return this.systems.get(mapId);
   }

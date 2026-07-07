@@ -1,7 +1,7 @@
-import { Channel, TextChannel } from "discord.js";
-import { SubscriptionSettings } from "../Config";
-import { LOGGER } from "./Logger";
-import { TYPE_ALL } from "../commands/show";
+import { Channel, TextChannel } from 'discord.js';
+import { SubscriptionSettings } from '../Config';
+import { LOGGER } from './Logger';
+import { TYPE_ALL } from '../commands/show';
 
 // serialise our settings storage object, dropping the internal reference to the channel itself
 
@@ -9,63 +9,71 @@ export function generateConfigMessage(settings: SubscriptionSettings): string {
   return JSON.stringify(
     settings,
     (key, value) => {
-      if (key === "Channel") {
-        return "";
-      } else if (key === "PauseForChanges") {
+      if (key === 'Channel') {
+        return '';
+      }
+      else if (key === 'PauseForChanges') {
         return false;
-      } else if (value instanceof Set) {
+      }
+      else if (value instanceof Set) {
         return [...value];
       }
       return value;
     },
-    2,
+    2
   );
 }
 
 export function parseConfigMessage(
   message: string,
-  channel: Channel,
+  channel: Channel
 ): SubscriptionSettings {
   let result = undefined;
 
   try {
     LOGGER.debug(message);
-    result = JSON.parse(message, (key, value) => {
-      if (key === "Channel") {
-        return channel;
-      } else if (Array.isArray(value)) {
-        return new Set(value);
+    result = JSON.parse(
+      message,
+      (key, value) => {
+        if (key === 'Channel') {
+          return channel;
+        }
+        else if (Array.isArray(value)) {
+          return new Set(value);
+        }
+        return value;
       }
-      return value;
-    });
-  } catch (error) {
+    );
+  }
+  catch (error) {
     if (error instanceof Error) {
       LOGGER.debug(
-        `Error while parsing the config: ${message}\n${error.message}`,
+        `Error while parsing the config: ${message}\n${error.message}`
       );
-    } else {
+    }
+    else {
       LOGGER.debug(`Error while parsing the config: ${message}`);
     }
   }
 
-  if (result != undefined && !Object.hasOwn(result, "Regions")) {
+  if (result != undefined && !Object.hasOwn(result, 'Regions')) {
     // Regions object was added later.  These settings need an upgrade!
     result = { ...result, Regions: new Set<number>() };
   }
 
-  if (result != undefined && !Object.hasOwn(result, "Systems")) {
+  if (result != undefined && !Object.hasOwn(result, 'Systems')) {
     // Systems object was added later.  These settings need an upgrade!
     result = { ...result, Systems: new Set<number>() };
   }
 
-  if (result != undefined && !Object.hasOwn(result, "WandererSettings")) {
+  if (result != undefined && !Object.hasOwn(result, 'WandererSettings')) {
     // WandererSettings added later.
     result = {
       ...result,
       WandererSettings: {
-        Slug: "",
-        EncryptedDetails: "",
-        Domain: "",
+        Slug: '',
+        EncryptedDetails: '',
+        Domain: '',
         createdAt: undefined,
         ExcludeSystemIDs: new Set<string>(),
         PingRole: undefined,
@@ -73,26 +81,26 @@ export function parseConfigMessage(
     };
   }
 
-  if (result != undefined && !Object.hasOwn(result, "Constellations")) {
+  if (result != undefined && !Object.hasOwn(result, 'Constellations')) {
     // Constellations object was added later.  These settings need an upgrade!
     result = { ...result, Constellations: new Set<number>() };
   }
 
-  if (result != undefined && !Object.hasOwn(result, "Show")) {
+  if (result != undefined && !Object.hasOwn(result, 'Show')) {
     // Show object was added later.  These settings need an upgrade!
     result = { ...result, Show: TYPE_ALL };
   }
 
-  if (result != undefined && !Object.hasOwn(result, "RequireAllFilters")) {
+  if (result != undefined && !Object.hasOwn(result, 'RequireAllFilters')) {
     // RequireAllFilters object was added later.  These settings need an upgrade!
     result = { ...result, RequireAllFilters: false };
   }
 
-  if (result?.ResponseFormat === "Embed") {
+  if (result?.ResponseFormat === 'Embed') {
     // Embed format was the original format, before formats were added.
     // These settings need an upgrade!
     // InsightWithPLEX format is the new default
-    result = { ...result, ResponseFormat: "InsightWithPLEX" };
+    result = { ...result, ResponseFormat: 'InsightWithPLEX' };
   }
 
   if (result?.ResponseFormat) {
@@ -101,7 +109,7 @@ export function parseConfigMessage(
 
   return {
     Channel: channel as TextChannel,
-    ResponseFormat: "InsightWithPLEX",
+    ResponseFormat: 'InsightWithPLEX',
     FullTest: false,
     Alliances: new Set<number>(),
     Corporations: new Set<number>(),
@@ -111,9 +119,9 @@ export function parseConfigMessage(
     Systems: new Set<number>(),
     Constellations: new Set<number>(),
     WandererSettings: {
-      Slug: "",
-      EncryptedDetails: "",
-      Domain: "",
+      Slug: '',
+      EncryptedDetails: '',
+      Domain: '',
       ExcludeSystemIDs: new Set<string>(),
       PingRole: undefined,
     },
@@ -128,7 +136,7 @@ export function parseConfigMessage(
 export function addListener(
   listener: Map<number, Set<string>>,
   id: number,
-  channelId: string,
+  channelId: string
 ) {
   let s = listener.get(id);
   s ??= new Set<string>();
@@ -139,7 +147,7 @@ export function addListener(
 export function removeListener(
   listener: Map<number, Set<string>> | undefined,
   id: number,
-  channelId: string,
+  channelId: string
 ) {
   // remove the ID from the current filters
   if (listener) {

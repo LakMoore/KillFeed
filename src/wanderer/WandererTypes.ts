@@ -25,10 +25,10 @@ export interface WandererMapKillPayload {
 }
 
 export type WandererEventType =
-  | "add_system"
-  | "map_kill"
-  | "deleted_system"
-  | "system_metadata_changed";
+  | 'add_system'
+  | 'map_kill'
+  | 'deleted_system'
+  | 'system_metadata_changed';
 
 export interface WandererEvent {
   map_id: string;

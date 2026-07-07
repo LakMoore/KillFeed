@@ -2,7 +2,7 @@ import {
   RESTPostAPIChatInputApplicationCommandsJSONBody,
   ChatInputCommandInteraction,
   Client,
-} from "discord.js";
+} from 'discord.js';
 
 export interface Command
   extends RESTPostAPIChatInputApplicationCommandsJSONBody {

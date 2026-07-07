@@ -1,6 +1,6 @@
-import { Client } from "discord.js";
-import { updateChannel } from "./Channels";
-import { canUseChannel } from "./helpers/DiscordHelper";
+import { Client } from 'discord.js';
+import { updateChannel } from './Channels';
+import { canUseChannel } from './helpers/DiscordHelper';
 
 export async function updateGuild(
   client: Client<boolean>,

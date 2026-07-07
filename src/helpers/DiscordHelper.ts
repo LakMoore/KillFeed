@@ -48,7 +48,7 @@ async function waitForChannelRateLimitSlot(state: ChannelRateLimitState) {
 
     // clear out expired timestamps from the history
     state.history = state.history.filter(
-      (timestamp) => now - timestamp < CHANNEL_MESSAGE_WINDOW_MS,
+      (timestamp) => now - timestamp < CHANNEL_MESSAGE_WINDOW_MS
     );
 
     // if we have room in the history, add the current timestamp and allow the message to be sent
@@ -61,7 +61,7 @@ async function waitForChannelRateLimitSlot(state: ChannelRateLimitState) {
     const oldestTimestamp = state.history[0];
     const waitMs = CHANNEL_MESSAGE_WINDOW_MS - (now - oldestTimestamp);
     LOGGER.debug(
-      `Channel rate limit reached. Waiting ${waitMs}ms before sending next message.`,
+      `Channel rate limit reached. Waiting ${waitMs}ms before sending next message.`
     );
     await sleep(Math.max(waitMs, 0));
   }
@@ -123,24 +123,27 @@ export async function getConfigMessage(channel?: Channel | null) {
       LOGGER.debug(`Found ${myPinned.length} pinned messages for this bot`);
 
       return myPinned[0];
-    } catch (error: unknown) {
+    }
+    catch (error: unknown) {
       if (error instanceof DiscordAPIError && error.code === 50013) {
         LOGGER.debug(
-          `Discord rejected fetchPins on channel ${channel?.name} on ${channel?.guild.name} with Missing Permissions (50013). Check channel overrides, view channel, and read message history permissions.`,
+          `Discord rejected fetchPins on channel ${channel?.name} on ${channel?.guild.name} with Missing Permissions (50013). Check channel overrides, view channel, and read message history permissions.`
         );
         // check for 429 rate limit error from discord
-      } else if (
-        error instanceof DiscordAPIError &&
-        (error.code === 429 || error.status === 429)
+      }
+      else if (
+        error instanceof DiscordAPIError
+        && (error.code === 429 || error.status === 429)
       ) {
         LOGGER.error(
-          `Rate limit exceeded while fetching pinned messages on channel ${channel?.name} on ${channel?.guild.name}.`,
+          `Rate limit exceeded while fetching pinned messages on channel ${channel?.name} on ${channel?.guild.name}.`
         );
-      } else {
+      }
+      else {
         LOGGER.debug(
           `Unknown error while fetching pinned messages on channel ${channel?.name} on ${channel?.guild.name}: ${
             error instanceof Error ? error.message : String(error)
-          }`,
+          }`
         );
       }
     }

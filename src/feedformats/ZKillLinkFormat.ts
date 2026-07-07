@@ -1,5 +1,5 @@
-import { KillMail, ZkbOnly } from "../zKillboard/zKillboard";
-import { BaseFormat, ZKMailType } from "./Fomat";
+import { KillMail, ZkbOnly } from '../zKillboard/zKillboard';
+import { BaseFormat, ZKMailType } from './Fomat';
 
 export const ZKillLinkFormat: BaseFormat = {
   getMessage: (

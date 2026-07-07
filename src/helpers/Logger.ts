@@ -1,10 +1,10 @@
-import dotenv from "dotenv";
-import { TextChannel } from "discord.js";
+import dotenv from 'dotenv';
+import { TextChannel } from 'discord.js';
 
 dotenv.config();
-const DEBUG = process.env.NODE_ENV === "development";
+const DEBUG = process.env.NODE_ENV === 'development';
 
-export const DEV_ROLE = "Developer";
+export const DEV_ROLE = 'Developer';
 
 export class LogHandler {
   private errorChannel: TextChannel | undefined;
@@ -35,7 +35,8 @@ export class LogHandler {
     let message: string;
     if (error instanceof Error) {
       message = error.message;
-    } else {
+    }
+    else {
       message = error;
     }
 
@@ -53,7 +54,8 @@ export class LogHandler {
     let message: string;
     if (error instanceof Error) {
       message = error.message;
-    } else {
+    }
+    else {
       message = error;
     }
 
@@ -73,11 +75,11 @@ export class LogHandler {
 export const LOGGER = new LogHandler();
 
 function consoleLog(message: object | string, ...optionalParams: object[]) {
-  console.log(new Date().toUTCString() + " " + message, ...optionalParams);
+  console.log(new Date().toUTCString() + ' ' + message, ...optionalParams);
 }
 
 function consoleError(message: object | string, ...optionalParams: object[]) {
-  console.error(new Date().toUTCString() + " " + message, ...optionalParams);
+  console.error(new Date().toUTCString() + ' ' + message, ...optionalParams);
 }
 
 // function to convert number of milliseconds into timespan string
@@ -95,29 +97,29 @@ export function msToTimeSpan(milliseconds: number): string {
   const parts: string[] = [];
 
   if (days > 0) {
-    parts.push(days + " day" + (days == 1 ? "" : "s"));
+    parts.push(days + ' day' + (days == 1 ? '' : 's'));
   }
   if (remainingHours > 0) {
-    parts.push(remainingHours + " hour" + (remainingHours == 1 ? "" : "s"));
+    parts.push(remainingHours + ' hour' + (remainingHours == 1 ? '' : 's'));
   }
   if (remainingMinutes > 0) {
     parts.push(
-      remainingMinutes + " minute" + (remainingMinutes == 1 ? "" : "s"),
+      remainingMinutes + ' minute' + (remainingMinutes == 1 ? '' : 's')
     );
   }
   if (remainingSeconds > 0) {
     parts.push(
-      remainingSeconds + " second" + (remainingSeconds == 1 ? "" : "s"),
+      remainingSeconds + ' second' + (remainingSeconds == 1 ? '' : 's')
     );
   }
 
   if (parts.length === 0) {
     parts.push(
-      remainingMilliseconds +
-        " millisecond" +
-        (remainingMilliseconds == 1 ? "" : "s"),
+      remainingMilliseconds
+        + ' millisecond'
+        + (remainingMilliseconds == 1 ? '' : 's')
     );
   }
 
-  return parts.join(" ");
+  return parts.join(' ');
 }

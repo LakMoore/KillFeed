@@ -1,6 +1,6 @@
-import storage from "node-persist";
-import { LOGGER } from "./helpers/Logger";
-import { sleep } from "./listeners/ready";
+import storage from 'node-persist';
+import { LOGGER } from './helpers/Logger';
+import { sleep } from './listeners/ready';
 
 export interface Statistics {
   ServerCount: number;
@@ -20,7 +20,7 @@ export interface Statistics {
 const SAVE_DELAY_MS = 30 * 1000; // 30 seconds in milliseconds
 
 export class Data {
-  private static readonly DATA_KEY = "statistics";
+  private static readonly DATA_KEY = 'statistics';
   private _stats: Statistics = {
     ServerCount: 0,
     ChannelCount: 0,
@@ -33,7 +33,7 @@ export class Data {
     ConfigCount: 0,
     LastSequenceId: 0,
     LastSequenceSeenAt: null,
-    LastVersion: "",
+    LastVersion: '',
   };
 
   public async init() {
@@ -48,9 +48,10 @@ export class Data {
       if (this._stats.LastSequenceSeenAt === undefined) {
         this._stats.LastSequenceSeenAt = null;
       }
-      this._stats.LastVersion ??= "";
-    } catch (error) {
-      LOGGER.error("Failed to load data from disk. " + error);
+      this._stats.LastVersion ??= '';
+    }
+    catch (error) {
+      LOGGER.error('Failed to load data from disk. ' + error);
     }
   }
 
@@ -65,8 +66,9 @@ export class Data {
       try {
         await this.save();
         await sleep(SAVE_DELAY_MS);
-      } catch (error) {
-        LOGGER.error("Failed to save data to disk. " + error);
+      }
+      catch (error) {
+        LOGGER.error('Failed to save data to disk. ' + error);
         await sleep(SAVE_DELAY_MS * 10);
       }
     }
@@ -74,15 +76,16 @@ export class Data {
 
   public async save() {
     try {
-      LOGGER.info("Persisting data to filesystem...");
+      LOGGER.info('Persisting data to filesystem...');
       await storage.setItem(Data.DATA_KEY, this._stats);
-    } catch (error) {
-      LOGGER.error("Failed to save data to disk. " + error);
+    }
+    catch (error) {
+      LOGGER.error('Failed to save data to disk. ' + error);
     }
   }
 
   public async clear() {
     await storage.clear();
-    LOGGER.error("Cleared all persistent storage!!!");
+    LOGGER.error('Cleared all persistent storage!!!');
   }
 }

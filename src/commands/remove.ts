@@ -1,12 +1,12 @@
-import { CommandInteraction, Client, SlashCommandBuilder } from "discord.js";
-import { Config } from "../Config";
-import { getConfigMessage } from "../helpers/DiscordHelper";
+import { CommandInteraction, Client, SlashCommandBuilder } from 'discord.js';
+import { Config } from '../Config';
+import { getConfigMessage } from '../helpers/DiscordHelper';
 import {
   generateConfigMessage,
   removeListener,
-} from "../helpers/KillFeedHelpers";
-import { Command } from "../Command";
-import { fetchESIIDs } from "../esi/fetch";
+} from '../helpers/KillFeedHelpers';
+import { Command } from '../Command';
+import { fetchESIIDs } from '../esi/fetch';
 import {
   FILTER_OPTION,
   FILTER_NAME_OR_ID,
@@ -19,11 +19,11 @@ import {
   TYPE_REGION,
   TYPE_CONSTELLATION,
   TYPE_SYSTEM,
-} from "../helpers/CommandHelpers";
-import { LOGGER } from "../helpers/Logger";
+} from '../helpers/CommandHelpers';
+import { LOGGER } from '../helpers/Logger';
 
 const builder = new SlashCommandBuilder()
-  .setName("remove")
+  .setName('remove')
   .setDescription("Remove a rule from KillFeed's filter")
   .addStringOption(FILTER_OPTION)
   .addStringOption(FILTER_NAME_OR_ID);
@@ -31,19 +31,21 @@ const builder = new SlashCommandBuilder()
 export const Remove: Command = {
   ...builder.toJSON(),
   run: async (client: Client, interaction: CommandInteraction) => {
-    let response = "Something went wrong!";
+    let response = 'Something went wrong!';
 
     if (interaction.isChatInputCommand() && interaction.channel) {
       const filterType = interaction.options.getString(FILTER_TYPE);
 
       if (!filterType) {
-        response = "You must specify a type";
-      } else {
+        response = 'You must specify a type';
+      }
+      else {
         const filterValue = interaction.options.getString(FILTER_NAME_ID);
 
         if (!filterValue) {
-          response = "You must specify a value";
-        } else {
+          response = 'You must specify a value';
+        }
+        else {
           // value could be an Eve name or an Eve ID
           let id = parseInt(filterValue);
           const isInteger = id.toString() === filterValue;
@@ -56,14 +58,16 @@ export const Remove: Command = {
 
             if (!IDs) {
               response = `Failed to find ${filterValue} in Eve`;
-            } else {
+            }
+            else {
               type ObjectKey = keyof typeof IDs;
               const myKey = filterType as ObjectKey;
               const tempId = IDs[myKey]?.[0].id;
 
               if (!tempId) {
                 response = `Failed to get the ID for ${filterValue} from Eve`;
-              } else {
+              }
+              else {
                 id = tempId;
               }
             }
@@ -78,7 +82,8 @@ export const Remove: Command = {
             if (!thisSubscription) {
               response = `Failed to find a subscription for channel ${interaction.channel.id} on ${interaction.guild?.name}!`;
               LOGGER.warning(response);
-            } else {
+            }
+            else {
               // create some breathing room for the server to catch up
               thisSubscription.PauseForChanges = true;
 
@@ -88,22 +93,28 @@ export const Remove: Command = {
               if (filterType === TYPE_CHAR) {
                 thisFilter = thisSubscription.Characters;
                 listener = Config.getInstance().matchedCharacters;
-              } else if (filterType === TYPE_CORP) {
+              }
+              else if (filterType === TYPE_CORP) {
                 thisFilter = thisSubscription.Corporations;
                 listener = Config.getInstance().matchedCorporations;
-              } else if (filterType === TYPE_ALLIANCE) {
+              }
+              else if (filterType === TYPE_ALLIANCE) {
                 thisFilter = thisSubscription.Alliances;
                 listener = Config.getInstance().matchedAlliances;
-              } else if (filterType === TYPE_SHIP) {
+              }
+              else if (filterType === TYPE_SHIP) {
                 thisFilter = thisSubscription.Ships;
                 listener = Config.getInstance().matchedShips;
-              } else if (filterType === TYPE_REGION) {
+              }
+              else if (filterType === TYPE_REGION) {
                 thisFilter = thisSubscription.Regions;
                 listener = Config.getInstance().matchedRegions;
-              } else if (filterType === TYPE_CONSTELLATION) {
+              }
+              else if (filterType === TYPE_CONSTELLATION) {
                 thisFilter = thisSubscription.Constellations;
                 listener = Config.getInstance().matchedConstellations;
-              } else if (filterType === TYPE_SYSTEM) {
+              }
+              else if (filterType === TYPE_SYSTEM) {
                 thisFilter = thisSubscription.Systems;
                 listener = Config.getInstance().matchedSystems;
               }
@@ -112,7 +123,8 @@ export const Remove: Command = {
               if (!thisFilter) {
                 response = `Unable to find a filter called ${filterType}`;
                 LOGGER.warning(response);
-              } else {
+              }
+              else {
                 LOGGER.info(`Deleting the id ${id}`);
                 thisFilter.delete(id);
 

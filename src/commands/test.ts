@@ -2,29 +2,29 @@ import {
   ChatInputCommandInteraction,
   Client,
   SlashCommandBuilder,
-} from "discord.js";
-import { Config } from "../Config";
-import { Command } from "../Command";
-import { fetchKillmail } from "../esi/fetch";
-import { getOneZKill, prepAndSend } from "../zKillboard/zKillboardService";
-import { LOGGER } from "../helpers/Logger";
-import { inspect } from "node:util";
+} from 'discord.js';
+import { Config } from '../Config';
+import { Command } from '../Command';
+import { fetchKillmail } from '../esi/fetch';
+import { getOneZKill, prepAndSend } from '../zKillboard/zKillboardService';
+import { LOGGER } from '../helpers/Logger';
+import { inspect } from 'node:util';
 
-const KILLMAIL_ID = "killmail-id";
+const KILLMAIL_ID = 'killmail-id';
 
 const builder = new SlashCommandBuilder()
-  .setName("test")
+  .setName('test')
   .setDescription(
-    "Sends the next killmail to the feed. Optionally test specific kill against current channel config.",
+    'Sends the next killmail to the feed. Optionally test specific kill against current channel config.'
   )
   .addStringOption((option) =>
-    option.setName(KILLMAIL_ID).setDescription("The Killmail ID to test"),
+    option.setName(KILLMAIL_ID).setDescription('The Killmail ID to test')
   );
 
 export const Test: Command = {
   ...builder.toJSON(),
   run: async (client: Client, interaction: ChatInputCommandInteraction) => {
-    let content = "Test failed";
+    let content = 'Test failed';
 
     if (interaction.isChatInputCommand()) {
       const kmId = interaction.options.getString(KILLMAIL_ID);
@@ -39,17 +39,20 @@ export const Test: Command = {
           if (response) {
             const { data } = response;
             await prepAndSend(client, data, zkb);
-            content = "Found the Killmail!";
-          } else {
+            content = 'Found the Killmail!';
+          }
+          else {
             content = `Failed to find killmail for ${kmId}, ${zkb.zkb.hash} on ESI`;
           }
-        } else {
+        }
+        else {
           content = `Failed to find kill ID ${kmId} on ZKillboard`;
         }
-      } else {
+      }
+      else {
         // Put this channel Id on the list
         Config.getInstance().testRequests.add(interaction.channelId);
-        content = "Request received";
+        content = 'Request received';
       }
     }
 

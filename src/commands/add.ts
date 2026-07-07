@@ -2,12 +2,12 @@ import {
   ChatInputCommandInteraction,
   Client,
   SlashCommandBuilder,
-} from "discord.js";
-import { Config } from "../Config";
-import { getConfigMessage } from "../helpers/DiscordHelper";
-import { generateConfigMessage } from "../helpers/KillFeedHelpers";
-import { Command } from "../Command";
-import { fetchESIIDs } from "../esi/fetch";
+} from 'discord.js';
+import { Config } from '../Config';
+import { getConfigMessage } from '../helpers/DiscordHelper';
+import { generateConfigMessage } from '../helpers/KillFeedHelpers';
+import { Command } from '../Command';
+import { fetchESIIDs } from '../esi/fetch';
 import {
   FILTER_OPTION,
   FILTER_NAME_OR_ID,
@@ -20,12 +20,12 @@ import {
   TYPE_REGION,
   TYPE_CONSTELLATION,
   TYPE_SYSTEM,
-} from "../helpers/CommandHelpers";
-import { updateChannel } from "../Channels";
-import { LOGGER } from "../helpers/Logger";
+} from '../helpers/CommandHelpers';
+import { updateChannel } from '../Channels';
+import { LOGGER } from '../helpers/Logger';
 
 const builder = new SlashCommandBuilder()
-  .setName("add")
+  .setName('add')
   .setDescription("Add a rule to KillFeed's filter")
   .addStringOption(FILTER_OPTION)
   .addStringOption(FILTER_NAME_OR_ID);
@@ -33,23 +33,25 @@ const builder = new SlashCommandBuilder()
 export const Add: Command = {
   ...builder.toJSON(),
   run: async (client: Client, interaction: ChatInputCommandInteraction) => {
-    let response = "Something went wrong!";
+    let response = 'Something went wrong!';
 
     if (
-      interaction.isChatInputCommand() &&
-      interaction.channel &&
-      interaction.guild
+      interaction.isChatInputCommand()
+      && interaction.channel
+      && interaction.guild
     ) {
       const filterType = interaction.options.getString(FILTER_TYPE);
 
       if (!filterType) {
-        response = "You must specify a type";
-      } else {
+        response = 'You must specify a type';
+      }
+      else {
         const filterValue = interaction.options.getString(FILTER_NAME_ID);
 
         if (!filterValue) {
-          response = "You must specify a value";
-        } else {
+          response = 'You must specify a value';
+        }
+        else {
           // value could be an Eve name or an Eve ID
           let id = parseInt(filterValue);
           const isInteger = id.toString() === filterValue;
@@ -62,14 +64,16 @@ export const Add: Command = {
 
             if (!IDs) {
               response = `Failed to find ${filterValue} in Eve`;
-            } else {
+            }
+            else {
               type ObjectKey = keyof typeof IDs;
               const myKey = filterType as ObjectKey;
               const tempId = IDs[myKey]?.[0].id;
 
               if (!tempId) {
                 response = `Failed to get the ID for ${filterValue} from Eve`;
-              } else {
+              }
+              else {
                 id = tempId;
               }
             }
@@ -83,8 +87,9 @@ export const Add: Command = {
 
             if (!thisSubscription) {
               response =
-                "Unable to find settings for this channel. Use /init to start.";
-            } else {
+                'Unable to find settings for this channel. Use /init to start.';
+            }
+            else {
               // create some breathing room for the server to catch up
               thisSubscription.PauseForChanges = true;
 
@@ -92,25 +97,32 @@ export const Add: Command = {
 
               if (filterType === TYPE_CHAR) {
                 thisSetting = thisSubscription?.Characters;
-              } else if (filterType === TYPE_CORP) {
+              }
+              else if (filterType === TYPE_CORP) {
                 thisSetting = thisSubscription?.Corporations;
-              } else if (filterType === TYPE_ALLIANCE) {
+              }
+              else if (filterType === TYPE_ALLIANCE) {
                 thisSetting = thisSubscription?.Alliances;
-              } else if (filterType === TYPE_SHIP) {
+              }
+              else if (filterType === TYPE_SHIP) {
                 thisSetting = thisSubscription?.Ships;
-              } else if (filterType === TYPE_REGION) {
+              }
+              else if (filterType === TYPE_REGION) {
                 thisSetting = thisSubscription?.Regions;
-              } else if (filterType === TYPE_CONSTELLATION) {
+              }
+              else if (filterType === TYPE_CONSTELLATION) {
                 thisSetting = thisSubscription?.Constellations;
-              } else if (filterType === TYPE_SYSTEM) {
+              }
+              else if (filterType === TYPE_SYSTEM) {
                 thisSetting = thisSubscription?.Systems;
               }
 
               // add the ID to the settings in memory
               if (thisSetting) {
-                LOGGER.info("Adding the id");
+                LOGGER.info('Adding the id');
                 thisSetting.add(id);
-              } else {
+              }
+              else {
                 LOGGER.warning(`Unable to find a filter of type ${filterType}`);
               }
 
@@ -126,7 +138,8 @@ export const Add: Command = {
                   interaction.guild.name
                 );
                 response = `Success! Added ${filterValue} (${id})`;
-              } else {
+              }
+              else {
                 response = `No subscription found in channel. Use /init to start.`;
               }
               thisSubscription.PauseForChanges = false;
