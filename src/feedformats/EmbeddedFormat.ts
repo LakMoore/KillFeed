@@ -1,6 +1,6 @@
-import { EmbedBuilder } from "@discordjs/builders";
-import { KillMail, ZkbOnly } from "../zKillboard/zKillboard";
-import { BaseFormat, ZKMailType } from "./Fomat";
+import { EmbedBuilder } from '@discordjs/builders';
+import { KillMail, ZkbOnly } from '../zKillboard/zKillboard';
+import { BaseFormat, ZKMailType } from './Fomat';
 
 export const colours = {
   kill: hexToNumber('#43A047'),
@@ -20,18 +20,18 @@ export const EmbeddedFormat: BaseFormat = {
     mailType: ZKMailType,
     appraisedValue: number
   ) => {
-    let nameText = "Neutral";
+    let nameText = 'Neutral';
     let colour = colours.neutral;
     if (mailType == ZKMailType.OnMap) {
       nameText = 'From the map';
       colour = colours.mapper;
     }
     if (mailType == ZKMailType.Kill) {
-      nameText = "Kill";
+      nameText = 'Kill';
       colour = colours.kill;
     }
     if (mailType == ZKMailType.Loss) {
-      nameText = "Loss";
+      nameText = 'Loss';
       colour = colours.loss;
     }
 
@@ -39,39 +39,39 @@ export const EmbeddedFormat: BaseFormat = {
       embeds: [
         new EmbedBuilder()
           .setColor(colour)
-          .setTitle("Ship destroyed somewhere")
+          .setTitle('Ship destroyed somewhere')
           .setURL(`https://zkillboard.com/kill/${killmail.killmail_id}/`)
           .setAuthor({
             name: nameText,
-            iconURL: "https://i.imgur.com/AfFp7pu.png",
+            iconURL: 'https://i.imgur.com/AfFp7pu.png',
             url: `https://zkillboard.com/kill/${killmail.killmail_id}/`,
           })
-          .setDescription("Some description here")
-          .setThumbnail("https://i.imgur.com/AfFp7pu.png")
+          .setDescription('Some description here')
+          .setThumbnail('https://i.imgur.com/AfFp7pu.png')
           .addFields(
-            { name: "Regular field title", value: "Some value here" },
-            { name: "\u200B", value: "\u200B" },
+            { name: 'Regular field title', value: 'Some value here' },
+            { name: '\u200B', value: '\u200B' },
             {
-              name: "Inline field title",
-              value: "Some value here",
+              name: 'Inline field title',
+              value: 'Some value here',
               inline: true,
             },
             {
-              name: "Inline field title",
-              value: "Some value here",
+              name: 'Inline field title',
+              value: 'Some value here',
               inline: true,
             }
           )
           .addFields({
-            name: "Inline field title",
-            value: "Some value here",
+            name: 'Inline field title',
+            value: 'Some value here',
             inline: true,
           })
           // .setImage("https://i.imgur.com/AfFp7pu.png")
           .setTimestamp()
           .setFooter({
             text: `Value: ${zkb.zkb.totalValue}`,
-            iconURL: "https://i.imgur.com/AfFp7pu.png",
+            iconURL: 'https://i.imgur.com/AfFp7pu.png',
           }),
       ],
     };

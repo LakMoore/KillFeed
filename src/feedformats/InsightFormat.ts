@@ -1,24 +1,24 @@
-import { EmbedBuilder } from "@discordjs/builders";
-import { MessageCreateOptions } from "discord.js";
-import { getCharacterNames } from "../esi/get";
-import { KillMail, ZkbOnly } from "../zKillboard/zKillboard";
-import { BaseFormat, ZKMailType } from "./Fomat";
-import { formatISKValue } from "../helpers/JaniceHelper";
-import { CachedESI } from "../esi/cache";
+import { EmbedBuilder } from '@discordjs/builders';
+import { MessageCreateOptions } from 'discord.js';
+import { getCharacterNames } from '../esi/get';
+import { KillMail, ZkbOnly } from '../zKillboard/zKillboard';
+import { BaseFormat, ZKMailType } from './Fomat';
+import { formatISKValue } from '../helpers/JaniceHelper';
+import { CachedESI } from '../esi/cache';
 import { colours } from './EmbeddedFormat';
 
 type CharacterNames = Awaited<ReturnType<typeof getCharacterNames>>;
-type Attacker = KillMail["attackers"][number];
+type Attacker = KillMail['attackers'][number];
 
 function getAttackerShipName(shipName?: string) {
   if (
-    shipName &&
-    ["a", "e", "i", "o", "u"].includes(shipName.toLowerCase()[0])
+    shipName
+    && ['a', 'e', 'i', 'o', 'u'].includes(shipName.toLowerCase()[0])
   ) {
-    return "an " + shipName;
+    return 'an ' + shipName;
   }
 
-  return "a " + shipName;
+  return 'a ' + shipName;
 }
 
 function getAttackerName(attacker: Attacker, attackerNames: CharacterNames) {
@@ -34,7 +34,7 @@ function getAttackerName(attacker: Attacker, attackerNames: CharacterNames) {
     return `an NPC (${attackerNames.corporation})`;
   }
 
-  return "an NPC";
+  return 'an NPC';
 }
 
 function getVictimName(killmail: KillMail, victimNames: CharacterNames) {
@@ -55,12 +55,12 @@ function getVictimName(killmail: KillMail, victimNames: CharacterNames) {
 
 function getFleetPhrase(killmail: KillMail) {
   if (killmail.attackers.length <= 1) {
-    return ", solo";
+    return ', solo';
   }
 
   let fleetPhrase = ` and ${killmail.attackers.length - 1} other`;
   if (killmail.attackers.length > 2) {
-    fleetPhrase += "s";
+    fleetPhrase += 's';
   }
 
   return fleetPhrase;
@@ -69,14 +69,14 @@ function getFleetPhrase(killmail: KillMail) {
 function getMailVisuals(mailType: ZKMailType) {
   if (mailType == ZKMailType.Kill) {
     return {
-      nameText: "Kill",
+      nameText: 'Kill',
       colour: colours.kill,
     };
   }
 
   if (mailType == ZKMailType.Loss) {
     return {
-      nameText: "Loss",
+      nameText: 'Loss',
       colour: colours.loss,
     };
   }
@@ -89,14 +89,14 @@ function getMailVisuals(mailType: ZKMailType) {
   }
 
   return {
-    nameText: "Neutral Kill",
+    nameText: 'Neutral Kill',
     colour: colours.neutral,
   };
 }
 
 export function buildInsightFooterText(
   zKillValueText: string,
-  janiceValueText?: string,
+  janiceValueText?: string
 ) {
   // use \u200B (zero-width space) to stop discord from trimming the line feeds
   let footerText = `\u200B\u2009 • ZKill Value: ${zKillValueText}\n`;
@@ -112,7 +112,7 @@ export function buildInsightFooterText(
 
 export function setInsightFooter(
   message: MessageCreateOptions,
-  footerText: string,
+  footerText: string
 ) {
   const [firstEmbed, ...restEmbeds] = message.embeds ?? [];
 
@@ -120,7 +120,7 @@ export function setInsightFooter(
     return message;
   }
 
-  const embedData = "toJSON" in firstEmbed ? firstEmbed.toJSON() : firstEmbed;
+  const embedData = 'toJSON' in firstEmbed ? firstEmbed.toJSON() : firstEmbed;
   const embed =
     firstEmbed instanceof EmbedBuilder
       ? firstEmbed
@@ -137,7 +137,7 @@ export const InsightFormat: BaseFormat = {
     killmail: KillMail,
     zkb: ZkbOnly,
     mailType: ZKMailType,
-    appraisedValue: number,
+    appraisedValue: number
   ) => {
     // not all Corps are in an Alliance!
     const badgeUrl = killmail.victim.alliance_id
@@ -152,41 +152,40 @@ export const InsightFormat: BaseFormat = {
     const system = await CachedESI.getSystem(killmail.solar_system_id);
     const region = await CachedESI.getRegionForSystem(killmail.solar_system_id);
 
-    return Promise.all([
-      getCharacterNames(killmail.victim),
-      getCharacterNames(attacker),
-    ]).then(([victimNames, attackerNames]) => {
-      const attackerShipName = getAttackerShipName(attackerNames.ship);
-      const attackerName = getAttackerName(attacker, attackerNames);
-      const victimName = getVictimName(killmail, victimNames);
-      const fleetPhrase = getFleetPhrase(killmail);
+    return Promise
+      .all([getCharacterNames(killmail.victim), getCharacterNames(attacker)])
+      .then(([victimNames, attackerNames]) => {
+        const attackerShipName = getAttackerShipName(attackerNames.ship);
+        const attackerName = getAttackerName(attacker, attackerNames);
+        const victimName = getVictimName(killmail, victimNames);
+        const fleetPhrase = getFleetPhrase(killmail);
 
-      const visuals = getMailVisuals(mailType);
-      const nameText = `${visuals.nameText} in ${system.name} (${system.security_status.toFixed(1)}), ${region.name}`;
+        const visuals = getMailVisuals(mailType);
+        const nameText = `${visuals.nameText} in ${system.name} (${system.security_status.toFixed(1)}), ${region.name}`;
 
-      return {
-        embeds: [
-          new EmbedBuilder()
-            .setColor(visuals.colour)
-            .setTitle(`${victimNames.ship} destroyed`)
-            .setURL(`https://zkillboard.com/kill/${killmail.killmail_id}/`)
-            .setAuthor({
-              name: nameText,
-              iconURL: badgeUrl,
-              url: `https://zkillboard.com/kill/${killmail.killmail_id}/`,
-            })
-            .setDescription(
-              `${victimName} lost their ${victimNames.ship} to ${attackerName} flying ${attackerShipName}${fleetPhrase}.`,
-            )
-            .setThumbnail(
-              `https://images.evetech.net/types/${killmail.victim.ship_type_id}/render?size=64`,
-            )
-            .setTimestamp(new Date(killmail.killmail_time))
-            .setFooter({
-              text: buildInsightFooterText(value),
-            }),
-        ],
-      };
-    });
+        return {
+          embeds: [
+            new EmbedBuilder()
+              .setColor(visuals.colour)
+              .setTitle(`${victimNames.ship} destroyed`)
+              .setURL(`https://zkillboard.com/kill/${killmail.killmail_id}/`)
+              .setAuthor({
+                name: nameText,
+                iconURL: badgeUrl,
+                url: `https://zkillboard.com/kill/${killmail.killmail_id}/`,
+              })
+              .setDescription(
+                `${victimName} lost their ${victimNames.ship} to ${attackerName} flying ${attackerShipName}${fleetPhrase}.`
+              )
+              .setThumbnail(
+                `https://images.evetech.net/types/${killmail.victim.ship_type_id}/render?size=64`
+              )
+              .setTimestamp(new Date(killmail.killmail_time))
+              .setFooter({
+                text: buildInsightFooterText(value),
+              }),
+          ],
+        };
+      });
   },
 };
