@@ -28,11 +28,18 @@ export default (client: Client): void => {
         await updateGuild(client, guildId, guild.name);
       }
 
+        // Start Wanderer event streams
+        // (must be done after all guilds are imported, so that we have all the channels to connect to)
+        const wandererStreams = startWandererEventStreams(client);
+
       LOGGER.warning(`Imported all servers and now ready.`);
       LOGGER.info("Starting Poll");
-      await pollLoop(client, 0);
-    } catch (err) {
-      LOGGER.error("Error in ready handler: " + err);
+
+        await Promise.all([pollLoop(client, 0), wandererStreams]);
+      }
+      catch (err) {
+        LOGGER.error('Error in ready handler: ' + err);
+      }
     }
   });
 };
@@ -41,10 +48,23 @@ export const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 let firstMem: NodeJS.MemoryUsage;
 
+function logMemoryUsage() {
+  if (!firstMem) firstMem = process.memoryUsage();
+  const used = process.memoryUsage();
+  for (const key in used) {
+    LOGGER.debug(
+      `Memory: ${key}   ${
+        Math.round((used[key as keyof NodeJS.MemoryUsage] / 1024 / 1024) * 100)
+        / 100
+      } MB`
+    );
+  }
+}
+
+// main poll loop
 async function pollLoop(client: Client, loopCount: number) {
-  // eslint-disable-next-line no-constant-condition
+  // Explicit infinite loop
   while (true) {
-    // Explicit infinite loop
     try {
       LOGGER.debug("loop " + loopCount++);
       await pollzKillboardOnce(client);
@@ -61,31 +81,11 @@ async function pollLoop(client: Client, loopCount: number) {
     const DEBUG = false;
 
     if (DEBUG) {
-      const err = new Error();
+      const err = new Error('debug-stack');
       if (err.stack) {
         LOGGER.debug("Stack size: " + (err.stack.split("\n").length - 1));
       }
-
-      if (!firstMem) firstMem = process.memoryUsage();
-
-      const used = process.memoryUsage();
-      for (const key in used) {
-        LOGGER.debug(
-          `Memory: ${key}   ${
-            Math.round(
-              (used[key as keyof NodeJS.MemoryUsage] / 1024 / 1024) * 100,
-            ) / 100
-          } MB  Diff: ${
-            Math.round(
-              ((used[key as keyof NodeJS.MemoryUsage] -
-                firstMem[key as keyof NodeJS.MemoryUsage]) /
-                1024 /
-                1024) *
-                100,
-            ) / 100
-          }`,
-        );
-      }
+      logMemoryUsage();
     }
   }
 }

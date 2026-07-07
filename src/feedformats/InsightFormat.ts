@@ -5,12 +5,7 @@ import { KillMail, ZkbOnly } from "../zKillboard/zKillboard";
 import { BaseFormat, ZKMailType } from "./Fomat";
 import { formatISKValue } from "../helpers/JaniceHelper";
 import { CachedESI } from "../esi/cache";
-
-const colours = {
-  kill: 0x00ff00,
-  loss: 0xff0000,
-  neutral: 0x0000ff,
-};
+import { colours } from './EmbeddedFormat';
 
 type CharacterNames = Awaited<ReturnType<typeof getCharacterNames>>;
 type Attacker = KillMail["attackers"][number];
@@ -86,6 +81,13 @@ function getMailVisuals(mailType: ZKMailType) {
     };
   }
 
+  if (mailType == ZKMailType.OnMap) {
+    return {
+      nameText: 'From the map',
+      colour: colours.mapper,
+    };
+  }
+
   return {
     nameText: "Neutral Kill",
     colour: colours.neutral,
@@ -96,11 +98,14 @@ export function buildInsightFooterText(
   zKillValueText: string,
   janiceValueText?: string,
 ) {
-  let footerText = ` • ZKill Value: ${zKillValueText}\n`;
+  // use \u200B (zero-width space) to stop discord from trimming the line feeds
+  let footerText = `\u200B\u2009 • ZKill Value: ${zKillValueText}\n`;
 
   if (janiceValueText) {
-    footerText += `• Janice Value: ${janiceValueText}\n`;
+    footerText += `\u200B\u2009 • Janice Value: ${janiceValueText}\n`;
   }
+
+  footerText += '\u200B';
 
   return footerText;
 }

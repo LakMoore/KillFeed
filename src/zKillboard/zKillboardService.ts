@@ -82,12 +82,12 @@ export async function pollzKillboardOnce(client: Client) {
   try {
     if (nextSequenceId === null) {
       if (savedData.stats.LastSequenceId > 0) {
-      } else {
         thisSequenceId = savedData.stats.LastSequenceId + 1;
         LOGGER.warning(`Resuming sequence stream from ${thisSequenceId}`);
+      } else {
         thisSequenceId = await getLatestSequence(localAgent);
         LOGGER.warning(
-          `Starting sequence stream from latest sequence ${nextSequenceId}`,
+          `Starting sequence stream from latest sequence ${thisSequenceId}`,
         );
       }
     }
@@ -234,15 +234,18 @@ export async function prepAndSend(
     const lossmailChannelIDs = new Set<string>();
     const killmailChannelIDs = new Set<string>();
     const neutralmailChannelIDs = new Set<string>();
+    const mapperChannelIDs = new Set<string>();
 
     // For AND filter logic: track which filter types matched for each channel
     const channelMatchedFilters = new Map<string, Set<string>>();
 
     const trackMatch = (channelId: string, filterType: string) => {
-      if (!channelMatchedFilters.has(channelId)) {
+      const filter = channelMatchedFilters.get(channelId);
+      if (filter) {
+        filter.add(filterType);
+      } else {
         channelMatchedFilters.set(channelId, new Set());
       }
-      channelMatchedFilters.get(channelId)!.add(filterType);
     };
 
     const config = Config.getInstance();
@@ -431,11 +434,9 @@ export async function prepAndSend(
 
     // Apply Wanderer map filter.
     // For channels with a Wanderer connection:
-    //   - If the kill's solar system IS on the map, ensure the channel receives
+    //   - If the kill's solar system is on the map, ensure the channel receives
     //     the kill (adding it to neutralmailChannelIDs when no other filter
     //     already matched it).
-    //   - If the system is NOT on the map, remove the channel from all sets so
-    //     that normal filter matches are also suppressed (the map IS the filter).
     const wandererConfig = WandererMaps.getInstance();
     const connections: Array<{ channelId: string; mapPath: string }> = [];
     wandererConfig.forEachConnection((channelId, mapPath) => {
@@ -448,31 +449,24 @@ export async function prepAndSend(
 
         // Determine if there was already a rule-based kill or loss match.
         const hadRuleMatch =
-          lossmailChannelIDs.has(channelId) ||
-          killmailChannelIDs.has(channelId);
+          lossmailChannelIDs.has(channelId)
+          || killmailChannelIDs.has(channelId);
 
         // If the channel has an exclusion for this system ID, skip map-based handling.
         // This preserves any rule-based sends; exclusions only prevent map-originated sends.
-        if (excludedIds?.has(String(killmail.solar_system_id))) {
-          return;
-        }
+        if (
+          !hadRuleMatch
+          && !excludedIds?.has(String(killmail.solar_system_id))
+        ) {
+          const systemsForMap = wandererConfig.getSystemsForMap(mapPath);
+          const systemOnMap = systemsForMap?.has(killmail.solar_system_id);
 
-        const systemsForMap = wandererConfig.getSystemsForMap(mapPath);
-        const systemOnMap = systemsForMap?.has(killmail.solar_system_id);
-
-        if (systemOnMap) {
-          // If the channel already matched by rules, keep those sends. If not,
-          // add a neutral-style send for channels covered by the map.
-          if (!hadRuleMatch && !neutralmailChannelIDs.has(channelId)) {
-            neutralmailChannelIDs.add(channelId);
-          }
-        } else {
-          // System not on map: only suppress sends for channels that did not
-          // already have a rule-based match. Rule-based sends are preserved.
-          if (!hadRuleMatch) {
-            lossmailChannelIDs.delete(channelId);
-            killmailChannelIDs.delete(channelId);
-            neutralmailChannelIDs.delete(channelId);
+          if (systemOnMap) {
+            // Add a neutral-style send for channels covered by the map.
+            mapperChannelIDs.add(channelId);
+            if (neutralmailChannelIDs.has(channelId)) {
+              neutralmailChannelIDs.delete(channelId);
+            }
           }
         }
       });
@@ -483,38 +477,57 @@ export async function prepAndSend(
     savedData.stats.ISKAppraised += appraisalValue;
 
     await Promise.all([
-      ...Array.from(lossmailChannelIDs).map((channelId) =>
-        sendKillmailMessage(
-          client,
-          channelId,
-          killmail,
-          zkb,
-          appraisalValue,
-          ZKMailType.Loss,
+      ...Array
+        .from(lossmailChannelIDs)
+        .map((channelId) =>
+          sendKillmailMessage(
+            client,
+            channelId,
+            killmail,
+            zkb,
+            appraisalValue,
+            ZKMailType.Loss
+          )
         ),
-      ),
-      ...Array.from(killmailChannelIDs).map((channelId) =>
-        sendKillmailMessage(
-          client,
-          channelId,
-          killmail,
-          zkb,
-          appraisalValue,
-          ZKMailType.Kill,
+      ...Array
+        .from(killmailChannelIDs)
+        .map((channelId) =>
+          sendKillmailMessage(
+            client,
+            channelId,
+            killmail,
+            zkb,
+            appraisalValue,
+            ZKMailType.Kill
+          )
         ),
-      ),
-      ...Array.from(neutralmailChannelIDs).map((channelId) =>
-        sendKillmailMessage(
-          client,
-          channelId,
-          killmail,
-          zkb,
-          appraisalValue,
-          ZKMailType.Neutral,
+      ...Array
+        .from(neutralmailChannelIDs)
+        .map((channelId) =>
+          sendKillmailMessage(
+            client,
+            channelId,
+            killmail,
+            zkb,
+            appraisalValue,
+            ZKMailType.Neutral
+          )
         ),
-      ),
+      ...Array
+        .from(mapperChannelIDs)
+        .map((channelId) =>
+          sendKillmailMessage(
+            client,
+            channelId,
+            killmail,
+            zkb,
+            appraisalValue,
+            ZKMailType.OnMap
+          )
+        ),
     ]);
-  } catch (error) {
-    LOGGER.error("Error sending message. " + error);
+  }
+  catch (error) {
+    LOGGER.error('Error sending message. ' + error);
   }
 }

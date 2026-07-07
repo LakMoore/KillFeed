@@ -5,6 +5,7 @@ export enum ZKMailType {
   Kill,
   Loss,
   Neutral,
+  OnMap,
 }
 
 export interface BaseFormat {

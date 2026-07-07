@@ -2,11 +2,16 @@ import { EmbedBuilder } from "@discordjs/builders";
 import { KillMail, ZkbOnly } from "../zKillboard/zKillboard";
 import { BaseFormat, ZKMailType } from "./Fomat";
 
-const colours = {
-  kill: 0x00ff00,
-  loss: 0xff0000,
-  neutral: 0x0000ff,
+export const colours = {
+  kill: hexToNumber('#43A047'),
+  loss: hexToNumber('#E53935'),
+  mapper: hexToNumber('#FF991C'),
+  neutral: hexToNumber('#1E88E5'),
 };
+
+function hexToNumber(hex: string) {
+  return Number.parseInt(hex.replace('#', ''), 16);
+}
 
 export const EmbeddedFormat: BaseFormat = {
   getMessage: async (
@@ -17,6 +22,10 @@ export const EmbeddedFormat: BaseFormat = {
   ) => {
     let nameText = "Neutral";
     let colour = colours.neutral;
+    if (mailType == ZKMailType.OnMap) {
+      nameText = 'From the map';
+      colour = colours.mapper;
+    }
     if (mailType == ZKMailType.Kill) {
       nameText = "Kill";
       colour = colours.kill;

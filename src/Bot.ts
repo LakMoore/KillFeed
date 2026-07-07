@@ -9,7 +9,6 @@ import axiosRetry from "axios-retry";
 import { Data } from "./Data";
 import { LOGGER } from "./helpers/Logger";
 import error from "./listeners/error";
-import { startWandererEventStreams } from "./wanderer/WandererEventsClient";
 
 dotenv.config();
 export const savedData = new Data();
@@ -38,16 +37,11 @@ async function main() {
   // set this up once
   axiosRetry(axios, { retries: 9, retryDelay: axiosRetry.exponentialDelay });
 
-  // Error.stackTraceLimit = Infinity;
-
   error(client);
   ready(client);
   interactionCreate(client);
   guild(client);
   channel(client);
-
-  // Start the Wanderer Server-to-Server event streams.
-  void startWandererEventStreams(client);
 
   client.login(process.env.SECRET_TOKEN);
 

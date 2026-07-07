@@ -68,6 +68,7 @@ export function parseConfigMessage(
         Domain: "",
         createdAt: undefined,
         ExcludeSystemIDs: new Set<string>(),
+        PingRole: undefined,
       },
     };
   }
@@ -114,6 +115,7 @@ export function parseConfigMessage(
       EncryptedDetails: "",
       Domain: "",
       ExcludeSystemIDs: new Set<string>(),
+      PingRole: undefined,
     },
     MinISK: 0,
     RoleToPing: undefined,

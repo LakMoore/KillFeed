@@ -22,6 +22,7 @@ export interface SubscriptionSettings {
     Domain: string;
     createdAt?: string;
     ExcludeSystemIDs: Set<string>;
+    PingRole?: string;
   };
   MinISK: number | undefined;
   RoleToPing: string | undefined;
