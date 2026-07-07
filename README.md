@@ -9,6 +9,18 @@ https://discord.gg/VNF7Dt43b8
 
 ## Changelog
 
+v1.0.13 [July 2026]
+
+- Wanderer (https://wanderer.ltd/) integration for KillFeed. If you run the mapper, you can now get notified about any kills that occur in the systems on your map. If you don't run this mapper then this isn't going to help you, sorry.
+  - `/wanderer connect` Add a new connection to a Wanderer map to this channel. You need the URL and the API Key for the map. Only the map owner can generate the API Key.
+  - `/wanderer disconnect` Delete the Wanderer connection for this channel
+  - `/wanderer status` Display info about the Wanderer connection in this channel.
+  - `/wanderer restart` If your Wanderer map goes down the connection will fail, use this command when you map is available again.
+  - `/wanderer set_ping` If you want a ping when the kill is from systems on your map, set the role here.
+  - `/wanderer exclude` Provide systems that might be on the map that you don't want to track (e.g. Jita)
+  - `/wanderer unexclude` Remove a system from the exclude list.
+  - `/wanderer list-excludes` See the current systems in the exclude list.
+
 v1.0.12 [June 2026]
 
 - add `/set_format` command to change the format of the message sent to Discord for each kill mail
