@@ -1,10 +1,11 @@
-import { MessageCreateOptions } from "discord.js";
-import { KillMail, ZkbOnly } from "../zKillboard/zKillboard";
+import { MessageCreateOptions } from 'discord.js';
+import { KillMail, ZkbOnly } from '../zKillboard/zKillboard';
 
 export enum ZKMailType {
   Kill,
   Loss,
   Neutral,
+  OnMap,
 }
 
 export interface BaseFormat {

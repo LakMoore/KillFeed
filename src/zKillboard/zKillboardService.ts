@@ -15,6 +15,7 @@ import { LOGGER, msToTimeSpan } from "../helpers/Logger";
 import { savedData } from "../Bot";
 import { sleep } from "../listeners/ready";
 import https from "node:https";
+import { WandererMaps } from "../wanderer/WandererMaps";
 
 const R2Z2_BASE_URL = "https://r2z2.zkillboard.com/ephemeral";
 const R2Z2_SEQUENCE_DELAY_MS = 100;
@@ -26,6 +27,7 @@ const DEDUPE_CACHE_MAX = 10000;
 const seenKillmailIds = new Map<number, number>();
 
 let nextSequenceId: number | null = null;
+let sequential404Count = 0;
 
 function rememberKillmail(killmailId: number) {
   seenKillmailIds.set(killmailId, Date.now());
@@ -75,20 +77,32 @@ export async function pollzKillboardOnce(client: Client) {
       })
     : undefined;
 
+  let thisSequenceId: number | null = null;
+
   try {
     if (nextSequenceId === null) {
       if (savedData.stats.LastSequenceId > 0) {
-        nextSequenceId = savedData.stats.LastSequenceId + 1;
-        LOGGER.warning(`Resuming sequence stream from ${nextSequenceId}`);
+        thisSequenceId = savedData.stats.LastSequenceId + 1;
+        LOGGER.warning(`Resuming sequence stream from ${thisSequenceId}`);
       } else {
-        nextSequenceId = await getLatestSequence(localAgent);
+        thisSequenceId = await getLatestSequence(localAgent);
         LOGGER.warning(
-          `Starting sequence stream from latest sequence ${nextSequenceId}`,
+          `Starting sequence stream from latest sequence ${thisSequenceId}`,
         );
       }
     }
+    else {
+      thisSequenceId = nextSequenceId;
+    }
 
-    const payload = await getSequencePayload(nextSequenceId, localAgent);
+    if (thisSequenceId === null) {
+      LOGGER.error(
+        'thisSequenceId is null, cannot proceed with polling zKillboard.'
+      );
+      return;
+    }
+
+    const payload = await getSequencePayload(thisSequenceId, localAgent);
 
     if (hasSeenKillmail(payload.killmail_id)) {
       LOGGER.debug(
@@ -106,18 +120,43 @@ export async function pollzKillboardOnce(client: Client) {
     savedData.stats.LastSequenceId = payload.sequence_id;
     savedData.stats.LastSequenceSeenAt = new Date(payload.uploaded_at * 1000);
     nextSequenceId = payload.sequence_id + 1;
+    sequential404Count = 0;
 
     await sleep(R2Z2_SEQUENCE_DELAY_MS);
   } catch (error) {
     if (axios.isAxiosError(error) && error.response?.status === 404) {
-      if (nextSequenceId !== null) {
+      sequential404Count++;
+
+      if (nextSequenceId === null) {
         try {
+          // just started the application and the sequence we want is no longer available, so fast-forward to the latest sequence
           const latestSequence = await getLatestSequence(localAgent);
-          if (latestSequence > nextSequenceId) {
-            LOGGER.warning(
-              `Sequence ${nextSequenceId} no longer available. Fast-forwarding to ${latestSequence}`,
-            );
-            nextSequenceId = latestSequence;
+          LOGGER.warning(
+            `Sequence ${thisSequenceId} no longer available. Fast-forwarding to ${latestSequence}`
+          );
+          nextSequenceId = latestSequence;
+          sequential404Count = 0;
+        }
+        catch (sequenceError) {
+          LOGGER.error(
+            'Error fetching latest sequence after 404\n' + sequenceError
+          );
+        }
+      }
+      else if (sequential404Count > 50) {
+        try {
+          if (sequential404Count % 10 === 0) {
+            const latestSequence = await getLatestSequence(localAgent);
+            if (
+              latestSequence > nextSequenceId + 52
+              || latestSequence < nextSequenceId
+            ) {
+              LOGGER.warning(
+                `Sequence ${nextSequenceId} not available. Fast-forwarding to ${latestSequence}`
+              );
+              nextSequenceId = latestSequence;
+              sequential404Count = 0;
+            }
           }
         } catch (sequenceError) {
           LOGGER.error(
@@ -195,15 +234,18 @@ export async function prepAndSend(
     const lossmailChannelIDs = new Set<string>();
     const killmailChannelIDs = new Set<string>();
     const neutralmailChannelIDs = new Set<string>();
+    const mapperChannelIDs = new Set<string>();
 
     // For AND filter logic: track which filter types matched for each channel
     const channelMatchedFilters = new Map<string, Set<string>>();
 
     const trackMatch = (channelId: string, filterType: string) => {
-      if (!channelMatchedFilters.has(channelId)) {
+      const filter = channelMatchedFilters.get(channelId);
+      if (filter) {
+        filter.add(filterType);
+      } else {
         channelMatchedFilters.set(channelId, new Set());
       }
-      channelMatchedFilters.get(channelId)!.add(filterType);
     };
 
     const config = Config.getInstance();
@@ -339,7 +381,7 @@ export async function prepAndSend(
         const subscription = config.allSubscriptions.get(channelId);
 
         // Skip if subscription not found or AND filtering not enabled
-        if (!subscription || !subscription.RequireAllFilters) {
+        if (!subscription?.RequireAllFilters) {
           return;
         }
 
@@ -390,43 +432,102 @@ export async function prepAndSend(
     applyAndFilterLogic(killmailChannelIDs);
     applyAndFilterLogic(neutralmailChannelIDs);
 
+    // Apply Wanderer map filter.
+    // For channels with a Wanderer connection:
+    //   - If the kill's solar system is on the map, ensure the channel receives
+    //     the kill (adding it to neutralmailChannelIDs when no other filter
+    //     already matched it).
+    const wandererConfig = WandererMaps.getInstance();
+    const connections: Array<{ channelId: string; mapPath: string }> = [];
+    wandererConfig.forEachConnection((channelId, mapPath) => {
+      connections.push({ channelId, mapPath });
+    });
+    if (connections.length > 0) {
+      connections.forEach(({ channelId, mapPath }) => {
+        const subscription = config.allSubscriptions.get(channelId);
+        const excludedIds = subscription?.WandererSettings?.ExcludeSystemIDs;
+
+        // Determine if there was already a rule-based kill or loss match.
+        const hadRuleMatch =
+          lossmailChannelIDs.has(channelId)
+          || killmailChannelIDs.has(channelId);
+
+        // If the channel has an exclusion for this system ID, skip map-based handling.
+        // This preserves any rule-based sends; exclusions only prevent map-originated sends.
+        if (
+          !hadRuleMatch
+          && !excludedIds?.has(String(killmail.solar_system_id))
+        ) {
+          const systemsForMap = wandererConfig.getSystemsForMap(mapPath);
+          const systemOnMap = systemsForMap?.has(killmail.solar_system_id);
+
+          if (systemOnMap) {
+            // Add a neutral-style send for channels covered by the map.
+            mapperChannelIDs.add(channelId);
+            if (neutralmailChannelIDs.has(channelId)) {
+              neutralmailChannelIDs.delete(channelId);
+            }
+          }
+        }
+      });
+    }
+
     const appraisalValue = await getJaniceAppraisalValue(killmail);
 
     savedData.stats.ISKAppraised += appraisalValue;
 
     await Promise.all([
-      ...Array.from(lossmailChannelIDs).map((channelId) =>
-        sendKillmailMessage(
-          client,
-          channelId,
-          killmail,
-          zkb,
-          appraisalValue,
-          ZKMailType.Loss,
+      ...Array
+        .from(lossmailChannelIDs)
+        .map((channelId) =>
+          sendKillmailMessage(
+            client,
+            channelId,
+            killmail,
+            zkb,
+            appraisalValue,
+            ZKMailType.Loss
+          )
         ),
-      ),
-      ...Array.from(killmailChannelIDs).map((channelId) =>
-        sendKillmailMessage(
-          client,
-          channelId,
-          killmail,
-          zkb,
-          appraisalValue,
-          ZKMailType.Kill,
+      ...Array
+        .from(killmailChannelIDs)
+        .map((channelId) =>
+          sendKillmailMessage(
+            client,
+            channelId,
+            killmail,
+            zkb,
+            appraisalValue,
+            ZKMailType.Kill
+          )
         ),
-      ),
-      ...Array.from(neutralmailChannelIDs).map((channelId) =>
-        sendKillmailMessage(
-          client,
-          channelId,
-          killmail,
-          zkb,
-          appraisalValue,
-          ZKMailType.Neutral,
+      ...Array
+        .from(neutralmailChannelIDs)
+        .map((channelId) =>
+          sendKillmailMessage(
+            client,
+            channelId,
+            killmail,
+            zkb,
+            appraisalValue,
+            ZKMailType.Neutral
+          )
         ),
-      ),
+      ...Array
+        .from(mapperChannelIDs)
+        .map((channelId) =>
+          sendKillmailMessage(
+            client,
+            channelId,
+            killmail,
+            zkb,
+            appraisalValue,
+            ZKMailType.OnMap
+          )
+        ),
     ]);
-  } catch (error) {
-    LOGGER.error("Error sending message. " + error);
+  }
+  catch (error) {
+    LOGGER.error('Error sending message. ' + error);
   }
 }

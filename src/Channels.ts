@@ -37,6 +37,19 @@ export async function updateChannel(
       // rework config for this channel
       thisSubscription = parseConfigMessage(message.content, channel);
 
+      // Ensure WandererSettings.ExcludeSystemIDs exists (no legacy handling)
+      try {
+        if (
+          thisSubscription?.WandererSettings &&
+          !thisSubscription.WandererSettings.ExcludeSystemIDs
+        ) {
+          thisSubscription.WandererSettings.ExcludeSystemIDs =
+            new Set<string>();
+        }
+      } catch (err) {
+        LOGGER.debug(`Error initializing Wanderer exclusions: ${err}`);
+      }
+
       const config = Config.getInstance();
       config.allSubscriptions.set(channel.id, thisSubscription);
       savedData.stats.ConfigCount++;

@@ -13,6 +13,7 @@ import { Stats } from "./commands/stats";
 import { Show } from "./commands/show";
 import { FilterMode } from "./commands/filterMode";
 import { SetFormat } from "./commands/setFormat";
+import { Wanderer } from "./commands/wanderer";
 
 export const Commands: Command[] = [
   Hello,
@@ -29,4 +30,5 @@ export const Commands: Command[] = [
   Show,
   FilterMode,
   SetFormat,
+  Wanderer,
 ];

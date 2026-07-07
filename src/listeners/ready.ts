@@ -4,6 +4,7 @@ import { Commands } from "../Commands";
 import { updateGuild } from "../Servers";
 import { DEV_ROLE, LOGGER } from "../helpers/Logger";
 import { savedData } from "../Bot";
+import { startWandererEventStreams } from '../wanderer/WandererEventsClient';
 import { Config } from "../Config";
 import { checkChannelPermissions } from "../helpers/DiscordHelper";
 import { readFileSync } from "fs";
@@ -13,10 +14,12 @@ const pkgVersion: string = JSON.parse(
   readFileSync(join(__dirname, "../../package.json"), "utf-8"),
 ).version as string;
 
-export default (client: Client): void => {
-  client.on("clientReady", async () => {
-    try {
-      if (!client.user || !client.application) return;
+export default function ready(client: Client): void {
+  client.on(
+    'clientReady',
+    async () => {
+      try {
+        if (!client.user || !client.application) return;
 
       await client.application.commands.set(Commands);
 
@@ -63,9 +66,9 @@ export default (client: Client): void => {
         );
       }
 
-      savedData.stats.ServerCount = 0;
-      savedData.stats.ConfigCount = 0;
-      savedData.stats.ChannelCount = 0;
+        savedData.stats.ServerCount = 0;
+        savedData.stats.ConfigCount = 0;
+        savedData.stats.ChannelCount = 0;
 
       // fetch all guilds(servers) that KillFeed is a member of
       const guilds = await client.guilds.fetch();
@@ -84,6 +87,11 @@ export default (client: Client): void => {
 
       const endTime = new Date();
       const duration = (endTime.getTime() - startTime.getTime()) / 1000;
+
+      // Start Wanderer event streams
+      // (must be done after all guilds are imported, so that we have all the channels to connect to)
+      const wandererStreams = startWandererEventStreams(client);
+
       LOGGER.warning(
         `Imported all servers and now ready. Startup took ${duration} seconds.`,
       );
@@ -99,7 +107,7 @@ export default (client: Client): void => {
       }
 
       LOGGER.info("Starting Poll");
-      await pollLoop(client, 0);
+      await Promise.all([pollLoop(client, 0), wandererStreams]);
     } catch (err) {
       LOGGER.error("Error in ready handler: " + err);
     }
@@ -140,51 +148,41 @@ async function postUpdateMessage() {
 
 let firstMem: NodeJS.MemoryUsage;
 
+function logMemoryUsage() {
+  if (!firstMem) firstMem = process.memoryUsage();
+  const used = process.memoryUsage();
+  for (const key in used) {
+    LOGGER.debug(
+      `Memory: ${key}   ${
+        Math.round((used[key as keyof NodeJS.MemoryUsage] / 1024 / 1024) * 100)
+        / 100
+      } MB`
+    );
+  }
+}
+
+// main poll loop
 async function pollLoop(client: Client, loopCount: number) {
-  // eslint-disable-next-line no-constant-condition
+  // Explicit infinite loop
   while (true) {
-    // Explicit infinite loop
     try {
-      LOGGER.debug("loop " + loopCount++);
+      LOGGER.debug('loop ' + loopCount++);
       await pollzKillboardOnce(client);
-    } catch (error) {
-      if (error instanceof Error) {
-        LOGGER.error(error);
-      } else {
-        LOGGER.error(error as string);
-      }
-      // if there was an error, we can afford to slow things down!
+    }
+    catch (error) {
+      if (error instanceof Error) LOGGER.error(error);
+      else LOGGER.error(error as string);
+      // if there was an error, wait a bit longer before retrying
       await sleep(10000);
     }
 
     const DEBUG = false;
-
     if (DEBUG) {
-      const err = new Error();
+      const err = new Error('debug-stack');
       if (err.stack) {
-        LOGGER.debug("Stack size: " + (err.stack.split("\n").length - 1));
+        LOGGER.debug('Stack size: ' + (err.stack.split('\n').length - 1));
       }
-
-      if (!firstMem) firstMem = process.memoryUsage();
-
-      const used = process.memoryUsage();
-      for (const key in used) {
-        LOGGER.debug(
-          `Memory: ${key}   ${
-            Math.round(
-              (used[key as keyof NodeJS.MemoryUsage] / 1024 / 1024) * 100,
-            ) / 100
-          } MB  Diff: ${
-            Math.round(
-              ((used[key as keyof NodeJS.MemoryUsage] -
-                firstMem[key as keyof NodeJS.MemoryUsage]) /
-                1024 /
-                1024) *
-                100,
-            ) / 100
-          }`,
-        );
-      }
+      logMemoryUsage();
     }
   }
 }
