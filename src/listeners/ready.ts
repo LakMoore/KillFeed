@@ -5,7 +5,6 @@ import {
   DiscordAPIError,
 } from 'discord.js';
 import { pollzKillboardOnce } from '../zKillboard/zKillboardService';
-import { Commands } from '../Commands';
 import { updateGuild } from '../Servers';
 import { DEV_ROLE, LOGGER } from '../helpers/Logger';
 import { savedData } from '../Bot';
@@ -24,7 +23,8 @@ export default async function ready(client: Client): Promise<void> {
     try {
       if (!thisClient.user || !thisClient.application) return;
 
-      await thisClient.application.commands.set(Commands);
+      // Clear global commands. Commands are set per Guild
+      await thisClient.application.commands.set([]);
 
       let errorChannel: TextChannel | null = null;
 
