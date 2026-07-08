@@ -41,7 +41,7 @@ KillFeed is a Discord bot that streams EVE-Online killmails from zKillboard and 
 All commands follow this pattern:
 
 ```typescript
-const builder = new SlashCommandBuilder().setName("cmd").setDescription("...");
+const builder = new SlashCommandBuilder().setName('cmd').setDescription('...');
 export const CommandName: Command = {
   ...builder.toJSON(),
   run: async (client, interaction) => {
@@ -105,3 +105,33 @@ Requires `.env` with:
 **Update message format**: Implement BaseFormat interface in `feedformats/`, add to format options in commands (add.ts, init.ts).
 
 **Modify filter logic**: Edit `zKillboardService.ts` `shouldSendToChannel()` or `prepAndSend()` filter evaluation.
+
+## Wanderer Mapper Integration
+
+KillFeed now integrates with the third-party Wanderer mapper to receive map system lists and real-time map events (SSE). This enables "OnMap" filtering and notifications for channels connected to a Wanderer map.
+
+- **Files:** `src/wanderer/WandererApi.ts`, `src/wanderer/WandererEventsClient.ts`, `src/wanderer/WandererMaps.ts`, `src/wanderer/WandererTypes.ts`, `src/commands/wanderer.ts`, plus hooks in `src/listeners/ready.ts` and usage in `src/zKillboard/zKillboardService.ts`.
+- **How it works:**
+  - `/wanderer connect <map_url> <api_key>` calls `connectWandererMap()` which:
+    - Parses the provided Wanderer URL and derives a canonical `mapPath` (domain/slug).
+    - Encrypts the provided API key using HKDF-SHA256 + AES-256-GCM, binding the ciphertext to the `mapPath`. The encrypted blob is stored on the channel subscription as `EncryptedDetails`.
+    - Calls `syncMapSystems()` to fetch `/api/maps/{map}/systems` and populate `WandererMaps` (in-memory) for fast runtime lookups.
+  - On startup `startWandererEventStreams()` (invoked from `listeners/ready.ts`) starts SSE streams for each connected channel via `WandererEventsClient`, subscribing to event types: `add_system`, `deleted_system`, `system_metadata_changed`, and `map_kill`.
+  - Incoming SSE events are parsed and applied via `WandererMaps` (`addSystem`, `removeSystem`) so the bot maintains an up-to-date, in-memory set of systems for each map.
+  - `zKillboardService` consults `WandererMaps.isSystemOnMap()` when evaluating whether a killmail is "OnMap" and to apply the channel's Wanderer-related behavior (pings, OnMap message formatting, exclusions).
+- **Runtime behavior & state:**
+  - Systems are stored in-memory only (not persisted to disk); `syncMapSystems()` is called on connect and at startup to repopulate state.
+  - Per-channel settings are stored on the channel subscription under `WandererSettings` (fields include `Slug`, `Domain`, `EncryptedDetails`, `createdAt`, `PingRole`, `ExcludeSystemIDs`).
+  - Channels can maintain an exclusion list of systems (`ExcludeSystemIDs`) to suppress Wanderer notifications per-channel.
+- **Commands:** The `Wanderer` command exposes these subcommands in `src/commands/wanderer.ts`:
+  - `connect` — connect channel to a Wanderer map (`map_url`, `api_key`)
+  - `disconnect` — remove integration for this channel
+  - `status` — show current connection and tracked system count
+  - `restart` — attempt to restart the SSE stream for this channel
+  - `set_ping` — set a server role to ping for OnMap messages
+  - `exclude` / `unexclude` / `list-excludes` — manage per-channel excluded systems
+- **Security:**
+  - The integration uses a `WANDERER_SECRET` env var to derive encryption keys via HKDF. Ensure `WANDERER_SECRET` is set in production; otherwise encrypted data cannot be decrypted reliably.
+  - Encrypted API keys are stored in the channel subscription as a four-part `salt:iv:cipher:tag` base64 blob.
+- **Errors & recovery:**
+  - Non-fatal stream errors are logged and the channel receives a message describing the issue. If the stream terminates unexpectedly it is marked `terminatedEarly` and users can call `/wanderer restart` to re-establish it.
