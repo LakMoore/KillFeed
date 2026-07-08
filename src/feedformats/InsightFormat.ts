@@ -1,8 +1,9 @@
 import { EmbedBuilder } from '@discordjs/builders';
-import { MessageCreateOptions } from 'discord.js';
+import type { MessageCreateOptions } from 'discord.js';
 import { getCharacterNames } from '../esi/get';
-import { KillMail, ZkbOnly } from '../zKillboard/zKillboard';
-import { BaseFormat, ZKMailType } from './Fomat';
+import type { KillMail, ZkbOnly } from '../zKillboard/zKillboard';
+import type { BaseFormat } from './Fomat';
+import { ZKMailType } from './Fomat';
 import { formatISKValue } from '../helpers/JaniceHelper';
 import { CachedESI } from '../esi/cache';
 import { colours } from './EmbeddedFormat';

@@ -1,6 +1,6 @@
 import { formatISKValue } from '../helpers/JaniceHelper';
-import { KillMail, ZkbOnly } from '../zKillboard/zKillboard';
-import { BaseFormat, ZKMailType } from './Fomat';
+import type { KillMail, ZkbOnly } from '../zKillboard/zKillboard';
+import type { BaseFormat, ZKMailType } from './Fomat';
 import {
   buildInsightFooterText,
   InsightFormat,
