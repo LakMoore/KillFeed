@@ -11,6 +11,10 @@ See the section below the Changelog for installation instructions.
 
 ## Changelog
 
+v1.0.15 [July 2026]
+
+- Adapt the Wanderer Killmails to also show custom system names from the map.
+
 v1.0.14 [July 2026]
 
 - Add per-channel Wanderer security threshold: `/wanderer exclude_sec_above <threshold>` — set a numeric `security_status` threshold (e.g. `0.1`, `-0.5`, `0.0`) and KillFeed will ignore OnMap killmails from systems whose `security_status` is greater than the configured value.
