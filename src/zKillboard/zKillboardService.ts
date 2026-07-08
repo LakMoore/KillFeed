@@ -481,7 +481,7 @@ export async function prepAndSend(
       connections.push({ channelId, mapPath });
     });
     if (connections.length > 0) {
-      connections.forEach(({ channelId, mapPath }) => {
+      for (const { channelId, mapPath } of connections) {
         const subscription = config.allSubscriptions.get(channelId);
         const excludedIds = subscription?.WandererSettings?.ExcludeSystemIDs;
 
@@ -500,6 +500,29 @@ export async function prepAndSend(
           const systemOnMap = systemsForMap?.has(killmail.solar_system_id);
 
           if (systemOnMap) {
+            // If configured, ignore kills from systems whose security_status
+            // is greater than the configured per-channel threshold.
+            const excludeSecAbove =
+              subscription?.WandererSettings?.ExcludeSecAbove;
+            if (typeof excludeSecAbove === 'number') {
+              try {
+                const system = await CachedESI.getSystem(
+                  killmail.solar_system_id
+                );
+                const sec = system?.security_status;
+                if (typeof sec === 'number' && sec > excludeSecAbove) {
+                  // Skip adding this channel for OnMap sends
+                  continue;
+                }
+              }
+              catch (err) {
+                LOGGER.error(
+                  `Error fetching system data for Wanderer excludeSecAbove check: ${err}`
+                );
+                // On error, do not skip — fall through to send
+              }
+            }
+
             // Add a neutral-style send for channels covered by the map.
             mapperChannelIDs.add(channelId);
             if (neutralmailChannelIDs.has(channelId)) {
@@ -507,7 +530,7 @@ export async function prepAndSend(
             }
           }
         }
-      });
+      }
     }
 
     const appraisalValue = await getJaniceAppraisalValue(killmail);

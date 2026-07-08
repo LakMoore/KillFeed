@@ -85,6 +85,23 @@ const builder = new SlashCommandBuilder()
   )
   .addSubcommand((sub) =>
     sub
+      .setName('exclude_sec_above')
+      .setDescription(
+        'Ignore OnMap kills from systems with security status above this number'
+      )
+      .addNumberOption((opt) =>
+        opt
+          .setName('threshold')
+          .setDescription(
+            'Numeric security_status threshold (e.g. 0.1, -0.5, 0.0)'
+          )
+          .setRequired(true)
+          .setMinValue(-1)
+          .setMaxValue(1)
+      )
+  )
+  .addSubcommand((sub) =>
+    sub
       .setName('exclude')
       .setDescription(
         'Exclude a solar system from Wanderer notifications for this channel (e.g. Jita)'
@@ -158,6 +175,9 @@ export const Wanderer: Command = {
     case 'set_ping':
       await handleSetPing(client, interaction, channel.id);
       break;
+    case 'exclude_sec_above':
+      await handleExcludeSecAbove(client, interaction, channel.id);
+      break;
     default:
       await interaction.followUp({
         ephemeral: true,
@@ -207,6 +227,49 @@ async function handleSetPing(
   await interaction.followUp({
     ephemeral: true,
     content: `✅ Set Wanderer ping role to ${role.name} for this channel.`,
+  });
+}
+
+async function handleExcludeSecAbove(
+  client: Client,
+  interaction: ChatInputCommandInteraction,
+  channelId: string
+): Promise<void> {
+  const thisSubscription = Config.getInstance().allSubscriptions.get(channelId);
+  if (!thisSubscription) {
+    await interaction.followUp({
+      ephemeral: true,
+      content: 'No subscription found in channel. Use /init to start.',
+    });
+    return;
+  }
+
+  if (!thisSubscription.WandererSettings) {
+    await interaction.followUp({
+      ephemeral: true,
+      content: 'Wanderer is not configured on this channel.',
+    });
+    return;
+  }
+
+  const threshold = interaction.options.getNumber('threshold', true);
+  thisSubscription.PauseForChanges = true;
+  thisSubscription.WandererSettings.ExcludeSecAbove = Number(threshold);
+
+  const chan = await ensureChannelAvailable(interaction);
+  if (chan) {
+    const message = await getConfigMessage(chan);
+    if (message) {
+      await message.edit(generateConfigMessage(thisSubscription));
+      await updateChannel(client, channelId, interaction.guild?.name ?? '');
+    }
+  }
+
+  thisSubscription.PauseForChanges = false;
+
+  await interaction.followUp({
+    ephemeral: true,
+    content: `✅ Set ExcludeSecAbove=${thisSubscription.WandererSettings.ExcludeSecAbove} for this channel.`,
   });
 }
 
@@ -277,6 +340,7 @@ async function handleConnect(
           EncryptedDetails: '',
           Domain: '',
           ExcludeSystemIDs: new Set<string>(),
+          ExcludeSecAbove: undefined,
         };
 
       const wsRef = thisSubscription.WandererSettings;
@@ -378,6 +442,7 @@ async function handleStatus(
       `**Wanderer Integration Active**\n`
       + `**Map Slug:** \`${ws.Slug}\`\n`
       + `**Tracked systems:** ${systemCount}\n`
+      + `**Exclude sec above:** ${typeof ws.ExcludeSecAbove === 'number' ? ws.ExcludeSecAbove : 'not set'}\n`
       + `**First connected:** ${ws.createdAt ? new Date(ws.createdAt).toUTCString() : 'unknown'}\n`
       + `**Connection status:** ${connectionStatus}\n`
       + `**Start attempted:** ${state?.started ? 'Yes' : 'No'}`,

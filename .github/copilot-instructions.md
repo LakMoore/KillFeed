@@ -121,7 +121,7 @@ KillFeed now integrates with the third-party Wanderer mapper to receive map syst
   - `zKillboardService` consults `WandererMaps.isSystemOnMap()` when evaluating whether a killmail is "OnMap" and to apply the channel's Wanderer-related behavior (pings, OnMap message formatting, exclusions).
 - **Runtime behavior & state:**
   - Systems are stored in-memory only (not persisted to disk); `syncMapSystems()` is called on connect and at startup to repopulate state.
-  - Per-channel settings are stored on the channel subscription under `WandererSettings` (fields include `Slug`, `Domain`, `EncryptedDetails`, `createdAt`, `PingRole`, `ExcludeSystemIDs`).
+  - Per-channel settings are stored on the channel subscription under `WandererSettings` (fields include `Slug`, `Domain`, `EncryptedDetails`, `createdAt`, `PingRole`, `ExcludeSystemIDs`, `ExcludeSecAbove`).
   - Channels can maintain an exclusion list of systems (`ExcludeSystemIDs`) to suppress Wanderer notifications per-channel.
 - **Commands:** The `Wanderer` command exposes these subcommands in `src/commands/wanderer.ts`:
   - `connect` — connect channel to a Wanderer map (`map_url`, `api_key`)
@@ -130,6 +130,7 @@ KillFeed now integrates with the third-party Wanderer mapper to receive map syst
   - `restart` — attempt to restart the SSE stream for this channel
   - `set_ping` — set a server role to ping for OnMap messages
   - `exclude` / `unexclude` / `list-excludes` — manage per-channel excluded systems
+  - `ignore_sec_above_zero` — enable/disable ignoring OnMap killmails from systems with `security_status > 0.0`
 - **Security:**
   - The integration uses a `WANDERER_SECRET` env var to derive encryption keys via HKDF. Ensure `WANDERER_SECRET` is set in production; otherwise encrypted data cannot be decrypted reliably.
   - Encrypted API keys are stored in the channel subscription as a four-part `salt:iv:cipher:tag` base64 blob.

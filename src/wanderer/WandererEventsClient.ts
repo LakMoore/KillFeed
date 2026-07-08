@@ -1,7 +1,8 @@
-import { Client, TextChannel } from 'discord.js';
+import type { Client } from 'discord.js';
+import { TextChannel } from 'discord.js';
 import { LOGGER } from '../helpers/Logger';
 import { WandererMaps } from './WandererMaps';
-import { WandererEvent, WandererEventsSetupResult } from './WandererTypes';
+import type { WandererEvent, WandererEventsSetupResult } from './WandererTypes';
 import {
   getWandererEventsStreamUrl,
   getWandererSystemsUrl,
@@ -9,7 +10,8 @@ import {
 } from './WandererApi';
 import crypto, { hkdfSync } from 'node:crypto';
 import { Config } from '../Config';
-import { SSEOptions, streamSSE } from 'sse-events-2';
+import type { SSEOptions } from 'sse-events-2';
+import { streamSSE } from 'sse-events-2';
 
 type FetchResponseBody = {
   data?: {

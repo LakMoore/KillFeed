@@ -1,13 +1,20 @@
 # KillFeed by Lak Moore
 
-Discord bot to post filtered killmails from the Massively Multiplayer Online Role Playing Game (MMORPG) EVE-Online using data from zKillboard and Janice.
+Discord bot to post filtered killmails from the Massive Multiplayer Online Role Playing Game (MMORPG) EVE-Online using data from zKillboard (https://zkillboard.com/) using Janice (https://janice.e-351.com/) for a second opinion on prices and optionally integrating with the popular mapping system, Wanderer (https://wanderer.ltd/).
 
 This project began as a complete re-write of the discontinued Insight Bot (https://github.com/EVEInsight/Insight)
 
 Join the Discord server for community, feedback, support and to see some test feeds.
 https://discord.gg/VNF7Dt43b8
 
+See the section below the Changelog for installation instructions.
+
 ## Changelog
+
+v1.0.14 [July 2026]
+
+- Add per-channel Wanderer security threshold: `/wanderer exclude_sec_above <threshold>` — set a numeric `security_status` threshold (e.g. `0.1`, `-0.5`, `0.0`) and KillFeed will ignore OnMap killmails from systems whose `security_status` is greater than the configured value.
+- `/wanderer status` now reports the configured security threshold for the channel.
 
 v1.0.13 [July 2026]
 

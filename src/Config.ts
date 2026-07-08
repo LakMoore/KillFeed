@@ -23,6 +23,10 @@ export interface SubscriptionSettings {
     createdAt?: string;
     ExcludeSystemIDs: Set<string>;
     PingRole?: string;
+    // When set to a numeric threshold, killmails originating from map systems
+    // whose `security_status` is greater than the configured value will be
+    // ignored for this channel. Example: `0.1`, `-0.5`, `0.0`.
+    ExcludeSecAbove?: number;
   };
   MinISK: number | undefined;
   RoleToPing: string | undefined;
