@@ -1,13 +1,14 @@
 import { Config } from '../Config';
+import type { WandererSystem, WandererConnection } from './WandererTypes';
 
 export class WandererMaps {
   private static instance: WandererMaps;
 
-  // ChannelId → Map of solar system ID → metadata (createdAt)
-  private readonly systems = new Map<
-    string,
-    Map<number, { createdAt: string }>
-  >();
+  // MapPath (domain/slug) → Map of solar system ID → full WandererSystem
+  private readonly systems = new Map<string, Map<number, WandererSystem>>();
+
+  // MapPath → list of connections returned by the Wanderer systems endpoint
+  private readonly connections = new Map<string, WandererConnection[]>();
 
   private constructor() {}
 
@@ -35,36 +36,28 @@ export class WandererMaps {
   // System tracking
   // ---------------------------------------------------------------------------
 
-  public addSystem(mapId: string, solarSystemId: number): void {
+  public addSystem(mapId: string, system: WandererSystem): void {
     let map = this.systems.get(mapId);
     if (!map) {
       map = new Map();
       this.systems.set(mapId, map);
     }
-    if (!map.has(solarSystemId)) {
-      map.set(solarSystemId, { createdAt: new Date().toISOString() });
-    }
+    map.set(Number(system.solar_system_id), system);
   }
 
   public removeSystem(mapId: string, solarSystemId: number): void {
     this.systems.get(mapId)?.delete(solarSystemId);
   }
 
-  public setSystemsForMap(
-    mapId: string,
-    solarSystemIds: Iterable<number>
-  ): void {
-    const map = new Map<number, { createdAt: string }>();
-    const now = new Date().toISOString();
-    for (const id of solarSystemIds) {
-      map.set(id, { createdAt: now });
+  public setSystemsForMap(mapId: string, systems: Iterable<WandererSystem>): void {
+    const map = new Map<number, WandererSystem>();
+    for (const s of systems) {
+      map.set(Number(s.solar_system_id), s);
     }
     this.systems.set(mapId, map);
   }
 
-  public getSystemsForMap(
-    mapId: string
-  ): Map<number, { createdAt: string }> | undefined {
+  public getSystemsForMap(mapId: string): Map<number, WandererSystem> | undefined {
     return this.systems.get(mapId);
   }
 
@@ -80,5 +73,17 @@ export class WandererMaps {
 
   public getSystemCountForMap(mapId: string): number {
     return this.systems.get(mapId)?.size ?? 0;
+  }
+
+  // ---------------------------------------------------------------------------
+  // Connections tracking
+  // ---------------------------------------------------------------------------
+
+  public setConnectionsForMap(mapId: string, conns: WandererConnection[]): void {
+    this.connections.set(mapId, conns);
+  }
+
+  public getConnectionsForMap(mapId: string): WandererConnection[] | undefined {
+    return this.connections.get(mapId);
   }
 }

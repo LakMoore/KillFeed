@@ -2,7 +2,11 @@ import type { Client } from 'discord.js';
 import { TextChannel } from 'discord.js';
 import { LOGGER } from '../helpers/Logger';
 import { WandererMaps } from './WandererMaps';
-import type { WandererEvent, WandererEventsSetupResult } from './WandererTypes';
+import type {
+  WandererEvent,
+  WandererEventsSetupResult,
+  WandererSystemsResponse,
+} from './WandererTypes';
 import {
   getWandererEventsStreamUrl,
   getWandererSystemsUrl,
@@ -13,79 +17,54 @@ import { Config } from '../Config';
 import type { SSEOptions } from 'sse-events-2';
 import { streamSSE } from 'sse-events-2';
 
-type FetchResponseBody = {
-  data?: {
-    systems?: Array<{
-      solar_system_id?: number | string;
-      id?: number | string;
-    }>;
-  };
-  systems?: Array<{ solar_system_id?: number | string; id?: number | string }>;
-};
-
 type FatalError = Error & { fatal?: boolean };
 
 function isFatalStatus(status: number): boolean {
   return status === 401 || status === 403 || status === 404;
 }
 
-function extractSystems(body: unknown): number[] {
-  const payload = body as FetchResponseBody | undefined;
-  const systems = payload?.data?.systems ?? payload?.systems ?? [];
-
-  return systems
-    .map((system) => Number(system.solar_system_id ?? system.id))
-    .filter((solarSystemId) => Number.isFinite(solarSystemId));
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === 'object';
 }
 
-function getEventPayload(
-  event: Record<string, unknown>
-): Record<string, unknown> {
-  const payload = event.payload ?? event.data ?? event.event_data ?? event;
-  return payload && typeof payload === 'object'
-    ? (payload as Record<string, unknown>)
-    : {};
-}
-
-function getSolarSystemId(event: Record<string, unknown>): number | undefined {
-  const payload = getEventPayload(event);
-  const solarSystem = payload.solar_system;
-  const solarSystemObject =
-    solarSystem && typeof solarSystem === 'object'
-      ? (solarSystem as { id?: unknown })
-      : undefined;
-  const value =
-    payload.solar_system_id
-    ?? event.solar_system_id
-    ?? solarSystemObject?.id
-    ?? (event.solar_system && typeof event.solar_system === 'object'
-      ? (event.solar_system as { id?: unknown }).id
-      : undefined);
-
-  const solarSystemId = Number(value);
-  return Number.isFinite(solarSystemId) ? solarSystemId : undefined;
+function isWandererSystemsResponse(
+  value: unknown
+): value is WandererSystemsResponse {
+  return (
+    isRecord(value)
+    && Array.isArray(value.systems)
+    && Array.isArray(value.connections)
+  );
 }
 
 function isWandererEvent(value: unknown): value is WandererEvent {
-  if (!value || typeof value !== 'object') {
-    return false;
-  }
-
-  const event = value as WandererEvent;
-  return typeof event.map_id === 'string' && typeof event.type === 'string';
+  return (
+    isRecord(value)
+    && typeof value.map_id === 'string'
+    && typeof value.type === 'string'
+  );
 }
 
-async function readResponseBody(response: Response): Promise<unknown> {
+async function readResponseBody(
+  response: Response
+): Promise<WandererSystemsResponse | undefined> {
   const text = await response.text();
   if (!text) {
     return undefined;
   }
 
   try {
-    return JSON.parse(text) as unknown;
+    const parsed = JSON.parse(text);
+    if (isWandererSystemsResponse(parsed.data)) {
+      return parsed.data;
+    }
+    if (isWandererSystemsResponse(parsed)) {
+      return parsed;
+    }
+    return undefined;
   }
   catch {
-    return text;
+    return undefined;
   }
 }
 
@@ -380,16 +359,18 @@ class WandererEventsClient {
 
     try {
       await this.syncMapSystems(latestConnection);
+      const thisState = {
+        started: true,
+        connected: false,
+        terminatedEarly: false,
+      };
       // mark connected before starting the SSE stream
-      this.connectionStates.set(
-        channelId,
-        {
-          started: true,
-          connected: true,
-          terminatedEarly: false,
-        }
+      this.connectionStates.set(channelId, thisState);
+      await this.streamMapEvents(
+        latestConnection,
+        thisState,
+        controller.signal
       );
-      await this.streamMapEvents(latestConnection, controller.signal);
       // If stream ends normally, log a warning and exit
       LOGGER.error(`Wanderer events stream ended for channel ${channelId}.`);
       // mark disconnected and terminated early
@@ -440,11 +421,10 @@ Issue the \`/wanderer restart\` command to attempt to restart the stream.`;
         headers: { Authorization: 'Bearer ' + apiKey },
       }
     );
-    const body = await readResponseBody(response);
 
     if (!response.ok) {
       const message = extractErrorMessage(
-        body,
+        response,
         `Failed to fetch map systems (${response.status}).`
       );
       const error = new Error(message);
@@ -454,9 +434,22 @@ Issue the \`/wanderer restart\` command to attempt to restart the stream.`;
       throw error;
     }
 
+    const data = await readResponseBody(response);
+
     // Update in-memory map systems for runtime filtering. Do not persist to disk; will be fetched on each startup.
     // Use MapPath (domain/mapId) as the canonical map key for systems
-    WandererMaps.getInstance().setSystemsForMap(mapPath, extractSystems(body));
+    const maps = WandererMaps.getInstance();
+    if (isWandererSystemsResponse(data)) {
+      maps.setSystemsForMap(mapPath, data.systems);
+      maps.setConnectionsForMap(mapPath, data.connections);
+    }
+    else {
+      LOGGER.error(
+        `Wanderer systems response for ${mapPath} did not contain expected data.`
+      );
+      maps.setSystemsForMap(mapPath, []);
+      maps.setConnectionsForMap(mapPath, []);
+    }
   }
 
   private async streamMapEvents(
@@ -465,6 +458,11 @@ Issue the \`/wanderer restart\` command to attempt to restart the stream.`;
       slug: string;
       EncryptedDetails?: string;
       channelId?: string;
+    },
+    connectionState: {
+      started: boolean;
+      connected: boolean;
+      terminatedEarly: boolean;
     },
     signal: AbortSignal
   ): Promise<void> {
@@ -482,17 +480,16 @@ Issue the \`/wanderer restart\` command to attempt to restart the stream.`;
     for await (const event of streamSSE(url, options)) {
       try {
         if (!event.data) return;
-        const parsed = JSON.parse(event.data) as unknown;
-        const evtType =
-          parsed && typeof parsed === 'object' && 'type' in parsed
-            ? String((parsed as Record<string, unknown>)['type'])
-            : '';
-        const evtId =
-          parsed && typeof parsed === 'object' && 'id' in parsed
-            ? String((parsed as Record<string, unknown>)['id'])
-            : '';
+        if (event.event === 'connected') {
+          connectionState.connected = true;
+          LOGGER.debug(
+            `Wanderer events stream connected for channel ${connection.channelId}.`
+          );
+          continue;
+        }
+        const parsed = JSON.parse(event.data) as WandererEvent;
         if (isWandererEvent(parsed)) {
-          this.applyEvent(connection, parsed, evtType, evtId);
+          this.applyEvent(connection, parsed);
         }
       }
       catch (err) {
@@ -505,28 +502,10 @@ Issue the \`/wanderer restart\` command to attempt to restart the stream.`;
 
   private applyEvent(
     connection: { channelId?: string; slug: string; domain?: string },
-    event: WandererEvent,
-    eventName: string,
-    eventId: string
+    event: WandererEvent
   ) {
-    if (eventName && eventName !== event.type) {
-      LOGGER.debug(
-        `Wanderer event name mismatch for channel ${connection.channelId}: ${eventName} !== ${event.type}`
-      );
-    }
-
-    if (eventId) {
-      LOGGER.debug(
-        `Wanderer event received for channel ${connection.channelId}: ${event.type} (${eventId})`
-      );
-    }
-
-    const solarSystemId = getSolarSystemId(
-      event as unknown as Record<string, unknown>
-    );
-    if (solarSystemId === undefined) {
-      return;
-    }
+    const solarSystemId = event.payload.solar_system_id;
+    if (solarSystemId === undefined) return;
 
     const config = WandererMaps.getInstance();
 
@@ -536,13 +515,21 @@ Issue the \`/wanderer restart\` command to attempt to restart the stream.`;
 
     switch (event.type) {
     case 'add_system':
+    // purposefully fall through
     case 'system_metadata_changed':
-      config.addSystem(mapPath, solarSystemId);
+      config.addSystem(
+        mapPath,
+        { ...event.payload, timestamp: event.timestamp }
+      );
       break;
     case 'deleted_system':
       config.removeSystem(mapPath, solarSystemId);
       break;
-    case 'map_kill':
+    case 'connection_added':
+      break;
+    case 'connection_removed':
+      break;
+    case 'connection_updated':
       break;
     default:
       LOGGER.debug(

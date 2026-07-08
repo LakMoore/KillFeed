@@ -1,10 +1,12 @@
 // Core Wanderer URL and parsing utilities
 
-const EVENT_TYPES = [
+export const WANDERER_EVENT_TYPES = [
   'add_system',
   'deleted_system',
   'system_metadata_changed',
-  'map_kill',
+  'connection_added',
+  'connection_removed',
+  'connection_updated',
 ] as const;
 
 function normalizeBaseUrl(value: string): string {
@@ -55,7 +57,7 @@ export function getWandererEventsStreamUrl(
   mapId: string
 ): string {
   return new URL(
-    `/api/maps/${encodeURIComponent(mapId)}/events/stream?events=${EVENT_TYPES.join(',')}`,
+    `/api/maps/${encodeURIComponent(mapId)}/events/stream?events=${WANDERER_EVENT_TYPES.join(',')}`,
     normalizeBaseUrl(domain)
   ).toString();
 }
