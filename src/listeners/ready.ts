@@ -20,107 +20,105 @@ const pkgVersion: string = JSON.parse(
 ).version as string;
 
 export default async function ready(client: Client): Promise<void> {
-  for await (const clients of Client.on(client, 'clientReady')) {
-    for (const client of clients) {
-      try {
-        if (!client.user || !client.application) return;
+  for await (const [thisClient] of Client.on(client, 'clientReady')) {
+    try {
+      if (!thisClient.user || !thisClient.application) return;
 
-        await client.application.commands.set(Commands);
+      await thisClient.application.commands.set(Commands);
 
-        let errorChannel: TextChannel | null = null;
+      let errorChannel: TextChannel | null = null;
 
-        // get the error channnel
-        const errorChannelId = process.env.ERROR_CHANNEL_ID;
-        if (errorChannelId) {
-          const channel = await client.channels.fetch(
-            errorChannelId,
-            {
-              cache: true,
-            }
+      // get the error channnel
+      const errorChannelId = process.env.ERROR_CHANNEL_ID;
+      if (errorChannelId) {
+        const channel = await thisClient.channels.fetch(
+          errorChannelId,
+          {
+            cache: true,
+          }
+        );
+        if (
+          channel
+          && channel.isTextBased()
+          && channel instanceof TextChannel
+        ) {
+          errorChannel = channel;
+          LOGGER.setErrorChannel(channel);
+
+          const devRole = channel.guild.roles.cache.find(
+            (r) => r.name === DEV_ROLE
           );
-          if (
-            channel
-            && channel.isTextBased()
-            && channel instanceof TextChannel
-          ) {
-            errorChannel = channel;
-            LOGGER.setErrorChannel(channel);
-
-            const devRole = channel.guild.roles.cache.find(
-              (r) => r.name === DEV_ROLE
-            );
-            if (devRole) {
-              LOGGER.setDevRole(devRole.id);
-            }
-            else {
-              LOGGER.error(
-                `Developer role with name ${DEV_ROLE} not found in guild ${channel.guild.name}.`
-              );
-            }
+          if (devRole) {
+            LOGGER.setDevRole(devRole.id);
           }
           else {
             LOGGER.error(
-              `Error channel with ID ${errorChannelId} is not a text-based channel.`
+              `Developer role with name ${DEV_ROLE} not found in guild ${channel.guild.name}.`
             );
           }
         }
-
-        // ... rest of ready work, then pollLoop
-        LOGGER.warning(`---\n${client.user.username} is online\n---`);
-
-        let message = null;
-        if (errorChannel) {
-          message = await errorChannel.send(
-            'Enumerating Servers and Channels for KillFeed...'
+        else {
+          LOGGER.error(
+            `Error channel with ID ${errorChannelId} is not a text-based channel.`
           );
         }
+      }
 
-        savedData.stats.ServerCount = 0;
-        savedData.stats.ConfigCount = 0;
-        savedData.stats.ChannelCount = 0;
+      // ... rest of ready work, then pollLoop
+      LOGGER.warning(`---\n${thisClient.user.username} is online\n---`);
 
-        // fetch all guilds(servers) that KillFeed is a member of
-        const guilds = await client.guilds.fetch();
-        const guildCount = guilds.size;
-        const startTime = new Date();
-
-        for (const [guildId, guild] of guilds) {
-          LOGGER.info('Guild: ' + guild.name);
-          savedData.stats.ServerCount++;
-          // update this guild
-          await updateGuild(client, guildId, guild.name);
-          await message?.edit(
-            `Enumerating Servers and Channels for KillFeed...\nProcessed ${savedData.stats.ServerCount} of ${guildCount} servers so far...`
-          );
-        }
-
-        const endTime = new Date();
-        const duration = (endTime.getTime() - startTime.getTime()) / 1000;
-
-        // Start Wanderer event streams
-        // (must be done after all guilds are imported, so that we have all the channels to connect to)
-        const wandererStreams = startWandererEventStreams(client);
-
-        LOGGER.warning(
-          `Imported all servers and now ready. Startup took ${duration} seconds.`
+      let message = null;
+      if (errorChannel) {
+        message = await errorChannel.send(
+          'Enumerating Servers and Channels for KillFeed...'
         );
-
-        const currentVersion = pkgVersion;
-        if (savedData.stats.LastVersion !== currentVersion) {
-          LOGGER.info(
-            `Bot updated from v${savedData.stats.LastVersion} to v${currentVersion}. Posting update notice to all channels.`
-          );
-          await postUpdateMessage();
-          savedData.stats.LastVersion = currentVersion;
-          await savedData.save();
-        }
-
-        LOGGER.info('Starting Poll');
-        await Promise.all([pollLoop(client, 0), wandererStreams]);
       }
-      catch (err) {
-        LOGGER.error('Error in ready handler: ' + err);
+
+      savedData.stats.ServerCount = 0;
+      savedData.stats.ConfigCount = 0;
+      savedData.stats.ChannelCount = 0;
+
+      // fetch all guilds(servers) that KillFeed is a member of
+      const guilds = await thisClient.guilds.fetch();
+      const guildCount = guilds.size;
+      const startTime = new Date();
+
+      for (const [guildId, guild] of guilds) {
+        LOGGER.info('Guild: ' + guild.name);
+        savedData.stats.ServerCount++;
+        // update this guild
+        await updateGuild(thisClient, guildId, guild.name);
+        await message?.edit(
+          `Enumerating Servers and Channels for KillFeed...\nProcessed ${savedData.stats.ServerCount} of ${guildCount} servers so far...`
+        );
       }
+
+      const endTime = new Date();
+      const duration = (endTime.getTime() - startTime.getTime()) / 1000;
+
+      // Start Wanderer event streams
+      // (must be done after all guilds are imported, so that we have all the channels to connect to)
+      const wandererStreams = startWandererEventStreams(thisClient);
+
+      LOGGER.warning(
+        `Imported all servers and now ready. Startup took ${duration} seconds.`
+      );
+
+      const currentVersion = pkgVersion;
+      if (savedData.stats.LastVersion !== currentVersion) {
+        LOGGER.info(
+          `Bot updated from v${savedData.stats.LastVersion} to v${currentVersion}. Posting update notice to all channels.`
+        );
+        await postUpdateMessage();
+        savedData.stats.LastVersion = currentVersion;
+        await savedData.save();
+      }
+
+      LOGGER.info('Starting Poll');
+      await Promise.all([pollLoop(thisClient, 0), wandererStreams]);
+    }
+    catch (err) {
+      LOGGER.error('Error in ready handler: ' + err);
     }
   }
 }

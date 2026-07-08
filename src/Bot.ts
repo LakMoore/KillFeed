@@ -39,7 +39,7 @@ async function main() {
 
   const errorPromise = errorListeners(client);
   const readyPromise = ready(client);
-  interactionCreate(client);
+  const interactionCreatePromise = interactionCreate(client);
   const guildPromise = guild(client);
   channel(client);
 
@@ -53,6 +53,7 @@ async function main() {
     errorPromise,
     loginPromise,
     guildPromise,
+    interactionCreatePromise,
   ]);
 }
 

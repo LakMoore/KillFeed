@@ -1,22 +1,22 @@
-import { Interaction, Client, ChatInputCommandInteraction } from 'discord.js';
+import type { ChatInputCommandInteraction } from 'discord.js';
+import { Client } from 'discord.js';
 import { Commands } from '../Commands';
 import { LOGGER } from '../helpers/Logger';
 
-export default (client: Client): void => {
-  client.on(
-    'interactionCreate',
-    async (interaction: Interaction) => {
-      if (interaction.isChatInputCommand()) {
-        await handleSlashCommand(client, interaction);
-      }
+export default async function interactionCreateListener(
+  client: Client
+): Promise<void> {
+  for await (const [interaction] of Client.on(client, 'interactionCreate')) {
+    if (interaction.isChatInputCommand()) {
+      await handleSlashCommand(client, interaction);
     }
-  );
-};
+  }
+}
 
-const handleSlashCommand = async (
+async function handleSlashCommand(
   client: Client,
   interaction: ChatInputCommandInteraction
-): Promise<void> => {
+): Promise<void> {
   const slashCommand = Commands.find((c) => c.name === interaction.commandName);
   if (!slashCommand) {
     await interaction.reply({
@@ -51,4 +51,4 @@ const handleSlashCommand = async (
       );
     }
   }
-};
+}

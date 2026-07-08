@@ -1,4 +1,4 @@
-import { Client } from 'discord.js';
+import type { Client } from 'discord.js';
 import { updateChannel } from './Channels';
 import { canUseChannel } from './helpers/DiscordHelper';
 
