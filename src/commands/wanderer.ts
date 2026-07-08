@@ -442,7 +442,7 @@ async function handleStatus(
       `**Wanderer Integration Active**\n`
       + `**Map Slug:** \`${ws.Slug}\`\n`
       + `**Tracked systems:** ${systemCount}\n`
-      + `**Exclude sec above:** ${typeof ws.ExcludeSecAbove === 'number' ? ws.ExcludeSecAbove : 'not set'}\n`
+      + `**Exclude sec status above:** ${typeof ws.ExcludeSecAbove === 'number' ? ws.ExcludeSecAbove : 'not set'}\n`
       + `**First connected:** ${ws.createdAt ? new Date(ws.createdAt).toUTCString() : 'unknown'}\n`
       + `**Connection status:** ${connectionStatus}\n`
       + `**Start attempted:** ${state?.started ? 'Yes' : 'No'}`,
