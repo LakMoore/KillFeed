@@ -1,9 +1,6 @@
-import {
-  ChatInputCommandInteraction,
-  Client,
-  SlashCommandBuilder,
-} from 'discord.js';
-import { Command } from '../Command';
+import type { ChatInputCommandInteraction, Client } from 'discord.js';
+import { SlashCommandBuilder } from 'discord.js';
+import type { Command } from '../Command';
 import { canUseChannel, getConfigMessage } from '../helpers/DiscordHelper';
 import {
   connectWandererMap,
@@ -87,7 +84,7 @@ const builder = new SlashCommandBuilder()
     sub
       .setName('exclude_sec_above')
       .setDescription(
-        'Ignore OnMap kills from systems with security status above this number'
+        'Ignore OnMap kills from systems with security status above this number.  0 will mute all Low-Sec and High-Sec kills.  Use -2 to mute ALL killmails from the map.'
       )
       .addNumberOption((opt) =>
         opt
@@ -96,7 +93,7 @@ const builder = new SlashCommandBuilder()
             'Numeric security_status threshold (e.g. 0.1, -0.5, 0.0)'
           )
           .setRequired(true)
-          .setMinValue(-1)
+          .setMinValue(-2)
           .setMaxValue(1)
       )
   )
