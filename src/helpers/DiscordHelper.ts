@@ -8,7 +8,7 @@ import type {
 } from 'discord.js';
 import { DiscordAPIError, PermissionsBitField, TextChannel } from 'discord.js';
 import { savedData } from '../Bot';
-import { TYPE_KILLS, TYPE_LOSSES } from '../commands/show';
+import { TYPE_KILLS, TYPE_LOSSES, TYPE_NONE } from '../commands/show';
 import type { SubscriptionSettings } from '../Config';
 import { Config } from '../Config';
 import { InsightFormat } from '../feedformats/InsightFormat';
@@ -228,6 +228,10 @@ function shouldSkipKillmail(
   zkb: ZkbOnly,
   type: ZKMailType
 ) {
+  if (thisSubscription.Show === TYPE_NONE && type !== ZKMailType.OnMap) {
+    return true;
+  }
+
   if (zkb.zkb.totalValue <= (thisSubscription.MinISK ?? 0)) {
     return true;
   }

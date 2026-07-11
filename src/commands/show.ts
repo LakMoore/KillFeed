@@ -1,13 +1,9 @@
-import {
-  ChatInputCommandInteraction,
-  Client,
-  SlashCommandBuilder,
-  SlashCommandStringOption,
-} from 'discord.js';
+import type { ChatInputCommandInteraction, Client } from 'discord.js';
+import { SlashCommandBuilder, SlashCommandStringOption } from 'discord.js';
 import { Config } from '../Config';
 import { getConfigMessage } from '../helpers/DiscordHelper';
 import { generateConfigMessage } from '../helpers/KillFeedHelpers';
-import { Command } from '../Command';
+import type { Command } from '../Command';
 import { updateChannel } from '../Channels';
 
 const SHOW_TYPE = 'type';
@@ -15,6 +11,7 @@ const SHOW_TYPE = 'type';
 export const TYPE_ALL = 'all';
 export const TYPE_KILLS = 'kills';
 export const TYPE_LOSSES = 'losses';
+export const TYPE_NONE = 'none';
 
 const showOptions = new SlashCommandStringOption()
   .setName(SHOW_TYPE)
@@ -23,13 +20,14 @@ const showOptions = new SlashCommandStringOption()
   .addChoices(
     { name: 'All', value: TYPE_ALL },
     { name: 'Kills', value: TYPE_KILLS },
-    { name: 'Losses', value: TYPE_LOSSES }
+    { name: 'Losses', value: TYPE_LOSSES },
+    { name: 'None', value: TYPE_NONE }
   );
 
 const builder = new SlashCommandBuilder()
   .setName('show')
   .setDescription(
-    'Select which type(s) of notifications to show (Kills, Losses or All).'
+    'Select which type(s) of notifications to show (Kills, Losses, None or All).'
   )
   .addStringOption(showOptions);
 
