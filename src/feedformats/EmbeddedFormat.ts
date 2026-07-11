@@ -1,6 +1,7 @@
 import { EmbedBuilder } from '@discordjs/builders';
-import { KillMail, ZkbOnly } from '../zKillboard/zKillboard';
-import { BaseFormat, ZKMailType } from './Fomat';
+import type { KillMail, ZkbOnly } from '../zKillboard/zKillboard';
+import type { BaseFormat } from './Fomat';
+import { ZKMailType } from './Fomat';
 
 export const colours = {
   kill: hexToNumber('#43A047'),
