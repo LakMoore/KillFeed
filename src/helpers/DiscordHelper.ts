@@ -1,24 +1,22 @@
-import {
-  APIEmbed,
+import type {
   Channel,
   Client,
-  DiscordAPIError,
   EmbedBuilder,
   MessageCreateOptions,
   MessageMentionOptions,
   PermissionResolvable,
-  PermissionsBitField,
-  TextChannel,
 } from 'discord.js';
+import { DiscordAPIError, PermissionsBitField, TextChannel } from 'discord.js';
 import { savedData } from '../Bot';
 import { TYPE_KILLS, TYPE_LOSSES } from '../commands/show';
-import { Config, SubscriptionSettings } from '../Config';
+import type { SubscriptionSettings } from '../Config';
+import { Config } from '../Config';
 import { InsightFormat } from '../feedformats/InsightFormat';
 import { InsightWithAppraisalFormat } from '../feedformats/InsightWithAppraisalFormat';
 import { InsightWithPLEXFormat } from '../feedformats/InsightWithPLEXFormat';
 import { ZKMailType } from '../feedformats/Fomat';
 import { ZKillLinkFormat } from '../feedformats/ZKillLinkFormat';
-import { KillMail, ZkbOnly } from '../zKillboard/zKillboard';
+import type { KillMail, ZkbOnly } from '../zKillboard/zKillboard';
 import { LOGGER } from './Logger';
 import { WandererMaps } from '../wanderer/WandererMaps';
 import { CachedESI } from '../esi/cache';
@@ -383,49 +381,6 @@ export async function sendKillmailMessage(
 
   const msg = await formatter.getMessage(killmail, zkb, type, appraisalValue);
 
-  if (type === ZKMailType.OnMap) {
-    // get the Wanderer map object for this channel, if any
-    try {
-      const wandererSettings = thisSubscription.WandererSettings;
-      if (!wandererSettings) {
-        LOGGER.warning(
-          `WandererSettings not found for ${channel.name ?? 'unknown channel'} on ${channel.guild.name ?? 'unknown guild'} despite receiving an OnMap killmail.`
-        );
-        return;
-      }
-      const mapId = `${wandererSettings.Domain}/${wandererSettings.Slug}`;
-      const wandererMap = WandererMaps.getInstance().getSystemsForMap(mapId);
-      const wandererSystem = wandererMap?.get(killmail.solar_system_id);
-      const esiSystem = await CachedESI.getSystem(killmail.solar_system_id);
-      if (esiSystem?.name && wandererSystem?.temporary_name) {
-        const embed = msg.embeds?.[0] as EmbedBuilder;
-        const author = embed.toJSON().author;
-        if (author?.name) {
-          embed.setAuthor({
-            ...author,
-            name: author.name.replace(
-              esiSystem.name,
-              `${wandererSystem.temporary_name} [${esiSystem.name}]`
-            ),
-          });
-        }
-      }
-    }
-    catch (error) {
-      LOGGER.error(
-        `Error while updating embed author for OnMap killmail in ${channel.name ?? 'unknown channel'} on ${channel.guild.name ?? 'unknown guild'}: ${
-          error instanceof Error ? error.message : String(error)
-        }`
-      );
-    }
-
-    // If this mail originated from a Wanderer map (OnMap), add the Wanderer-specific ping role if configured
-    addWandererRolePingToMessage(channel, thisSubscription, msg);
-  }
-  else {
-    addRolePingToMessage(channel, thisSubscription, msg);
-  }
-
   const missingPermissions = getMissingPermissions(
     channel,
     getRequiredPermissions(!!msg.files?.length)
@@ -436,6 +391,16 @@ export async function sendKillmailMessage(
       `Unable to send the ${ZKMailType[type]} mail on channel ${channel.name ?? 'unknown channel'} on ${channel.guild.name ?? 'unknown guild'}. Missing permissions: ${missingPermissions.join(', ')}`
     );
     return;
+  }
+
+  await updateWandererSystemName(channel, thisSubscription, killmail, msg);
+
+  if (type === ZKMailType.OnMap) {
+    // If this mail originated from a Wanderer map (OnMap), add the Wanderer-specific ping role if configured
+    addWandererRolePingToMessage(channel, thisSubscription, msg);
+  }
+  else {
+    addRolePingToMessage(channel, thisSubscription, msg);
   }
 
   try {
@@ -456,5 +421,47 @@ export async function sendKillmailMessage(
     }
 
     throw error;
+  }
+}
+
+async function updateWandererSystemName(
+  channel: TextChannel,
+  thisSubscription: SubscriptionSettings,
+  killmail: KillMail,
+  msg: MessageCreateOptions
+) {
+  // get the Wanderer map object for this channel, if any
+  try {
+    const wandererSettings = thisSubscription.WandererSettings;
+    if (wandererSettings) {
+      const mapId = `${wandererSettings.Domain}/${wandererSettings.Slug}`;
+      const wandererMap = WandererMaps.getInstance().getSystemsForMap(mapId);
+      const wandererSystem = wandererMap?.get(killmail.solar_system_id);
+      const esiSystem = await CachedESI.getSystem(killmail.solar_system_id);
+      if (
+        esiSystem?.name
+        && wandererSystem?.temporary_name
+        && msg.embeds?.[0]
+      ) {
+        const embed = msg.embeds[0] as EmbedBuilder;
+        const author = embed.toJSON().author;
+        if (author?.name) {
+          embed.setAuthor({
+            ...author,
+            name: author.name.replace(
+              esiSystem.name,
+              `${wandererSystem.temporary_name} [${esiSystem.name}]`
+            ),
+          });
+        }
+      }
+    }
+  }
+  catch (error) {
+    LOGGER.error(
+      `Error while updating embed author for OnMap killmail in ${channel.name ?? 'unknown channel'} on ${channel.guild.name ?? 'unknown guild'}: ${
+        error instanceof Error ? error.message : String(error)
+      }`
+    );
   }
 }
