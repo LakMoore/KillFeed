@@ -11,7 +11,13 @@ See the section below the Changelog for installation instructions.
 
 ## Changelog
 
-v1.0.15 [July 2026]
+v1.0.16 [11th July 2026]
+
+- Wanderer system names are applied to ANY Killmails or Lossmails, not just those from the map.
+- `/wanderer exclude_sec_above` will accept values as low as -2. This will have the effect of muting ALL Killmails from the map in this channel. (incase you want the system names without the extra alerts).
+- Wanderer system now maintains a single server-server connection per map, instead of per channel. A Discord server can connect multiple channels to Wanderer without increasing load on either Wanderer or KillFeed servers.
+
+v1.0.15 [8th July 2026]
 
 - Adapt the Wanderer Killmails to also show custom system names from the map.
 
