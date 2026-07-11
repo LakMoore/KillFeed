@@ -84,13 +84,13 @@ const builder = new SlashCommandBuilder()
     sub
       .setName('exclude_sec_above')
       .setDescription(
-        'Ignore OnMap kills from systems with security status above this number.  0 will mute all Low-Sec and High-Sec kills.  Use -2 to mute ALL killmails from the map.'
+        'Ignore OnMap kills from systems with security status above this number'
       )
       .addNumberOption((opt) =>
         opt
           .setName('threshold')
           .setDescription(
-            'Numeric security_status threshold (e.g. 0.1, -0.5, 0.0)'
+            '0 to mute LS and HS kills. -2 to mute ALL kills from the map.'
           )
           .setRequired(true)
           .setMinValue(-2)

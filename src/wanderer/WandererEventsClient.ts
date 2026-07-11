@@ -92,11 +92,22 @@ function extractErrorMessage(body: unknown, fallback: string): string {
 
 class WandererEventsClient {
   private static instance: WandererEventsClient;
+  // controllers keyed by streamKey (mapPath:fingerprint)
   private readonly controllers = new Map<string, AbortController>();
-  // Track per-channel connection state
-  // started: whether we attempted to start the stream at app startup or via connect
-  // connected: whether the SSE stream is currently active
-  // terminatedEarly: whether the stream terminated before app shutdown and needs manual restart
+  // Track streams shared across channels. Keyed by streamKey = `${mapPath}:${fingerprint}`
+  private readonly streams = new Map<
+    string,
+    {
+      mapPath: string;
+      domain: string;
+      slug: string;
+      subscribers: Set<string>; // channelIds
+      encryptedSources: Map<string, string>; // channelId -> encryptedDetails
+      state: { started: boolean; connected: boolean; terminatedEarly: boolean };
+    }
+  >();
+
+  // Track per-channel connection state for compatibility with existing callers
   private readonly connectionStates = new Map<
     string,
     { started: boolean; connected: boolean; terminatedEarly: boolean }
@@ -112,9 +123,22 @@ class WandererEventsClient {
 
   public async startAllConnections(client: Client): Promise<void> {
     this.client = client;
-    WandererMaps.getInstance().forEachConnection((channelId) => {
-      void this.startConnection(channelId);
-    });
+    const cfg = Config.getInstance();
+    for (const [channelId, sub] of cfg.allSubscriptions.entries()) {
+      const ws = sub?.WandererSettings;
+      if (!ws?.Slug || !ws.EncryptedDetails || !ws.Domain) continue;
+      const mapPath = ws.Domain + '/' + ws.Slug;
+      const apiKey = this.decryptApiKey(mapPath, ws.EncryptedDetails);
+      if (!apiKey) continue;
+      // subscribe will start a shared stream per (mapPath, apiKeyFingerprint)
+      void this.subscribe(
+        channelId,
+        ws.Domain,
+        ws.Slug,
+        apiKey,
+        ws.EncryptedDetails
+      );
+    }
   }
 
   public async connectWandererMap(params: {
@@ -177,8 +201,14 @@ class WandererEventsClient {
 
     await this.syncMapSystems(connectionMeta);
 
-    this.stopConnection(params.channelId);
-    void this.startConnection(params.channelId);
+    // Subscribe this channel to the shared stream keyed by (mapPath, apiKeyFingerprint).
+    void this.subscribe(
+      params.channelId,
+      domain,
+      slug,
+      params.apiKey,
+      encryptedBlob
+    );
 
     return {
       slug,
@@ -207,8 +237,164 @@ class WandererEventsClient {
   }
 
   private stopConnection(channelId: string): void {
-    this.controllers.get(channelId)?.abort();
-    this.controllers.delete(channelId);
+    // Stop any streams that this channel was subscribed to (unsubscribe)
+    void this.unsubscribe(channelId);
+  }
+
+  private computeFingerprint(apiKey: string): string {
+    return crypto.createHash('sha256').update(apiKey).digest('hex');
+  }
+
+  private streamKey(mapPath: string, fingerprint: string): string {
+    return `${mapPath}:${fingerprint}`;
+  }
+
+  // Subscribe a channel to a (mapPath, apiKey) stream. Starts the stream if not running.
+  public async subscribe(
+    channelId: string,
+    domain: string,
+    slug: string,
+    apiKey: string,
+    encryptedDetails?: string
+  ): Promise<void> {
+    const mapPath = domain + '/' + slug;
+    const fp = this.computeFingerprint(apiKey);
+    const key = this.streamKey(mapPath, fp);
+
+    let entry = this.streams.get(key);
+    if (!entry) {
+      entry = {
+        mapPath,
+        domain,
+        slug,
+        subscribers: new Set<string>(),
+        encryptedSources: new Map<string, string>(),
+        state: { started: true, connected: false, terminatedEarly: false },
+      };
+      this.streams.set(key, entry);
+    }
+
+    entry.subscribers.add(channelId);
+    if (encryptedDetails) {
+      entry.encryptedSources.set(channelId, encryptedDetails);
+    }
+
+    // Initialize per-channel state to the stream state
+    this.connectionStates.set(channelId, { ...entry.state });
+
+    // If there's already a controller/stream running for this key, nothing more to do
+    if (this.controllers.has(key)) return;
+
+    const controller = new AbortController();
+    this.controllers.set(key, controller);
+
+    // Start stream in background
+    void (async () => {
+      try {
+        await this.startStreamForKey(
+          key,
+          domain,
+          slug,
+          apiKey,
+          controller.signal
+        );
+      }
+      finally {
+        // On exit, clean up controller if still present
+        this.controllers.delete(key);
+        // mark subscribers terminatedEarly
+        const e = this.streams.get(key);
+        if (e) {
+          e.state.connected = false;
+          e.state.terminatedEarly = true;
+          for (const ch of e.subscribers) {
+            this.connectionStates.set(ch, { ...e.state });
+          }
+        }
+      }
+    })();
+  }
+
+  // Unsubscribe a channel from all streams. Stops stream when no subscribers remain.
+  public async unsubscribe(channelId: string): Promise<void> {
+    for (const [key, entry] of Array.from(this.streams.entries())) {
+      if (!entry.subscribers.has(channelId)) continue;
+      entry.subscribers.delete(channelId);
+      entry.encryptedSources.delete(channelId);
+      this.connectionStates.delete(channelId);
+      // If no subscribers remain for this stream, stop it
+      if (entry.subscribers.size === 0) {
+        const controller = this.controllers.get(key);
+        if (controller) controller.abort();
+        this.controllers.delete(key);
+        this.streams.delete(key);
+      }
+    }
+  }
+
+  // Restart any stream(s) that a channel is subscribed to. Returns true if restart attempted.
+  public async restartConnection(channelId: string): Promise<boolean> {
+    // Find stream keys that include this channel
+    let attempted = false;
+    for (const [key, entry] of Array.from(this.streams.entries())) {
+      if (!entry.subscribers.has(channelId)) continue;
+      const state = entry.state;
+      if (state.connected) return false;
+      // stop existing controller if present
+      const existing = this.controllers.get(key);
+      if (existing) existing.abort();
+
+      // Determine an API key to use: prefer decrypting an existing encrypted source for any subscriber
+      let apiKey = '';
+      for (const enc of entry.encryptedSources.values()) {
+        apiKey = this.decryptApiKey(entry.mapPath, enc);
+        if (apiKey) break;
+      }
+      if (!apiKey) continue;
+
+      const controller = new AbortController();
+      this.controllers.set(key, controller);
+      entry.state.started = true;
+      entry.state.connected = false;
+      entry.state.terminatedEarly = false;
+      for (const ch of entry.subscribers) {
+        this.connectionStates.set(ch, { ...entry.state });
+      }
+
+      void (async () => {
+        try {
+          await this.startStreamForKey(
+            key,
+            entry.domain,
+            entry.slug,
+            apiKey,
+            controller.signal
+          );
+        }
+        finally {
+          this.controllers.delete(key);
+        }
+      })();
+
+      attempted = true;
+    }
+    return attempted;
+  }
+
+  public isConnected(channelId: string): boolean {
+    return Boolean(this.connectionStates.get(channelId)?.connected);
+  }
+
+  public hasTerminatedEarly(channelId: string): boolean {
+    return Boolean(this.connectionStates.get(channelId)?.terminatedEarly);
+  }
+
+  public getConnectionState(
+    channelId: string
+  ):
+    | { started: boolean; connected: boolean; terminatedEarly: boolean }
+    | undefined {
+    return this.connectionStates.get(channelId);
   }
 
   private buildChannelErrorMessage(error: unknown): string {
@@ -259,154 +445,6 @@ class WandererEventsClient {
     }
   }
 
-  private async startConnection(channelId: string): Promise<void> {
-    if (this.controllers.has(channelId)) return;
-    // mark that we've attempted to start this connection
-    this.connectionStates.set(
-      channelId,
-      {
-        started: true,
-        connected: false,
-        terminatedEarly: false,
-      }
-    );
-    const cfg = Config.getInstance();
-    const sub = cfg.allSubscriptions.get(channelId);
-    const ws = sub?.WandererSettings;
-    if (!ws?.Slug || !ws.EncryptedDetails || !ws.Domain) return;
-
-    const controller = new AbortController();
-    this.controllers.set(channelId, controller);
-
-    try {
-      await this.processConnection(channelId, controller);
-    }
-    finally {
-      this.controllers.delete(channelId);
-    }
-  }
-
-  public async restartConnection(channelId: string): Promise<boolean> {
-    // If already connected, nothing to do
-    const state = this.connectionStates.get(channelId);
-    if (state?.connected) return false;
-
-    // Stop any existing controller just in case
-    this.stopConnection(channelId);
-
-    const cfg = Config.getInstance();
-    const sub = cfg.allSubscriptions.get(channelId);
-    const ws = sub?.WandererSettings;
-    if (!ws?.Slug || !ws.EncryptedDetails || !ws.Domain) return false;
-
-    const controller = new AbortController();
-    this.controllers.set(channelId, controller);
-
-    // mark that we attempted to start
-    this.connectionStates.set(
-      channelId,
-      {
-        started: true,
-        connected: false,
-        terminatedEarly: false,
-      }
-    );
-
-    // Kick off processConnection but don't await here so the command can reply quickly.
-    void (async () => {
-      try {
-        await this.processConnection(channelId, controller);
-      }
-      finally {
-        this.controllers.delete(channelId);
-      }
-    })();
-
-    return true;
-  }
-
-  public isConnected(channelId: string): boolean {
-    return Boolean(this.connectionStates.get(channelId)?.connected);
-  }
-
-  public hasTerminatedEarly(channelId: string): boolean {
-    return Boolean(this.connectionStates.get(channelId)?.terminatedEarly);
-  }
-
-  public getConnectionState(
-    channelId: string
-  ):
-    | { started: boolean; connected: boolean; terminatedEarly: boolean }
-    | undefined {
-    return this.connectionStates.get(channelId);
-  }
-
-  private async processConnection(
-    channelId: string,
-    controller: AbortController
-  ) {
-    const latestSub = Config.getInstance().allSubscriptions.get(channelId);
-    const latestWs = latestSub?.WandererSettings;
-    if (!latestWs?.Slug || !latestWs.EncryptedDetails || !latestWs.Domain) {
-      return;
-    }
-    const latestConnection = {
-      domain: latestWs.Domain,
-      slug: latestWs.Slug,
-      EncryptedDetails: latestWs.EncryptedDetails,
-      channelId,
-    };
-
-    try {
-      await this.syncMapSystems(latestConnection);
-      const thisState = {
-        started: true,
-        connected: false,
-        terminatedEarly: false,
-      };
-      // mark connected before starting the SSE stream
-      this.connectionStates.set(channelId, thisState);
-      await this.streamMapEvents(
-        latestConnection,
-        thisState,
-        controller.signal
-      );
-      // If stream ends normally, log a warning and exit
-      LOGGER.error(`Wanderer events stream ended for channel ${channelId}.`);
-      // mark disconnected and terminated early
-      this.connectionStates.set(
-        channelId,
-        {
-          started: true,
-          connected: false,
-          terminatedEarly: true,
-        }
-      );
-      // post a message to the channel to notify users
-      const channelMessage = `Wanderer events stream ended unexpectedly for this channel.
-Check your mapper is still available at ${latestConnection.domain}/${latestConnection.slug}.
-Issue the \`/wanderer restart\` command to attempt to restart the stream.`;
-      await this.sendChannelMessage(channelId, channelMessage);
-    }
-    catch (error) {
-      // mark disconnected and terminated early
-      this.connectionStates.set(
-        channelId,
-        {
-          started: true,
-          connected: false,
-          terminatedEarly: true,
-        }
-      );
-      LOGGER.error(
-        `Wanderer events stream issue for channel ${channelId}: ${error}`
-      );
-
-      const channelMessage = this.buildChannelErrorMessage(error);
-      await this.sendChannelMessage(channelId, channelMessage);
-    }
-  }
-
   private async syncMapSystems(connection: {
     domain: string;
     slug: string;
@@ -452,56 +490,125 @@ Issue the \`/wanderer restart\` command to attempt to restart the stream.`;
     }
   }
 
-  private async streamMapEvents(
-    connection: {
-      domain: string;
-      slug: string;
-      EncryptedDetails?: string;
-      channelId?: string;
-    },
-    connectionState: {
-      started: boolean;
-      connected: boolean;
-      terminatedEarly: boolean;
-    },
+  // Start a shared stream for the given stream key using the provided plaintext apiKey.
+  private async startStreamForKey(
+    key: string,
+    domain: string,
+    slug: string,
+    apiKey: string,
     signal: AbortSignal
   ): Promise<void> {
-    const mapPath = connection.domain + '/' + connection.slug;
-    const url = getWandererEventsStreamUrl(connection.domain, connection.slug);
+    const entry = this.streams.get(key);
+    if (!entry) return;
+    const mapPath = domain + '/' + slug;
 
+    // Fetch systems once for this map using provided apiKey
+    try {
+      const response = await fetch(
+        getWandererSystemsUrl(domain, slug),
+        {
+          headers: { Authorization: 'Bearer ' + apiKey },
+        }
+      );
+      if (!response.ok) {
+        const message = extractErrorMessage(
+          response,
+          `Failed to fetch map systems (${response.status}).`
+        );
+        const error = new Error(message) as FatalError;
+        if (isFatalStatus(response.status)) error.fatal = true;
+        throw error;
+      }
+
+      const data = await readResponseBody(response);
+      const maps = WandererMaps.getInstance();
+      if (isWandererSystemsResponse(data)) {
+        maps.setSystemsForMap(mapPath, data.systems);
+        maps.setConnectionsForMap(mapPath, data.connections);
+      }
+      else {
+        LOGGER.error(
+          `Wanderer systems response for ${mapPath} did not contain expected data.`
+        );
+        maps.setSystemsForMap(mapPath, []);
+        maps.setConnectionsForMap(mapPath, []);
+      }
+    }
+    catch (err) {
+      LOGGER.error(`Failed to sync map systems for ${mapPath}: ${err}`);
+      // Notify subscribers about failure
+      for (const ch of entry.subscribers) {
+        const msg = this.buildChannelErrorMessage(err);
+        await this.sendChannelMessage(ch, msg);
+        this.connectionStates.set(
+          ch,
+          { started: true, connected: false, terminatedEarly: true }
+        );
+      }
+      return;
+    }
+
+    // Start SSE stream
+    const url = getWandererEventsStreamUrl(domain, slug);
     const options = {
-      headers: {
-        Authorization:
-          'Bearer ' + this.decryptApiKey(mapPath, connection.EncryptedDetails),
-      },
+      headers: { Authorization: 'Bearer ' + apiKey },
       signal,
     } as SSEOptions;
 
-    for await (const event of streamSSE(url, options)) {
-      try {
-        if (!event.data) return;
-        if (event.event === 'connected') {
-          connectionState.connected = true;
-          LOGGER.debug(
-            `Wanderer events stream connected for channel ${connection.channelId}.`
-          );
-          continue;
+    try {
+      for await (const event of streamSSE(url, options)) {
+        try {
+          if (!event.data) return;
+          if (event.event === 'connected') {
+            entry.state.connected = true;
+            entry.state.started = true;
+            entry.state.terminatedEarly = false;
+            for (const ch of entry.subscribers) {
+              this.connectionStates.set(ch, { ...entry.state });
+            }
+            LOGGER.debug(
+              `Wanderer events stream connected for map ${mapPath}.`
+            );
+            continue;
+          }
+          const parsed = JSON.parse(event.data) as WandererEvent;
+          if (isWandererEvent(parsed)) {
+            this.applyEvent({ domain, slug }, parsed);
+          }
         }
-        const parsed = JSON.parse(event.data) as WandererEvent;
-        if (isWandererEvent(parsed)) {
-          this.applyEvent(connection, parsed);
+        catch (err) {
+          LOGGER.error(
+            `Failed to parse Wanderer event for map ${mapPath}: ${err}`
+          );
         }
       }
-      catch (err) {
-        LOGGER.error(
-          `Failed to parse Wanderer event for channel ${connection.domain}/${connection.slug}: ${err}`
-        );
+
+      // stream ended normally
+      LOGGER.error(`Wanderer events stream ended for map ${mapPath}.`);
+      entry.state.connected = false;
+      entry.state.terminatedEarly = true;
+      for (const ch of entry.subscribers) {
+        this.connectionStates.set(ch, { ...entry.state });
+        const channelMessage = `Wanderer events stream ended unexpectedly for this channel.\nCheck your mapper is still available at ${domain}/${slug}.\nIssue the \`/wanderer restart\` command to attempt to restart the stream.`;
+        await this.sendChannelMessage(ch, channelMessage);
+      }
+    }
+    catch (error) {
+      entry.state.connected = false;
+      entry.state.terminatedEarly = true;
+      for (const ch of entry.subscribers) {
+        this.connectionStates.set(ch, { ...entry.state });
+      }
+      LOGGER.error(`Wanderer events stream issue for map ${mapPath}: ${error}`);
+      const channelMessage = this.buildChannelErrorMessage(error);
+      for (const ch of entry.subscribers) {
+        await this.sendChannelMessage(ch, channelMessage);
       }
     }
   }
 
   private applyEvent(
-    connection: { channelId?: string; slug: string; domain?: string },
+    connection: { slug: string; domain?: string },
     event: WandererEvent
   ) {
     const solarSystemId = event.payload.solar_system_id;
@@ -533,7 +640,7 @@ Issue the \`/wanderer restart\` command to attempt to restart the stream.`;
       break;
     default:
       LOGGER.debug(
-        `Wanderer event ignored for channel ${connection.channelId}: ${event.type}`
+        `Wanderer event ignored for map ${connection.domain}/${connection.slug}: ${event.type}`
       );
     }
   }
