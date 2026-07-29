@@ -5,6 +5,7 @@ import { canUseChannel, getConfigMessage } from '../helpers/DiscordHelper';
 import {
   connectWandererMap,
   disconnectWandererMap,
+  refreshWandererMap,
   getWandererSystemCount,
   restartWandererMap,
   isWandererConnected,
@@ -66,6 +67,11 @@ const builder = new SlashCommandBuilder()
     sub
       .setName('restart')
       .setDescription('Restart the Wanderer stream for this channel')
+  )
+  .addSubcommand((sub) =>
+    sub
+      .setName('refresh')
+      .setDescription('Replace this map\'s systems and connections with fresh data')
   )
   .addSubcommand((sub) =>
     sub
@@ -168,6 +174,9 @@ export const Wanderer: Command = {
       break;
     case 'restart':
       await handleRestart(client, interaction, channel.id);
+      break;
+    case 'refresh':
+      await handleRefresh(interaction, channel.id);
       break;
     case 'set_ping':
       await handleSetPing(client, interaction, channel.id);
@@ -307,6 +316,30 @@ async function handleRestart(
       ephemeral: true,
       content:
         'Wanderer stream could not be restarted. Ensure the map is configured.',
+    });
+  }
+}
+
+async function handleRefresh(
+  interaction: ChatInputCommandInteraction,
+  channelId: string
+): Promise<void> {
+  try {
+    const refreshed = await refreshWandererMap(channelId);
+    await interaction.followUp({
+      ephemeral: true,
+      content:
+        `✅ Refreshed Wanderer map \`${refreshed.mapPath}\`: `
+        + `${refreshed.systemCount} systems and `
+        + `${refreshed.connectionCount} connections loaded.`,
+    });
+  }
+  catch (error) {
+    await interaction.followUp({
+      ephemeral: true,
+      content:
+        '❌ Failed to refresh Wanderer map: '
+        + (error instanceof Error ? error.message : String(error)),
     });
   }
 }
