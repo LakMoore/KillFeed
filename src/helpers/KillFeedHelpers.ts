@@ -161,19 +161,19 @@ export function addListener<K>(
   listener.set(id, s);
 }
 
-export function removeListener(
-  listener: Map<number, Set<string>> | undefined,
-  id: number,
+export function removeListener<K>(
+  listener: Map<K, Set<string>> | undefined,
+  id: K,
   channelId: string
-) {
+): boolean {
   // remove the ID from the current filters
   if (listener) {
     const s = listener.get(id);
     if (s) {
       s.delete(channelId);
       listener.set(id, s);
+      return true;
     }
-    // no need to delete the channel id if
-    // the alliance isn't currently being listened for
   }
+  return false;
 }
