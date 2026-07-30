@@ -1,4 +1,5 @@
 import { TextChannel } from 'discord.js';
+import { SpaceType } from './helpers/SpaceTypeHelpers';
 
 export interface SubscriptionSettings {
   Channel: TextChannel;
@@ -16,6 +17,8 @@ export interface SubscriptionSettings {
   Regions: Set<number>;
   Constellations: Set<number>;
   Systems: Set<number>;
+  // Kinds of space this channel wants killmails from. Empty means every kind.
+  SpaceTypes: Set<SpaceType>;
   WandererSettings?: {
     Slug: string;
     EncryptedDetails: string;

@@ -13,6 +13,7 @@ import { Stats } from './commands/stats';
 import { Show } from './commands/show';
 import { FilterMode } from './commands/filterMode';
 import { SetFormat } from './commands/setFormat';
+import { SpaceTypeCommand } from './commands/spaceType';
 import { Wanderer } from './commands/wanderer';
 
 export const Commands: Command[] = [
@@ -30,5 +31,6 @@ export const Commands: Command[] = [
   Show,
   FilterMode,
   SetFormat,
+  SpaceTypeCommand,
   Wanderer,
 ];

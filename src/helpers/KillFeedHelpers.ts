@@ -2,6 +2,7 @@ import { Channel, TextChannel } from 'discord.js';
 import { SubscriptionSettings } from '../Config';
 import { LOGGER } from './Logger';
 import { TYPE_ALL } from '../commands/show';
+import { SpaceType } from './SpaceTypeHelpers';
 
 // serialise our settings storage object, dropping the internal reference to the channel itself
 
@@ -91,6 +92,11 @@ export function parseConfigMessage(
     result = { ...result, Show: TYPE_ALL };
   }
 
+  if (result != undefined && !Object.hasOwn(result, 'SpaceTypes')) {
+    // SpaceTypes object was added later.  These settings need an upgrade!
+    result = { ...result, SpaceTypes: new Set<SpaceType>() };
+  }
+
   if (result != undefined && !Object.hasOwn(result, 'RequireAllFilters')) {
     // RequireAllFilters object was added later.  These settings need an upgrade!
     result = { ...result, RequireAllFilters: false };
@@ -118,6 +124,7 @@ export function parseConfigMessage(
     Ships: new Set<number>(),
     Systems: new Set<number>(),
     Constellations: new Set<number>(),
+    SpaceTypes: new Set<SpaceType>(),
     WandererSettings: {
       Slug: '',
       EncryptedDetails: '',

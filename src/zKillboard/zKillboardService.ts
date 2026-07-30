@@ -12,6 +12,7 @@ import { ZKMailType } from '../feedformats/Fomat';
 import { getJaniceAppraisalValue } from '../Janice/Janice';
 import { CachedESI } from '../esi/cache';
 import { LOGGER, msToTimeSpan } from '../helpers/Logger';
+import { getSpaceType } from '../helpers/SpaceTypeHelpers';
 import { savedData } from '../Bot';
 import { sleep } from '../listeners/ready';
 import https from 'node:https';
@@ -470,6 +471,33 @@ export async function prepAndSend(
     applyAndFilterLogic(killmailChannelIDs);
     applyAndFilterLogic(neutralmailChannelIDs);
 
+    // Apply the per channel space filter. A channel that asked for, say, wormhole space only
+    // should never see a killmail from anywhere else, whichever rule matched it.
+    const spaceType = await getSpaceType(killmail.solar_system_id);
+
+    const applySpaceTypeFilter = (channelIds: Set<string>) => {
+      // an unclassified system (ESI hiccup) is let through rather than silently dropped
+      if (!spaceType) {
+        return;
+      }
+
+      const channelsToRemove: string[] = [];
+
+      channelIds.forEach((channelId) => {
+        const wanted = config.allSubscriptions.get(channelId)?.SpaceTypes;
+
+        if (wanted && wanted.size > 0 && !wanted.has(spaceType)) {
+          channelsToRemove.push(channelId);
+        }
+      });
+
+      channelsToRemove.forEach((channelId) => channelIds.delete(channelId));
+    };
+
+    applySpaceTypeFilter(lossmailChannelIDs);
+    applySpaceTypeFilter(killmailChannelIDs);
+    applySpaceTypeFilter(neutralmailChannelIDs);
+
     // Apply Wanderer map filter.
     // For channels with a Wanderer connection:
     //   - If the kill's solar system is on the map, ensure the channel receives
@@ -532,6 +560,8 @@ export async function prepAndSend(
         }
       }
     }
+
+    applySpaceTypeFilter(mapperChannelIDs);
 
     const appraisalValue = await getJaniceAppraisalValue(killmail);
 

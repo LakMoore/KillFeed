@@ -11,6 +11,7 @@ export const Help: Command = {
       + 'Then use the /add command for each alliance, corp, character or ship '
       + 'you want to see killmails for.\n'
       + 'Optionally, use /min_isk to filter out low value Killmails and /set_format to switch between the default Insight embed, Insight with appraisal, Insight with PLEX/USD, or plain zKill link output.\n'
+      + 'Use /space_type to only see killmails from certain kinds of space, e.g. wormhole space only.\n'
       + 'KillFeed uses a single pinned message in the channel to store its settings.\n'
       + "Don't delete or unpin that message, KillFeed needs it to work.\n"
       + 'Head over to the KillFeed Discord for support or more details: https://discord.gg/VNF7Dt43b8\n';
