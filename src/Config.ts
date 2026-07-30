@@ -30,6 +30,9 @@ export interface SubscriptionSettings {
     // whose `security_status` is greater than the configured value will be
     // ignored for this channel. Example: `0.1`, `-0.5`, `0.0`.
     ExcludeSecAbove?: number;
+    // When true, the channel's space filter also applies to OnMap killmails, so a channel that
+    // only wants, say, wormhole space stops hearing about the map's k-space exits.
+    ApplySpaceFilter?: boolean;
   };
   MinISK: number | undefined;
   RoleToPing: string | undefined;

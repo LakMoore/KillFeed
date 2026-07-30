@@ -554,6 +554,30 @@ export async function prepAndSend(
       }
     }
 
+    // Channels can opt into having their space filter cover OnMap killmails as well, so a
+    // wormhole only channel stops hearing about the map's k-space exits.
+    if (spaceType) {
+      const mapChannelsToRemove: string[] = [];
+
+      mapperChannelIDs.forEach((channelId) => {
+        const subscription = config.allSubscriptions.get(channelId);
+        const wanted = subscription?.SpaceTypes;
+
+        if (
+          subscription?.WandererSettings?.ApplySpaceFilter
+          && wanted
+          && wanted.size > 0
+          && !wanted.has(spaceType)
+        ) {
+          mapChannelsToRemove.push(channelId);
+        }
+      });
+
+      mapChannelsToRemove.forEach((channelId) =>
+        mapperChannelIDs.delete(channelId)
+      );
+    }
+
     const appraisalValue = await getJaniceAppraisalValue(killmail);
 
     savedData.stats.ISKAppraised += appraisalValue;
