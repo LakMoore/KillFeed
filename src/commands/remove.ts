@@ -1,11 +1,12 @@
-import { CommandInteraction, Client, SlashCommandBuilder } from 'discord.js';
+import type { CommandInteraction, Client } from 'discord.js';
+import { SlashCommandBuilder } from 'discord.js';
 import { Config } from '../Config';
 import { getConfigMessage } from '../helpers/DiscordHelper';
 import {
   generateConfigMessage,
   removeListener,
 } from '../helpers/KillFeedHelpers';
-import { Command } from '../Command';
+import type { Command } from '../Command';
 import { fetchESIIDs } from '../esi/fetch';
 import {
   FILTER_OPTION,

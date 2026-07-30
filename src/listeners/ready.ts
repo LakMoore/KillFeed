@@ -14,9 +14,17 @@ import { checkChannelPermissions } from '../helpers/DiscordHelper';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
-const pkgVersion: string = JSON.parse(
-  readFileSync(join(__dirname, '../../package.json'), 'utf-8')
-).version as string;
+let pkgVersion = 'unknown';
+try {
+  const pkgText = readFileSync(join(__dirname, '../../package.json'), 'utf-8');
+  const pkg = JSON.parse(pkgText);
+  pkgVersion = (pkg.version as string) ?? 'unknown';
+}
+catch (err) {
+  // If package.json cannot be parsed for any reason, log and continue with unknown version
+  // LOGGER is available via import
+  LOGGER.error(`Failed to read package.json: ${err}`);
+}
 
 export default async function ready(client: Client): Promise<void> {
   for await (const [thisClient] of Client.on(client, 'clientReady')) {
@@ -24,7 +32,12 @@ export default async function ready(client: Client): Promise<void> {
       if (!thisClient.user || !thisClient.application) return;
 
       // Clear global commands. Commands are set per Guild
-      await thisClient.application.commands.set([]);
+      try {
+        await thisClient.application.commands.set([]);
+      }
+      catch (err) {
+        LOGGER.error('Failed to clear global commands: ' + String(err));
+      }
 
       let errorChannel: TextChannel | null = null;
 
@@ -79,7 +92,15 @@ export default async function ready(client: Client): Promise<void> {
       savedData.stats.ChannelCount = 0;
 
       // fetch all guilds(servers) that KillFeed is a member of
-      const guilds = await thisClient.guilds.fetch();
+      let guilds;
+      try {
+        guilds = await thisClient.guilds.fetch();
+      }
+      catch (err) {
+        LOGGER.error('Failed to fetch guilds: ' + String(err));
+        // abort startup early since we cannot enumerate servers
+        return;
+      }
       const guildCount = guilds.size;
       const startTime = new Date();
 
@@ -87,18 +108,41 @@ export default async function ready(client: Client): Promise<void> {
         LOGGER.info('Guild: ' + guild.name);
         savedData.stats.ServerCount++;
         // update this guild
-        await updateGuild(thisClient, guildId, guild.name);
-        await message?.edit(
-          `Enumerating Servers and Channels for KillFeed...\nProcessed ${savedData.stats.ServerCount} of ${guildCount} servers so far...`
-        );
+        try {
+          await updateGuild(thisClient, guildId, guild.name);
+        }
+        catch (err) {
+          LOGGER.error(
+            `Failed to update guild ${guild.name} (${guildId}): ${String(err)}`
+          );
+          // continue to next guild rather than aborting startup
+        }
+
+        try {
+          await message?.edit(
+            `Enumerating Servers and Channels for KillFeed...\nProcessed ${savedData.stats.ServerCount} of ${guildCount} servers so far...`
+          );
+        }
+        catch (err) {
+          LOGGER.debug('Failed to edit progress message: ' + String(err));
+        }
       }
 
       const endTime = new Date();
       const duration = (endTime.getTime() - startTime.getTime()) / 1000;
 
-      // Start Wanderer event streams
-      // (must be done after all guilds are imported, so that we have all the channels to connect to)
-      const wandererStreams = startWandererEventStreams(thisClient);
+      // Start Wanderer event streams (must be done after all guilds are imported)
+      // Wrap startup so failures here don't crash the ready handler.
+      let wandererStreams: Promise<void> = Promise.resolve();
+      try {
+        wandererStreams = startWandererEventStreams(thisClient).catch((err) => {
+          LOGGER.error('Failed to start Wanderer event streams: ' + err);
+        });
+      }
+      catch (err) {
+        LOGGER.error('Exception while initiating Wanderer streams: ' + err);
+        wandererStreams = Promise.resolve();
+      }
 
       LOGGER.warning(
         `Imported all servers and now ready. Startup took ${duration} seconds.`
@@ -118,7 +162,14 @@ export default async function ready(client: Client): Promise<void> {
       await Promise.all([pollLoop(thisClient, 0), wandererStreams]);
     }
     catch (err) {
-      LOGGER.error('Error in ready handler: ' + err);
+      if (err instanceof Error) {
+        LOGGER.error(
+          'Error in ready handler: ' + err.message + '\n' + err.stack
+        );
+      }
+      else {
+        LOGGER.error('Error in ready handler: ' + String(err));
+      }
     }
   }
 }

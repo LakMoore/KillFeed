@@ -104,10 +104,24 @@ export const Info: Command = {
 
         if (thisSubscription.SpaceTypes?.size) {
           response
-            += '\n**Space:** '
+            += '**Space:**\n'
             + [...thisSubscription.SpaceTypes]
               .map((spaceType) => SPACE_TYPE_LABELS[spaceType])
-              .join(', ')
+              .join('\n')
+            + '\n';
+        }
+
+        if (thisSubscription.Systems.size > 0) {
+          response
+            += '**Systems:**\n'
+            + (await fetchESINames(Array.from(thisSubscription.Systems)).then(
+              (names) => {
+                return names
+                  .map((n) => n.name)
+                  .sort((a, b) => a.localeCompare(b))
+                  .join('\n');
+              }
+            ))
             + '\n';
         }
 

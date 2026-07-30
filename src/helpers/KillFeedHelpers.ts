@@ -47,13 +47,22 @@ export function parseConfigMessage(
     );
   }
   catch (error) {
+    // Log parse errors at error level so startup visibility is higher
     if (error instanceof Error) {
-      LOGGER.debug(
-        `Error while parsing the config: ${message}\n${error.message}`
+      LOGGER.error(
+        `Error while parsing the config for channel ${
+          (channel as TextChannel)?.id ?? 'unknown'
+        }: ${error.message} -- Raw content: ${
+          message?.slice ? message.slice(0, 1000) : String(message)
+        }`
       );
     }
     else {
-      LOGGER.debug(`Error while parsing the config: ${message}`);
+      LOGGER.error(
+        `Error while parsing the config for channel ${(channel as TextChannel)?.id ?? 'unknown'}: ${String(error)} -- Raw content: ${
+          message?.slice ? message.slice(0, 1000) : String(message)
+        }`
+      );
     }
   }
 

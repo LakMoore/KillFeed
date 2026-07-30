@@ -27,7 +27,7 @@ const showOptions = new SlashCommandStringOption()
 const builder = new SlashCommandBuilder()
   .setName('show')
   .setDescription(
-    'Select which type(s) of notifications to show (Kills, Losses, None or All).'
+    `Select which type(s) of notifications to show (Kills, Losses, None or All).`
   )
   .addStringOption(showOptions);
 

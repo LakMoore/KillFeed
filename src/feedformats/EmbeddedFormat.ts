@@ -19,7 +19,7 @@ export const EmbeddedFormat: BaseFormat = {
     killmail: KillMail,
     zkb: ZkbOnly,
     mailType: ZKMailType,
-    appraisedValue: number
+    _appraisedValue: number
   ) => {
     let nameText = 'Neutral';
     let colour = colours.neutral;

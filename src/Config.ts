@@ -1,5 +1,5 @@
 import type { TextChannel } from 'discord.js';
-import { SpaceType } from './helpers/SpaceTypeHelpers';
+import type { SpaceType } from './helpers/SpaceTypeHelpers';
 
 export interface SubscriptionSettings {
   Channel: TextChannel;

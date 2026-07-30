@@ -1,12 +1,9 @@
-import {
-  ChatInputCommandInteraction,
-  Client,
-  SlashCommandBuilder,
-} from 'discord.js';
+import type { ChatInputCommandInteraction, Client } from 'discord.js';
+import { SlashCommandBuilder, SlashCommandStringOption } from 'discord.js';
 import { Config } from '../Config';
 import { getConfigMessage } from '../helpers/DiscordHelper';
 import { generateConfigMessage } from '../helpers/KillFeedHelpers';
-import { Command } from '../Command';
+import type { Command } from '../Command';
 import { fetchESIIDs } from '../esi/fetch';
 import {
   FILTER_OPTION,
@@ -53,7 +50,7 @@ export const Add: Command = {
         }
         else {
           // value could be an Eve name or an Eve ID
-          let id = parseInt(filterValue);
+          let id = Number.parseInt(filterValue);
           const isInteger = id.toString() === filterValue;
 
           if (!isInteger) {
@@ -93,7 +90,7 @@ export const Add: Command = {
               // create some breathing room for the server to catch up
               thisSubscription.PauseForChanges = true;
 
-              let thisSetting = undefined;
+              let thisSetting: Set<number> | undefined = undefined;
 
               if (filterType === TYPE_CHAR) {
                 thisSetting = thisSubscription?.Characters;
