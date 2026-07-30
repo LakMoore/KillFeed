@@ -52,6 +52,7 @@ export class Config {
   public matchedRegions = new Map<number, Set<string>>();
   public matchedConstellations = new Map<number, Set<string>>();
   public matchedSystems = new Map<number, Set<string>>();
+  public matchedSpaceTypes = new Map<SpaceType, Set<string>>();
 
   // a set of channels that have requested a test killmail
   public testRequests = new Set<string>();

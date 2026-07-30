@@ -140,9 +140,9 @@ export function parseConfigMessage(
   };
 }
 
-export function addListener(
-  listener: Map<number, Set<string>>,
-  id: number,
+export function addListener<K>(
+  listener: Map<K, Set<string>>,
+  id: K,
   channelId: string
 ) {
   let s = listener.get(id);

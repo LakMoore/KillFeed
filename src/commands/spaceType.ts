@@ -48,7 +48,7 @@ const OPTION_ENABLED = new SlashCommandBooleanOption()
 const builder = new SlashCommandBuilder()
   .setName('space_type')
   .setDescription(
-    'Only show killmails from certain kinds of space in this channel.'
+    'Add a kind of space to this channel\'s filter, e.g. wormhole space.'
   )
   .addStringOption(OPTION_TYPE)
   .addBooleanOption(OPTION_ENABLED);
@@ -84,7 +84,7 @@ export const SpaceTypeCommand: Command = {
         if (type === TYPE_ALL_SPACE) {
           thisSubscription.SpaceTypes.clear();
           response =
-            'Cleared the space filter. Now showing killmails from anywhere.';
+            'Removed the space filter from this channel.';
         }
         else if (type && isSpaceType(type)) {
           if (enabled) {
@@ -96,10 +96,8 @@ export const SpaceTypeCommand: Command = {
 
           response =
             thisSubscription.SpaceTypes.size === 0
-              ? 'Cleared the space filter. Now showing killmails from anywhere.'
-              : `Now only showing killmails from: ${[
-                ...thisSubscription.SpaceTypes,
-              ]
+              ? 'Removed the space filter from this channel.'
+              : `Space filter: ${[...thisSubscription.SpaceTypes]
                 .map((spaceType) => SPACE_TYPE_LABELS[spaceType])
                 .join(', ')}.`;
         }

@@ -337,6 +337,22 @@ export async function prepAndSend(
         trackMatch(v, 'Systems');
       });
 
+    // Handle Matched Space Type
+    // Behaves like the other filters: if we match on the kind of space and nothing
+    // else matched, the event is neither a kill nor a loss
+    const spaceType = await getSpaceType(killmail.solar_system_id);
+
+    if (spaceType) {
+      config.matchedSpaceTypes
+        .get(spaceType)
+        ?.forEach((v) => {
+          if (!lossmailChannelIDs.has(v) && !killmailChannelIDs.has(v)) {
+            neutralmailChannelIDs.add(v);
+          }
+          trackMatch(v, 'SpaceTypes');
+        });
+    }
+
     // Handle Matched Regions
     try {
       const region = await CachedESI.getRegionForSystem(
@@ -439,6 +455,9 @@ export async function prepAndSend(
         if (subscription.Systems.size > 0) {
           configuredFilterTypes.push('Systems');
         }
+        if ((subscription.SpaceTypes?.size ?? 0) > 0) {
+          configuredFilterTypes.push('SpaceTypes');
+        }
 
         // Skip if no filters configured
         if (configuredFilterTypes.length === 0) {
@@ -471,32 +490,6 @@ export async function prepAndSend(
     applyAndFilterLogic(killmailChannelIDs);
     applyAndFilterLogic(neutralmailChannelIDs);
 
-    // Apply the per channel space filter. A channel that asked for, say, wormhole space only
-    // should never see a killmail from anywhere else, whichever rule matched it.
-    const spaceType = await getSpaceType(killmail.solar_system_id);
-
-    const applySpaceTypeFilter = (channelIds: Set<string>) => {
-      // an unclassified system (ESI hiccup) is let through rather than silently dropped
-      if (!spaceType) {
-        return;
-      }
-
-      const channelsToRemove: string[] = [];
-
-      channelIds.forEach((channelId) => {
-        const wanted = config.allSubscriptions.get(channelId)?.SpaceTypes;
-
-        if (wanted && wanted.size > 0 && !wanted.has(spaceType)) {
-          channelsToRemove.push(channelId);
-        }
-      });
-
-      channelsToRemove.forEach((channelId) => channelIds.delete(channelId));
-    };
-
-    applySpaceTypeFilter(lossmailChannelIDs);
-    applySpaceTypeFilter(killmailChannelIDs);
-    applySpaceTypeFilter(neutralmailChannelIDs);
 
     // Apply Wanderer map filter.
     // For channels with a Wanderer connection:
@@ -560,8 +553,6 @@ export async function prepAndSend(
         }
       }
     }
-
-    applySpaceTypeFilter(mapperChannelIDs);
 
     const appraisalValue = await getJaniceAppraisalValue(killmail);
 

@@ -37,8 +37,11 @@ const ABYSSAL_MIN_SYSTEM_ID = 32000000;
 // told apart from null-sec by its region.
 const POCHVEN_REGION_ID = 10000070;
 
-// CCP rounds security status for display, so 0.45 and above is shown as 0.5 - High-Sec.
-const HIGH_SEC_THRESHOLD = 0.45;
+// High-Sec starts at 0.5, the point CONCORD responds. ESI reports the unrounded security status
+// and the game rounds it to one decimal for display, so the raw value has to be rounded before it
+// is compared - 119 of the 258 systems the game shows as 0.5 sit below 0.5 raw, Pemene (0.4502)
+// being the lowest.
+const HIGH_SEC_THRESHOLD = 0.5;
 
 export function isSpaceType(value: string): value is SpaceType {
   return (SPACE_TYPES as readonly string[]).includes(value);
@@ -69,7 +72,9 @@ export async function getSpaceType(
       return undefined;
     }
 
-    if (security >= HIGH_SEC_THRESHOLD) {
+    const displayedSecurity = Math.round(security * 10) / 10;
+
+    if (displayedSecurity >= HIGH_SEC_THRESHOLD) {
       return SPACE_TYPE_HIGHSEC;
     }
 

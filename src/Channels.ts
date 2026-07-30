@@ -82,6 +82,10 @@ export async function updateChannel(
       thisSubscription.Systems.forEach((id) => {
         addListener(config.matchedSystems, id, channel.id);
       });
+
+      thisSubscription.SpaceTypes?.forEach((spaceType) => {
+        addListener(config.matchedSpaceTypes, spaceType, channel.id);
+      });
     }
     else {
       LOGGER.debug(`No config message found in channel ${channel.name}`);
@@ -125,5 +129,9 @@ export function clearChannel(
   subscription.Systems.forEach((systemId) => {
     config.matchedSystems.get(systemId)?.delete(channel.id);
     LOGGER.info(`Deleted system ${systemId} from server ${channel.id}`);
+  });
+  subscription.SpaceTypes?.forEach((spaceType) => {
+    config.matchedSpaceTypes.get(spaceType)?.delete(channel.id);
+    LOGGER.info(`Deleted space type ${spaceType} from server ${channel.id}`);
   });
 }
