@@ -1,8 +1,8 @@
 import axios from 'axios';
-import { Client } from 'discord.js';
+import type { Client } from 'discord.js';
 import { Config } from '../Config';
 import { sendKillmailMessage } from '../helpers/DiscordHelper';
-import {
+import type {
   KillMail,
   R2Z2KillmailPayload,
   R2Z2Sequence,
@@ -13,6 +13,7 @@ import { getJaniceAppraisalValue } from '../Janice/Janice';
 import { CachedESI } from '../esi/cache';
 import { LOGGER, msToTimeSpan } from '../helpers/Logger';
 import { getSpaceType } from '../helpers/SpaceTypeHelpers';
+import type { SpaceType } from '../helpers/SpaceTypeHelpers';
 import { savedData } from '../Bot';
 import { sleep } from '../listeners/ready';
 import https from 'node:https';
@@ -490,7 +491,6 @@ export async function prepAndSend(
     applyAndFilterLogic(killmailChannelIDs);
     applyAndFilterLogic(neutralmailChannelIDs);
 
-
     // Apply Wanderer map filter.
     // For channels with a Wanderer connection:
     //   - If the kill's solar system is on the map, ensure the channel receives
@@ -521,61 +521,26 @@ export async function prepAndSend(
           const systemOnMap = systemsForMap?.has(killmail.solar_system_id);
 
           if (systemOnMap) {
-            // If configured, ignore kills from systems whose security_status
-            // is greater than the configured per-channel threshold.
-            const excludeSecAbove =
-              subscription?.WandererSettings?.ExcludeSecAbove;
-            if (typeof excludeSecAbove === 'number') {
-              try {
-                const system = await CachedESI.getSystem(
-                  killmail.solar_system_id
-                );
-                const sec = system?.security_status;
-                if (typeof sec === 'number' && sec > excludeSecAbove) {
-                  // Skip adding this channel for OnMap sends
-                  continue;
-                }
-              }
-              catch (err) {
-                LOGGER.error(
-                  `Error fetching system data for Wanderer excludeSecAbove check: ${err}`
-                );
-                // On error, do not skip — fall through to send
-              }
-            }
+            const wsSpaceTypes = subscription?.WandererSettings?.SpaceTypes;
 
-            // Add a neutral-style send for channels covered by the map.
-            mapperChannelIDs.add(channelId);
-            if (neutralmailChannelIDs.has(channelId)) {
-              neutralmailChannelIDs.delete(channelId);
+            // If the channel has a non-empty space-type map filter, only send the OnMap kill
+            // when the system's `spaceType` is present in that set. If no filter is set,
+            // allow the OnMap kill through.
+            if (
+              !wsSpaceTypes
+              || wsSpaceTypes.size === 0
+              || (spaceType && wsSpaceTypes.has(spaceType))
+            ) {
+              // Add a mapper-style send for channels covered by the map.
+              mapperChannelIDs.add(channelId);
+              if (neutralmailChannelIDs.has(channelId)) {
+                // don't duplicate neutralmails
+                neutralmailChannelIDs.delete(channelId);
+              }
             }
           }
         }
       }
-    }
-
-    // Channels can opt into having their space filter cover OnMap killmails as well, so a
-    // wormhole only channel stops hearing about the map's k-space exits.
-    if (spaceType) {
-      const mapChannelsToRemove: string[] = [];
-
-      mapperChannelIDs.forEach((channelId) => {
-        const subscription = config.allSubscriptions.get(channelId);
-        const wanted = subscription?.SpaceTypes;
-
-        if (
-          subscription?.WandererSettings?.ApplySpaceFilter
-          && wanted
-          && wanted.size > 0
-          && !wanted.has(spaceType)
-        ) {
-          mapChannelsToRemove.push(channelId);
-        }
-      });
-
-      mapChannelsToRemove.forEach((channelId) =>
-        mapperChannelIDs.delete(channelId)
-      );
     }
 
     const appraisalValue = await getJaniceAppraisalValue(killmail);

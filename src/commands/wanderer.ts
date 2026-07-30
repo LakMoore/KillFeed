@@ -15,6 +15,17 @@ import { generateConfigMessage } from '../helpers/KillFeedHelpers';
 import { Config } from '../Config';
 import { fetchESIIDs } from '../esi/fetch';
 import { CachedESI } from '../esi/cache';
+import type { SpaceType } from '../helpers/SpaceTypeHelpers';
+import {
+  SPACE_TYPE_ABYSSAL,
+  SPACE_TYPE_HIGHSEC,
+  SPACE_TYPE_LABELS,
+  SPACE_TYPE_LOWSEC,
+  SPACE_TYPE_NULLSEC,
+  SPACE_TYPE_POCHVEN,
+  SPACE_TYPE_WORMHOLE,
+} from '../helpers/SpaceTypeHelpers';
+import { NAME_TYPE, setSpaceTypeFilter } from './spaceType';
 
 async function ensureChannelAvailable(
   interaction: ChatInputCommandInteraction
@@ -82,34 +93,40 @@ const builder = new SlashCommandBuilder()
   )
   .addSubcommand((sub) =>
     sub
-      .setName('apply_space_filter')
-      .setDescription(
-        'Apply this channel\'s /space_type filter to OnMap killmails too'
-      )
-      .addBooleanOption((opt) =>
+      .setName('space_type_toggle')
+      .setDescription("Apply this channel's space filter to OnMap killmails")
+      .addStringOption((opt) =>
         opt
-          .setName('enabled')
-          .setDescription(
-            'On: only hear about map systems in the kinds of space you filter for'
-          )
+          .setName(NAME_TYPE)
+          .setDescription('Kind of space to toggle for map kills')
           .setRequired(true)
-      )
-  )
-  .addSubcommand((sub) =>
-    sub
-      .setName('exclude_sec_above')
-      .setDescription(
-        'Ignore OnMap kills from systems with security status above this number'
-      )
-      .addNumberOption((opt) =>
-        opt
-          .setName('threshold')
-          .setDescription(
-            '0 to mute LS and HS kills. -2 to mute ALL kills from the map.'
+          .addChoices(
+            { name: 'Everywhere (clear the filter)', value: 'all' },
+            {
+              name: SPACE_TYPE_LABELS[SPACE_TYPE_WORMHOLE],
+              value: SPACE_TYPE_WORMHOLE,
+            },
+            {
+              name: SPACE_TYPE_LABELS[SPACE_TYPE_HIGHSEC],
+              value: SPACE_TYPE_HIGHSEC,
+            },
+            {
+              name: SPACE_TYPE_LABELS[SPACE_TYPE_LOWSEC],
+              value: SPACE_TYPE_LOWSEC,
+            },
+            {
+              name: SPACE_TYPE_LABELS[SPACE_TYPE_NULLSEC],
+              value: SPACE_TYPE_NULLSEC,
+            },
+            {
+              name: SPACE_TYPE_LABELS[SPACE_TYPE_POCHVEN],
+              value: SPACE_TYPE_POCHVEN,
+            },
+            {
+              name: SPACE_TYPE_LABELS[SPACE_TYPE_ABYSSAL],
+              value: SPACE_TYPE_ABYSSAL,
+            }
           )
-          .setRequired(true)
-          .setMinValue(-2)
-          .setMaxValue(1)
       )
   )
   .addSubcommand((sub) =>
@@ -187,11 +204,8 @@ export const Wanderer: Command = {
     case 'set_ping':
       await handleSetPing(client, interaction, channel.id);
       break;
-    case 'exclude_sec_above':
-      await handleExcludeSecAbove(client, interaction, channel.id);
-      break;
-    case 'apply_space_filter':
-      await handleApplySpaceFilter(client, interaction, channel.id);
+    case 'space_type_toggle':
+      await handleToggleSpaceFilter(client, interaction, channel.id);
       break;
     default:
       await interaction.followUp({
@@ -245,7 +259,7 @@ async function handleSetPing(
   });
 }
 
-async function handleExcludeSecAbove(
+async function handleToggleSpaceFilter(
   client: Client,
   interaction: ChatInputCommandInteraction,
   channelId: string
@@ -267,9 +281,15 @@ async function handleExcludeSecAbove(
     return;
   }
 
-  const threshold = interaction.options.getNumber('threshold', true);
+  const type = interaction.options.getString(NAME_TYPE, true);
+
   thisSubscription.PauseForChanges = true;
-  thisSubscription.WandererSettings.ExcludeSecAbove = Number(threshold);
+
+  const ws = thisSubscription.WandererSettings;
+
+  // ensure SpaceTypes exists on WandererSettings
+  ws.SpaceTypes ??= new Set<SpaceType>();
+  const response = 'On Map: ' + setSpaceTypeFilter(ws.SpaceTypes, type);
 
   const chan = await ensureChannelAvailable(interaction);
   if (chan) {
@@ -284,56 +304,7 @@ async function handleExcludeSecAbove(
 
   await interaction.followUp({
     ephemeral: true,
-    content: `✅ Set ExcludeSecAbove=${thisSubscription.WandererSettings.ExcludeSecAbove} for this channel.`,
-  });
-}
-
-async function handleApplySpaceFilter(
-  client: Client,
-  interaction: ChatInputCommandInteraction,
-  channelId: string
-): Promise<void> {
-  const thisSubscription = Config.getInstance().allSubscriptions.get(channelId);
-  if (!thisSubscription) {
-    await interaction.followUp({
-      ephemeral: true,
-      content: 'No subscription found in channel. Use /init to start.',
-    });
-    return;
-  }
-
-  if (!thisSubscription.WandererSettings) {
-    await interaction.followUp({
-      ephemeral: true,
-      content: 'Wanderer is not configured on this channel.',
-    });
-    return;
-  }
-
-  const enabled = interaction.options.getBoolean('enabled', true);
-  thisSubscription.PauseForChanges = true;
-  thisSubscription.WandererSettings.ApplySpaceFilter = enabled;
-
-  const chan = await ensureChannelAvailable(interaction);
-  if (chan) {
-    const message = await getConfigMessage(chan);
-    if (message) {
-      await message.edit(generateConfigMessage(thisSubscription));
-      await updateChannel(client, channelId, interaction.guild?.name ?? '');
-    }
-  }
-
-  thisSubscription.PauseForChanges = false;
-
-  const spaceFilter = thisSubscription.SpaceTypes;
-
-  await interaction.followUp({
-    ephemeral: true,
-    content: enabled
-      ? `✅ OnMap killmails now respect the space filter${
-        spaceFilter?.size ? '' : ' (no space filter set yet, use /space_type)'
-      }.`
-      : '✅ OnMap killmails now come through whatever the space filter says.',
+    content: response,
   });
 }
 
@@ -404,7 +375,7 @@ async function handleConnect(
           EncryptedDetails: '',
           Domain: '',
           ExcludeSystemIDs: new Set<string>(),
-          ExcludeSecAbove: undefined,
+          SpaceTypes: new Set<SpaceType>(),
         };
 
       const wsRef = thisSubscription.WandererSettings;
@@ -506,8 +477,8 @@ async function handleStatus(
       `**Wanderer Integration Active**\n`
       + `**Map Slug:** \`${ws.Slug}\`\n`
       + `**Tracked systems:** ${systemCount}\n`
-      + `**Exclude sec status above:** ${typeof ws.ExcludeSecAbove === 'number' ? ws.ExcludeSecAbove : 'not set'}\n`
-      + `**Space filter applies to map kills:** ${ws.ApplySpaceFilter ? 'yes' : 'no'}\n`
+      + `**Excluded systems:** ${ws.ExcludeSystemIDs && ws.ExcludeSystemIDs.size ? [...ws.ExcludeSystemIDs].join(', ') : 'none'}\n`
+      + `**OnMap Space Types:** ${ws.SpaceTypes && ws.SpaceTypes.size ? [...ws.SpaceTypes].map((s) => SPACE_TYPE_LABELS[s]).join(', ') : 'all'}\n`
       + `**First connected:** ${ws.createdAt ? new Date(ws.createdAt).toUTCString() : 'unknown'}\n`
       + `**Connection status:** ${connectionStatus}\n`
       + `**Start attempted:** ${state?.started ? 'Yes' : 'No'}`,

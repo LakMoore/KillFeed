@@ -1,15 +1,11 @@
-import {
-  Client,
-  CommandInteraction,
-  SlashCommandBooleanOption,
-  SlashCommandBuilder,
-  SlashCommandStringOption,
-} from 'discord.js';
+import type { Client, CommandInteraction } from 'discord.js';
+import { SlashCommandBuilder, SlashCommandStringOption } from 'discord.js';
 import { Config } from '../Config';
 import { getConfigMessage } from '../helpers/DiscordHelper';
 import { generateConfigMessage } from '../helpers/KillFeedHelpers';
-import { Command } from '../Command';
+import type { Command } from '../Command';
 import { updateChannel } from '../Channels';
+import type { SpaceType } from '../helpers/SpaceTypeHelpers';
 import {
   isSpaceType,
   SPACE_TYPE_ABYSSAL,
@@ -22,7 +18,6 @@ import {
 } from '../helpers/SpaceTypeHelpers';
 
 export const NAME_TYPE = 'type';
-export const NAME_ENABLED = 'enabled';
 
 export const TYPE_ALL_SPACE = 'all';
 
@@ -32,7 +27,10 @@ const OPTION_TYPE = new SlashCommandStringOption()
   .setRequired(true)
   .addChoices(
     { name: 'Everywhere (clear the filter)', value: TYPE_ALL_SPACE },
-    { name: SPACE_TYPE_LABELS[SPACE_TYPE_WORMHOLE], value: SPACE_TYPE_WORMHOLE },
+    {
+      name: SPACE_TYPE_LABELS[SPACE_TYPE_WORMHOLE],
+      value: SPACE_TYPE_WORMHOLE,
+    },
     { name: SPACE_TYPE_LABELS[SPACE_TYPE_HIGHSEC], value: SPACE_TYPE_HIGHSEC },
     { name: SPACE_TYPE_LABELS[SPACE_TYPE_LOWSEC], value: SPACE_TYPE_LOWSEC },
     { name: SPACE_TYPE_LABELS[SPACE_TYPE_NULLSEC], value: SPACE_TYPE_NULLSEC },
@@ -40,18 +38,12 @@ const OPTION_TYPE = new SlashCommandStringOption()
     { name: SPACE_TYPE_LABELS[SPACE_TYPE_ABYSSAL], value: SPACE_TYPE_ABYSSAL }
   );
 
-const OPTION_ENABLED = new SlashCommandBooleanOption()
-  .setName(NAME_ENABLED)
-  .setDescription('Include this kind of space? Defaults to true.')
-  .setRequired(false);
-
 const builder = new SlashCommandBuilder()
-  .setName('space_type')
+  .setName('space_type_toggle')
   .setDescription(
-    'Add a kind of space to this channel\'s filter, e.g. wormhole space.'
+    "Add or remove a kind of space to this channel's filter, e.g. wormhole space."
   )
-  .addStringOption(OPTION_TYPE)
-  .addBooleanOption(OPTION_ENABLED);
+  .addStringOption(OPTION_TYPE);
 
 export const SpaceTypeCommand: Command = {
   ...builder.toJSON(),
@@ -75,35 +67,8 @@ export const SpaceTypeCommand: Command = {
         thisSubscription.PauseForChanges = true;
 
         const type = interaction.options.getString(NAME_TYPE);
-        const enabled = interaction.options.getBoolean(NAME_ENABLED) ?? true;
 
-        if (!thisSubscription.SpaceTypes) {
-          thisSubscription.SpaceTypes = new Set();
-        }
-
-        if (type === TYPE_ALL_SPACE) {
-          thisSubscription.SpaceTypes.clear();
-          response =
-            'Removed the space filter from this channel.';
-        }
-        else if (type && isSpaceType(type)) {
-          if (enabled) {
-            thisSubscription.SpaceTypes.add(type);
-          }
-          else {
-            thisSubscription.SpaceTypes.delete(type);
-          }
-
-          response =
-            thisSubscription.SpaceTypes.size === 0
-              ? 'Removed the space filter from this channel.'
-              : `Space filter: ${[...thisSubscription.SpaceTypes]
-                .map((spaceType) => SPACE_TYPE_LABELS[spaceType])
-                .join(', ')}.`;
-        }
-        else {
-          response = 'Unknown kind of space.';
-        }
+        response = setSpaceTypeFilter(thisSubscription.SpaceTypes, type);
 
         // re-generate the config message
         const message = await getConfigMessage(interaction.channel);
@@ -131,3 +96,30 @@ export const SpaceTypeCommand: Command = {
     });
   },
 };
+
+export function setSpaceTypeFilter(
+  thisSetting: Set<SpaceType>,
+  type: string | null
+): string {
+  if (type === TYPE_ALL_SPACE) {
+    thisSetting.clear();
+    return 'Removed all space filters from this channel.';
+  }
+  else if (type && isSpaceType(type)) {
+    if (thisSetting.has(type)) {
+      thisSetting.delete(type);
+    }
+    else {
+      thisSetting.add(type);
+    }
+
+    return thisSetting.size === 0
+      ? 'Removed the space filter from this channel.'
+      : `Space filter: ${[...thisSetting]
+          .map((spaceType) => SPACE_TYPE_LABELS[spaceType])
+          .join(', ')}.`;
+  }
+  else {
+    return 'Unknown kind of space.';
+  }
+}

@@ -1,8 +1,8 @@
-import { Channel, TextChannel } from 'discord.js';
-import { SubscriptionSettings } from '../Config';
+import type { Channel, TextChannel } from 'discord.js';
+import type { SubscriptionSettings } from '../Config';
 import { LOGGER } from './Logger';
 import { TYPE_ALL } from '../commands/show';
-import { SpaceType } from './SpaceTypeHelpers';
+import type { SpaceType } from './SpaceTypeHelpers';
 
 // serialise our settings storage object, dropping the internal reference to the channel itself
 
@@ -131,6 +131,7 @@ export function parseConfigMessage(
       Domain: '',
       ExcludeSystemIDs: new Set<string>(),
       PingRole: undefined,
+      SpaceTypes: new Set<SpaceType>(),
     },
     MinISK: 0,
     RoleToPing: undefined,

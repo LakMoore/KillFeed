@@ -11,6 +11,10 @@ See the section below the Changelog for installation instructions.
 
 ## Changelog
 
+v1.0.17 [30th July 2026]
+
+- Replaced `/wanderer exclude_sec_above` with `/wanderer space_type_toggle` — use this command to toggle per-map space-type filters so OnMap killmails can be filtered by the same space kinds as off-map kills.
+
 v1.0.16 [11th July 2026]
 
 - Wanderer system names are applied to ANY Killmails or Lossmails, not just those from the map.
@@ -106,17 +110,17 @@ Use the `/add` and `/remove` commands to add/remove Corporations, Alliances, Cha
 
 ## Commands
 
-| Command      | Description                                                                                                                                                                                                      |
-| ------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| /init        | Intialise the channel and set up the bot, needs Send Message and Manage Message permissions. Note: the bot does not have Read Permissions on messages so cannot read any messages in any channel on your server. |
-| /add         | Add a rule to the filter in this channel.                                                                                                                                                                        |
-| /remove      | Remove a rule from the filter in this channel.                                                                                                                                                                   |
-| /show        | Choose whether to show Killmails, Lossmails or both.                                                                                                                                                             |
-| /filter_mode | Choose whether to apply boolean OR or AND to the filters in this channel.                                                                                                                                        |
-| /min_isk     | Only show results above a minimum value in ISK.                                                                                                                                                                  |
-| /space_type  | Add a kind of space to the filter (wormhole, high-sec, low-sec, null-sec, Pochven, abyssal). Combine with `/filter_mode and` to restrict your other rules to that space. Use `Everywhere` to clear it. OnMap killmails ignore this filter unless `/wanderer apply_space_filter` is on.                                                                                                                                                                  |
-| /help        | Show this information                                                                                                                                                                                            |
-| /info        | Shows details of the current filter in this channel.                                                                                                                                                             |
-| /test        | The very next killmail from zKill will be sent to the channel (ignoring filters). Note: this might not be instantaneous!                                                                                         |
+| Command      | Description                                                                                                                                                                                                                                                                                                                                   |
+| ------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| /init        | Intialise the channel and set up the bot, needs Send Message and Manage Message permissions. Note: the bot does not have Read Permissions on messages so cannot read any messages in any channel on your server.                                                                                                                              |
+| /add         | Add a rule to the filter in this channel.                                                                                                                                                                                                                                                                                                     |
+| /remove      | Remove a rule from the filter in this channel.                                                                                                                                                                                                                                                                                                |
+| /show        | Choose whether to show Killmails, Lossmails or both.                                                                                                                                                                                                                                                                                          |
+| /filter_mode | Choose whether to apply boolean OR or AND to the filters in this channel.                                                                                                                                                                                                                                                                     |
+| /min_isk     | Only show results above a minimum value in ISK.                                                                                                                                                                                                                                                                                               |
+| /space_type  | Add a kind of space to the filter (wormhole, high-sec, low-sec, null-sec, Pochven, abyssal). Combine with `/filter_mode and` to restrict your other rules to that space. Use `Everywhere` to clear it. To apply a space filter to mapped (OnMap) killmails, use `/wanderer space_type_toggle` to toggle space types for map-originated kills. |
+| /help        | Show this information                                                                                                                                                                                                                                                                                                                         |
+| /info        | Shows details of the current filter in this channel.                                                                                                                                                                                                                                                                                          |
+| /test        | The very next killmail from zKill will be sent to the channel (ignoring filters). Note: this might not be instantaneous!                                                                                                                                                                                                                      |
 
 Join the [KillFeed by Lak Moore Discord](https://discord.gg/m4pyj2q8X9) for support and feature requests.

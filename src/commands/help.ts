@@ -1,5 +1,5 @@
-import { CommandInteraction, Client } from 'discord.js';
-import { Command } from '../Command';
+import type { CommandInteraction, Client } from 'discord.js';
+import type { Command } from '../Command';
 
 export const Help: Command = {
   name: 'help',
@@ -11,7 +11,7 @@ export const Help: Command = {
       + 'Then use the /add command for each alliance, corp, character or ship '
       + 'you want to see killmails for.\n'
       + 'Optionally, use /min_isk to filter out low value Killmails and /set_format to switch between the default Insight embed, Insight with appraisal, Insight with PLEX/USD, or plain zKill link output.\n'
-      + 'Use /space_type to filter on the kind of space a kill happened in, e.g. wormhole space. With /filter_mode and, it restricts your other rules to that space.\n'
+      + 'Use /space_type_toggle to filter on the kind of space a kill happened in, e.g. wormhole space. With /filter_mode and, it restricts your other rules to that space. To apply the same space filtering to mapped (OnMap) killmails, use `/wanderer space_type_toggle` in this channel.\n'
       + 'KillFeed uses a single pinned message in the channel to store its settings.\n'
       + "Don't delete or unpin that message, KillFeed needs it to work.\n"
       + 'Head over to the KillFeed Discord for support or more details: https://discord.gg/VNF7Dt43b8\n';

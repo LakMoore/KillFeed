@@ -1,4 +1,4 @@
-import { TextChannel } from 'discord.js';
+import type { TextChannel } from 'discord.js';
 import { SpaceType } from './helpers/SpaceTypeHelpers';
 
 export interface SubscriptionSettings {
@@ -26,13 +26,8 @@ export interface SubscriptionSettings {
     createdAt?: string;
     ExcludeSystemIDs: Set<string>;
     PingRole?: string;
-    // When set to a numeric threshold, killmails originating from map systems
-    // whose `security_status` is greater than the configured value will be
-    // ignored for this channel. Example: `0.1`, `-0.5`, `0.0`.
-    ExcludeSecAbove?: number;
-    // When true, the channel's space filter also applies to OnMap killmails, so a channel that
-    // only wants, say, wormhole space stops hearing about the map's k-space exits.
-    ApplySpaceFilter?: boolean;
+    // Kinds of space this channel wants OnMap killmails from. Empty means every kind.
+    SpaceTypes: Set<SpaceType>;
   };
   MinISK: number | undefined;
   RoleToPing: string | undefined;
