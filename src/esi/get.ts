@@ -14,16 +14,16 @@ export interface Result {
 export async function getCharacterNames(characterIds: Character) {
   const missingIds: number[] = [];
 
-  if (!CachedESI.getCharacterName(characterIds.character_id)) {
+  if (!CachedESI.hasCharacterName(characterIds.character_id)) {
     missingIds.push(characterIds.character_id);
   }
-  if (!CachedESI.hasCorporation(characterIds.corporation_id)) {
+  if (!CachedESI.hasCorporationName(characterIds.corporation_id)) {
     missingIds.push(characterIds.corporation_id);
   }
-  if (!CachedESI.hasAlliance(characterIds.alliance_id)) {
+  if (!CachedESI.hasAllianceName(characterIds.alliance_id)) {
     missingIds.push(characterIds.alliance_id);
   }
-  if (!CachedESI.getItemName(characterIds.ship_type_id)) {
+  if (!CachedESI.hasItemName(characterIds.ship_type_id)) {
     missingIds.push(characterIds.ship_type_id);
   }
 
@@ -38,12 +38,12 @@ export async function getCharacterNames(characterIds: Character) {
   }
 
   return {
-    character: CachedESI.getCharacterName(characterIds.character_id),
+    character: await CachedESI.getCharacterName(characterIds.character_id),
     corporation: await CachedESI.getCorporationName(
       characterIds.corporation_id
     ),
     alliance: await CachedESI.getAllianceName(characterIds.alliance_id),
-    ship: CachedESI.getItemName(characterIds.ship_type_id),
+    ship: await CachedESI.getItemName(characterIds.ship_type_id),
   } as Result;
 }
 

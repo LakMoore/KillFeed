@@ -11,9 +11,9 @@ import { LOGGER } from '../helpers/Logger';
 export class CachedESI {
   private static instance: CachedESI;
 
-  private readonly characters = new FancyMap<number, string>();
-  private readonly corporations = new FancyMap<number, string>();
-  private readonly alliances = new FancyMap<number, string>();
+  private readonly characterNames = new FancyMap<number, string>();
+  private readonly corporationNames = new FancyMap<number, string>();
+  private readonly allianceNames = new FancyMap<number, string>();
   private readonly systems = new FancyMap<
     number,
     GetUniverseSystemsSystemIdOk
@@ -26,7 +26,7 @@ export class CachedESI {
     number,
     GetUniverseRegionsRegionIdOk
   >();
-  private readonly items = new FancyMap<number, string>();
+  private readonly itemNames = new FancyMap<number, string>();
 
   private static readonly EVE_DOWNTIME_RETRY_MS = 2 * 60 * 1000;
 
@@ -39,7 +39,7 @@ export class CachedESI {
     return CachedESI.instance;
   }
 
-  private static isHttpError(
+  private static isHttpRemoteError(
     error: unknown
   ): error is Error & { status: number } {
     return (
@@ -47,6 +47,7 @@ export class CachedESI {
       && 'status' in error
       && typeof (error as { status: unknown }).status === 'number'
       && (error as { status: number }).status >= 400
+      && (error as { status: number }).status < 600
     );
   }
 
@@ -68,7 +69,7 @@ export class CachedESI {
       caughtError = error;
     }
 
-    if (!CachedESI.isHttpError(caughtError)) {
+    if (!CachedESI.isHttpRemoteError(caughtError)) {
       throw caughtError;
     }
 
@@ -80,7 +81,7 @@ export class CachedESI {
       }
     }
     catch (statusError) {
-      if (CachedESI.isHttpError(statusError)) {
+      if (CachedESI.isHttpRemoteError(statusError)) {
         LOGGER.info(
           'Failed to get server status; assuming downtime '
             + String(statusError)
@@ -115,11 +116,35 @@ export class CachedESI {
   }
 
   public static getCharacterName(characterId: number) {
-    return CachedESI.getInstance().characters.get(characterId);
+    return CachedESI.getInstance().characterNames.getOrDefault(
+      characterId,
+      (characterId) =>
+        CachedESI
+          .getFromESIWithDowntimeRetry([characterId], fetchESINames)
+          .then((names) => {
+            if (names.length === 0) {
+              throw new Error(`No name found for character ID ${characterId}`);
+            }
+            CachedESI.addItem(names[0]);
+            return names[0].name;
+          })
+    );
   }
 
   public static hasCharacterName(characterId: number) {
-    return CachedESI.getInstance().characters.has(characterId);
+    return CachedESI.getInstance().characterNames.has(characterId);
+  }
+
+  public static hasItemName(item_id: number) {
+    return CachedESI.getInstance().itemNames.has(item_id);
+  }
+
+  public static hasRegion(regionId: number) {
+    return CachedESI.getInstance().regions.has(regionId);
+  }
+
+  public static hasConstellation(constellationId: number) {
+    return CachedESI.getInstance().constellations.has(constellationId);
   }
 
   static async getCharacterNames(characterIds: number[]) {
@@ -140,14 +165,37 @@ export class CachedESI {
 
     return characterIds
       .filter(Boolean)
-      .map((id) => CachedESI.getInstance().characters.get(id));
+      .map((id) => CachedESI.getInstance().characterNames.get(id))
+      .filter(Boolean);
+  }
+
+  static async getShipNames(shipIds: number[]): Promise<string[]> {
+    const missingIDs = shipIds.filter(
+      (id) => !!id && !CachedESI.hasItemName(id)
+    );
+
+    if (missingIDs.length > 0) {
+      const names = await CachedESI.getFromESIWithDowntimeRetry(
+        missingIDs,
+        fetchESINames
+      );
+
+      names.forEach((name) => {
+        CachedESI.addItem(name);
+      });
+    }
+
+    return shipIds
+      .filter(Boolean)
+      .map((id) => CachedESI.getInstance().itemNames.get(id))
+      .filter(Boolean);
   }
 
   public static getCorporationName(corporationId: number) {
     if (!corporationId) {
       return Promise.resolve('');
     }
-    return CachedESI.getInstance().corporations.getOrDefault(
+    return CachedESI.getInstance().corporationNames.getOrDefault(
       corporationId,
       (corporationId) =>
         CachedESI
@@ -164,13 +212,13 @@ export class CachedESI {
     );
   }
 
-  public static hasCorporation(corporation_id: number) {
-    return CachedESI.getInstance().corporations.has(corporation_id);
+  public static hasCorporationName(corporation_id: number) {
+    return CachedESI.getInstance().corporationNames.has(corporation_id);
   }
 
   static async getCorporationNames(corporationIds: number[]) {
     const missingIDs = corporationIds.filter(
-      (id) => !!id && !CachedESI.hasCorporation(id)
+      (id) => !!id && !CachedESI.hasCorporationName(id)
     );
 
     if (missingIDs.length > 0) {
@@ -186,14 +234,15 @@ export class CachedESI {
 
     return corporationIds
       .filter(Boolean)
-      .map((id) => CachedESI.getInstance().corporations.get(id));
+      .map((id) => CachedESI.getInstance().corporationNames.get(id))
+      .filter(Boolean);
   }
 
   public static getAllianceName(allianceId: number): Promise<string> {
     if (!allianceId) {
       return Promise.resolve('');
     }
-    return CachedESI.getInstance().alliances.getOrDefault(
+    return CachedESI.getInstance().allianceNames.getOrDefault(
       allianceId,
       (allianceId) =>
         CachedESI
@@ -208,15 +257,15 @@ export class CachedESI {
     );
   }
 
-  public static hasAlliance(alliance_id: number) {
-    return CachedESI.getInstance().alliances.has(alliance_id);
+  public static hasAllianceName(alliance_id: number) {
+    return CachedESI.getInstance().allianceNames.has(alliance_id);
   }
 
   public static async getAllianceNames(
     allianceIds: number[]
   ): Promise<string[]> {
     const missingIDs = allianceIds.filter(
-      (id) => !!id && !CachedESI.hasAlliance(id)
+      (id) => !!id && !CachedESI.hasAllianceName(id)
     );
 
     if (missingIDs.length > 0) {
@@ -232,7 +281,8 @@ export class CachedESI {
 
     return allianceIds
       .filter(Boolean)
-      .map((id) => CachedESI.getInstance().alliances.get(id));
+      .map((id) => CachedESI.getInstance().allianceNames.get(id))
+      .filter(Boolean);
   }
 
   public static getSystem(systemId: number) {
@@ -257,6 +307,19 @@ export class CachedESI {
     );
   }
 
+  public static async getConstellationForSystem(solar_system_id: number) {
+    const system = await CachedESI.getSystem(solar_system_id);
+    return await CachedESI.getConstellation(system.constellation_id);
+  }
+
+  static getConstellations(constellationIds: number[]) {
+    return Promise.all(
+      constellationIds
+        .filter(Boolean)
+        .map((id) => CachedESI.getConstellation(id))
+    );
+  }
+
   public static getRegion(regionId: number) {
     return CachedESI.getInstance().regions.getOrDefault(
       regionId,
@@ -274,35 +337,51 @@ export class CachedESI {
     return await CachedESI.getRegion(constellation.region_id);
   }
 
-  public static async getConstellationForSystem(solar_system_id: number) {
-    const system = await CachedESI.getSystem(solar_system_id);
-    return await CachedESI.getConstellation(system.constellation_id);
+  static getRegions(regionIds: number[]) {
+    return Promise.all(
+      regionIds.filter(Boolean).map((id) => CachedESI.getRegion(id))
+    );
   }
 
   public static getItemName(itemId: number) {
-    return CachedESI.getInstance().items.get(itemId);
+    return CachedESI.getInstance().itemNames.getOrDefault(
+      itemId,
+      (itemId) =>
+        CachedESI
+          .getFromESIWithDowntimeRetry([itemId], fetchESINames)
+          .then((names) => {
+            if (names.length === 0) {
+              throw new Error(`No name found for item ID ${itemId}`);
+            }
+            CachedESI.addItem(names[0]);
+            return names[0].name;
+          })
+    );
   }
 
   public static setCharacterName(characterId: number, characterName: string) {
-    return CachedESI.getInstance().characters.set(characterId, characterName);
+    return CachedESI.getInstance().characterNames.set(
+      characterId,
+      characterName
+    );
   }
 
   public static setCorporationName(
     corporationId: number,
     corporationName: string
   ) {
-    return CachedESI.getInstance().corporations.set(
+    return CachedESI.getInstance().corporationNames.set(
       corporationId,
       corporationName
     );
   }
 
   public static setAllianceName(allianceId: number, allianceName: string) {
-    return CachedESI.getInstance().alliances.set(allianceId, allianceName);
+    return CachedESI.getInstance().allianceNames.set(allianceId, allianceName);
   }
 
   public static setItemName(itemId: number, itemName: string) {
-    return CachedESI.getInstance().items.set(itemId, itemName);
+    return CachedESI.getInstance().itemNames.set(itemId, itemName);
   }
 
   public static addItem(item: Name) {

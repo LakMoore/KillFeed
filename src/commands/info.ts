@@ -1,5 +1,4 @@
 import type { CommandInteraction, Client } from 'discord.js';
-import { fetchESINames } from '../esi/fetch';
 import { CachedESI } from '../esi/cache';
 import type { Command } from '../Command';
 import { Config } from '../Config';
@@ -66,40 +65,40 @@ export const Info: Command = {
         if (thisSubscription.Ships.size > 0) {
           response
             += '**Ships:**\n'
-            + (await fetchESINames(Array.from(thisSubscription.Ships)).then(
-              (names) => {
-                return names
-                  .map((n) => `- ${n.name}`)
+            + (await CachedESI
+              .getShipNames(Array.from(thisSubscription.Ships))
+              .then((ships) => {
+                return ships
+                  .map((ship) => `- ${ship}`)
                   .sort((a, b) => a.localeCompare(b))
                   .join('\n');
-              }
-            ))
+              }))
             + '\n';
         }
         if (thisSubscription.Regions.size > 0) {
           response
             += '**Regions:**\n'
-            + (await fetchESINames(Array.from(thisSubscription.Regions)).then(
-              (names) => {
-                return names
-                  .map((n) => `- ${n.name}`)
+            + (await CachedESI
+              .getRegions(Array.from(thisSubscription.Regions))
+              .then((regions) => {
+                return regions
+                  .map((region) => `- ${region.name}`)
                   .sort((a, b) => a.localeCompare(b))
                   .join('\n');
-              }
-            ))
+              }))
             + '\n';
         }
         if (thisSubscription.Constellations.size > 0) {
           response
             += '**Constellations:**\n'
-            + (await fetchESINames(
-              Array.from(thisSubscription.Constellations)
-            ).then((names) => {
-              return names
-                .map((n) => `- ${n.name}`)
-                .sort((a, b) => a.localeCompare(b))
-                .join('\n');
-            }))
+            + (await CachedESI
+              .getConstellations(Array.from(thisSubscription.Constellations))
+              .then((constellations) => {
+                return constellations
+                  .map((constellation) => `- ${constellation.name}`)
+                  .sort((a, b) => a.localeCompare(b))
+                  .join('\n');
+              }))
             + '\n';
         }
 
@@ -115,14 +114,18 @@ export const Info: Command = {
         if (thisSubscription.Systems.size > 0) {
           response
             += '**Systems:**\n'
-            + (await fetchESINames(Array.from(thisSubscription.Systems)).then(
-              (names) => {
-                return names
-                  .map((n) => `- ${n.name}`)
+            + (await Promise
+              .all(
+                Array
+                  .from(thisSubscription.Systems)
+                  .map((id) => CachedESI.getSystem(id))
+              )
+              .then((systems) => {
+                return systems
+                  .map((system) => `- ${system.name}`)
                   .sort((a, b) => a.localeCompare(b))
                   .join('\n');
-              }
-            ))
+              }))
             + '\n';
         }
 
