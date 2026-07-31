@@ -13,17 +13,18 @@ import { getJaniceAppraisalValue } from '../Janice/Janice';
 import { CachedESI } from '../esi/cache';
 import { LOGGER, msToTimeSpan } from '../helpers/Logger';
 import { getSpaceType } from '../helpers/SpaceTypeHelpers';
-import type { SpaceType } from '../helpers/SpaceTypeHelpers';
 import { savedData } from '../Bot';
 import { sleep } from '../listeners/ready';
 import https from 'node:https';
 import { WandererMaps } from '../wanderer/WandererMaps';
+import { StatusApiFactory } from 'eve-client-ts';
 
 const R2Z2_BASE_URL = 'https://r2z2.zkillboard.com/ephemeral';
 const R2Z2_SEQUENCE_DELAY_MS = 100;
 const R2Z2_NO_NEW_DATA_DELAY_MS = 6000;
 const R2Z2_RATE_LIMIT_DELAY_MS = 30000;
 const R2Z2_FORBIDDEN_DELAY_MS = 60000;
+const R2Z2_DOWNTIME_DELAY_MS = 120000;
 const R2Z2_ERROR_DELAY_MS = 10000;
 const DEDUPE_CACHE_MAX = 10000;
 const seenKillmailIds = new Map<number, number>();
@@ -134,45 +135,65 @@ export async function pollzKillboardOnce(client: Client) {
   }
   catch (error) {
     if (axios.isAxiosError(error) && error.response?.status === 404) {
-      sequential404Count++;
-
-      if (nextSequenceId === null) {
-        try {
-          // just started the application and the sequence we want is no longer available, so fast-forward to the latest sequence
-          const latestSequence = await getLatestSequence(localAgent);
-          LOGGER.warning(
-            `Sequence ${thisSequenceId} no longer available. Fast-forwarding to ${latestSequence}`
-          );
-          nextSequenceId = latestSequence;
-          sequential404Count = 0;
-        }
-        catch (sequenceError) {
-          LOGGER.error(
-            'Error fetching latest sequence after 404\n' + sequenceError
-          );
+      let serverAvailable = true;
+      try {
+        const serverStatus = await StatusApiFactory().getStatus();
+        if (serverStatus.players == 0) {
+          serverAvailable = false;
         }
       }
-      else if (sequential404Count > 50) {
-        try {
-          if (sequential404Count % 10 === 0) {
+      catch (statusError) {
+        serverAvailable = false;
+        LOGGER.info(
+          'Failed to get server status; assuming downtime '
+            + String(statusError)
+        );
+      }
+
+      if (serverAvailable) {
+        sequential404Count++;
+
+        if (nextSequenceId === null) {
+          try {
+            // just started the application and the sequence we want is no longer available, so fast-forward to the latest sequence
             const latestSequence = await getLatestSequence(localAgent);
-            if (
-              latestSequence > nextSequenceId + 52
-              || latestSequence < nextSequenceId
-            ) {
-              LOGGER.warning(
-                `Sequence ${nextSequenceId} not available. Fast-forwarding to ${latestSequence}`
-              );
-              nextSequenceId = latestSequence;
-              sequential404Count = 0;
-            }
+            LOGGER.warning(
+              `Sequence ${thisSequenceId} no longer available. Fast-forwarding to ${latestSequence}`
+            );
+            nextSequenceId = latestSequence;
+            sequential404Count = 0;
+          }
+          catch (sequenceError) {
+            LOGGER.error(
+              'Error fetching latest sequence after 404\n' + sequenceError
+            );
           }
         }
-        catch (sequenceError) {
-          LOGGER.error(
-            'Error fetching latest sequence after 404\n' + sequenceError
-          );
+        else if (sequential404Count > 50) {
+          try {
+            if (sequential404Count % 10 === 0) {
+              const latestSequence = await getLatestSequence(localAgent);
+              if (
+                latestSequence > nextSequenceId + 52
+                || latestSequence < nextSequenceId
+              ) {
+                LOGGER.warning(
+                  `Sequence ${nextSequenceId} not available. Fast-forwarding to ${latestSequence}`
+                );
+                nextSequenceId = latestSequence;
+                sequential404Count = 0;
+              }
+            }
+          }
+          catch (sequenceError) {
+            LOGGER.error(
+              'Error fetching latest sequence after 404\n' + sequenceError
+            );
+          }
         }
+      }
+      else {
+        await sleep(R2Z2_DOWNTIME_DELAY_MS);
       }
 
       await sleep(R2Z2_NO_NEW_DATA_DELAY_MS);
