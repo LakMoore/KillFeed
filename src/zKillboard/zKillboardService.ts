@@ -267,28 +267,28 @@ export async function prepAndSend(
       .get(killmail.victim.alliance_id)
       ?.forEach((v) => {
         lossmailChannelIDs.add(v);
-        trackMatch(v, 'Alliances');
+        trackMatch(v, 'Who');
       });
 
     config.matchedCorporations
       .get(killmail.victim.corporation_id)
       ?.forEach((v) => {
         lossmailChannelIDs.add(v);
-        trackMatch(v, 'Corporations');
+        trackMatch(v, 'Who');
       });
 
     config.matchedCharacters
       .get(killmail.victim.character_id)
       ?.forEach((v) => {
         lossmailChannelIDs.add(v);
-        trackMatch(v, 'Characters');
+        trackMatch(v, 'Who');
       });
 
     config.matchedShips
       .get(killmail.victim.ship_type_id)
       ?.forEach((v) => {
         lossmailChannelIDs.add(v);
-        trackMatch(v, 'Ships');
+        trackMatch(v, 'What');
       });
 
     killmail.attackers.forEach((attacker) => {
@@ -297,7 +297,7 @@ export async function prepAndSend(
         ?.forEach((v) => {
           if (!lossmailChannelIDs.has(v)) {
             killmailChannelIDs.add(v);
-            trackMatch(v, 'Alliances');
+            trackMatch(v, 'Who');
           }
         });
       config.matchedCorporations
@@ -305,7 +305,7 @@ export async function prepAndSend(
         ?.forEach((v) => {
           if (!lossmailChannelIDs.has(v)) {
             killmailChannelIDs.add(v);
-            trackMatch(v, 'Corporations');
+            trackMatch(v, 'Who');
           }
         });
       config.matchedCharacters
@@ -313,7 +313,7 @@ export async function prepAndSend(
         ?.forEach((v) => {
           if (!lossmailChannelIDs.has(v)) {
             killmailChannelIDs.add(v);
-            trackMatch(v, 'Characters');
+            trackMatch(v, 'Who');
           }
         });
       config.matchedShips
@@ -321,7 +321,7 @@ export async function prepAndSend(
         ?.forEach((v) => {
           if (!lossmailChannelIDs.has(v)) {
             killmailChannelIDs.add(v);
-            trackMatch(v, 'Ships');
+            trackMatch(v, 'What');
           }
         });
     });
@@ -335,7 +335,7 @@ export async function prepAndSend(
         if (!lossmailChannelIDs.has(v) && !killmailChannelIDs.has(v)) {
           neutralmailChannelIDs.add(v);
         }
-        trackMatch(v, 'Systems');
+        trackMatch(v, 'Where');
       });
 
     // Handle Matched Space Type
@@ -350,7 +350,7 @@ export async function prepAndSend(
           if (!lossmailChannelIDs.has(v) && !killmailChannelIDs.has(v)) {
             neutralmailChannelIDs.add(v);
           }
-          trackMatch(v, 'SpaceTypes');
+          trackMatch(v, 'Where');
         });
     }
 
@@ -368,7 +368,7 @@ export async function prepAndSend(
             if (!lossmailChannelIDs.has(v) && !killmailChannelIDs.has(v)) {
               neutralmailChannelIDs.add(v);
             }
-            trackMatch(v, 'Regions');
+            trackMatch(v, 'Where');
           });
       }
     }
@@ -390,7 +390,7 @@ export async function prepAndSend(
             if (!lossmailChannelIDs.has(v) && !killmailChannelIDs.has(v)) {
               neutralmailChannelIDs.add(v);
             }
-            trackMatch(v, 'Constellations');
+            trackMatch(v, 'Where');
           });
       }
     }
@@ -437,27 +437,25 @@ export async function prepAndSend(
 
         // Determine which filter types are configured (have at least one entry)
         const configuredFilterTypes: string[] = [];
-        if (subscription.Alliances.size > 0) {
-          configuredFilterTypes.push('Alliances');
+        if (
+          subscription.Alliances.size > 0
+          || subscription.Corporations.size > 0
+          || subscription.Characters.size > 0
+        ) {
+          configuredFilterTypes.push('Who');
         }
-        if (subscription.Corporations.size > 0) {
-          configuredFilterTypes.push('Corporations');
+
+        if (subscription.Ships.size > 0) {
+          configuredFilterTypes.push('What');
         }
-        if (subscription.Characters.size > 0) {
-          configuredFilterTypes.push('Characters');
-        }
-        if (subscription.Ships.size > 0) configuredFilterTypes.push('Ships');
-        if (subscription.Regions.size > 0) {
-          configuredFilterTypes.push('Regions');
-        }
-        if (subscription.Constellations.size > 0) {
-          configuredFilterTypes.push('Constellations');
-        }
-        if (subscription.Systems.size > 0) {
-          configuredFilterTypes.push('Systems');
-        }
-        if ((subscription.SpaceTypes?.size ?? 0) > 0) {
-          configuredFilterTypes.push('SpaceTypes');
+
+        if (
+          subscription.Regions.size > 0
+          || subscription.Constellations.size > 0
+          || subscription.Systems.size > 0
+          || (subscription.SpaceTypes?.size ?? 0) > 0
+        ) {
+          configuredFilterTypes.push('Where');
         }
 
         // Skip if no filters configured

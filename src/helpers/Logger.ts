@@ -1,5 +1,5 @@
 import dotenv from 'dotenv';
-import { TextChannel } from 'discord.js';
+import type { TextChannel } from 'discord.js';
 
 dotenv.config();
 const DEBUG = process.env.NODE_ENV === 'development';
