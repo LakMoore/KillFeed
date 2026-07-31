@@ -1,4 +1,4 @@
-import { Character } from '../zKillboard/zKillboard';
+import type { Character } from '../zKillboard/zKillboard';
 import { CachedESI } from './cache';
 import { fetchESINames } from './fetch';
 import { MarketApi } from 'eve-client-ts';
@@ -13,42 +13,36 @@ export interface Result {
 
 export async function getCharacterNames(characterIds: Character) {
   const missingIds: number[] = [];
-  const result: Result = {
-    character: CachedESI.getCharacterName(characterIds.character_id),
-    corporation: CachedESI.getCorporationName(characterIds.corporation_id),
-    alliance: CachedESI.getAllianceName(characterIds.alliance_id),
-    ship: CachedESI.getItemName(characterIds.ship_type_id),
-  };
 
-  if (!result.character) {
+  if (!CachedESI.getCharacterName(characterIds.character_id)) {
     missingIds.push(characterIds.character_id);
   }
-  if (!result.corporation) {
+  if (!CachedESI.hasCorporation(characterIds.corporation_id)) {
     missingIds.push(characterIds.corporation_id);
   }
-  if (!result.alliance) {
+  if (!CachedESI.hasAlliance(characterIds.alliance_id)) {
     missingIds.push(characterIds.alliance_id);
   }
-  if (!result.ship) {
+  if (!CachedESI.getItemName(characterIds.ship_type_id)) {
     missingIds.push(characterIds.ship_type_id);
   }
 
-  const missedIds = missingIds.filter((v) => v);
+  const missedIds = missingIds.filter(Boolean);
 
-  if (missedIds.length === 0) {
-    return result;
+  if (missedIds.length > 0) {
+    const names = await fetchESINames(missedIds);
+
+    names.forEach((name) => {
+      CachedESI.addItem(name);
+    });
   }
-
-  const names = await fetchESINames(missedIds);
-
-  names.forEach((name) => {
-    CachedESI.addItem(name);
-  });
 
   return {
     character: CachedESI.getCharacterName(characterIds.character_id),
-    corporation: CachedESI.getCorporationName(characterIds.corporation_id),
-    alliance: CachedESI.getAllianceName(characterIds.alliance_id),
+    corporation: await CachedESI.getCorporationName(
+      characterIds.corporation_id
+    ),
+    alliance: await CachedESI.getAllianceName(characterIds.alliance_id),
     ship: CachedESI.getItemName(characterIds.ship_type_id),
   } as Result;
 }

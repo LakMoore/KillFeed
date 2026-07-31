@@ -1,5 +1,6 @@
 import type { CommandInteraction, Client } from 'discord.js';
 import { fetchESINames } from '../esi/fetch';
+import { CachedESI } from '../esi/cache';
 import type { Command } from '../Command';
 import { Config } from '../Config';
 import { canUseChannel } from '../helpers/DiscordHelper';
@@ -26,40 +27,40 @@ export const Info: Command = {
         if (thisSubscription.Alliances.size > 0) {
           response
             += '**Alliances:**\n'
-            + (await fetchESINames(Array.from(thisSubscription.Alliances)).then(
-              (names) => {
+            + (await CachedESI
+              .getAllianceNames(Array.from(thisSubscription.Alliances))
+              .then((names) => {
                 return names
-                  .map((n) => `- ${n.name}`)
+                  .map((n) => `- ${n}`)
                   .sort((a, b) => a.localeCompare(b))
                   .join('\n');
-              }
-            ))
+              }))
             + '\n';
         }
         if (thisSubscription.Corporations.size > 0) {
           response
             += '**Corporations:**\n'
-            + (await fetchESINames(
-              Array.from(thisSubscription.Corporations)
-            ).then((names) => {
-              return names
-                .map((n) => `- ${n.name}`)
-                .sort((a, b) => a.localeCompare(b))
-                .join('\n');
-            }))
+            + (await CachedESI
+              .getCorporationNames(Array.from(thisSubscription.Corporations))
+              .then((names) => {
+                return names
+                  .map((n) => `- ${n}`)
+                  .sort((a, b) => a.localeCompare(b))
+                  .join('\n');
+              }))
             + '\n';
         }
         if (thisSubscription.Characters.size > 0) {
           response
             += '**Characters:**\n'
-            + (await fetchESINames(
-              Array.from(thisSubscription.Characters)
-            ).then((names) => {
-              return names
-                .map((n) => `- ${n.name}`)
-                .sort((a, b) => a.localeCompare(b))
-                .join('\n');
-            }))
+            + (await CachedESI
+              .getCharacterNames(Array.from(thisSubscription.Characters))
+              .then((names) => {
+                return names
+                  .map((n) => `- ${n}`)
+                  .sort((a, b) => a.localeCompare(b))
+                  .join('\n');
+              }))
             + '\n';
         }
         if (thisSubscription.Ships.size > 0) {

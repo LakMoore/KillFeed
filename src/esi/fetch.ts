@@ -1,6 +1,7 @@
 import axios, { AxiosError } from 'axios';
-import { KillMail } from '../zKillboard/zKillboard';
+import type { KillMail } from '../zKillboard/zKillboard';
 import { LOGGER } from '../helpers/Logger';
+import { UniverseApiFactory } from 'eve-client-ts';
 
 export interface Name {
   category: string;
