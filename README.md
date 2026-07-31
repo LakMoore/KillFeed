@@ -11,9 +11,13 @@ See the section below the Changelog for installation instructions.
 
 ## Changelog
 
-v1.0.17 [30th July 2026]
+v1.0.17 [31st July 2026]
 
-- Replaced `/wanderer exclude_sec_above` with `/wanderer space_type_toggle` — use this command to toggle per-map space-type filters so OnMap killmails can be filtered by the same space kinds as off-map kills.
+- Thanks to [Mateusz Janota](https://github.com/z4nr34l) for Pull Request [#16](https://github.com/LakMoore/KillFeed/pull/16) which added `/space_type_toggle`. Use this to capture neutralmails for any "type" of space (e.g. Low-Sec, Wormholes). Combine this with `/filter_mode AND` to restrict your killmails to the selected type(s) of space.
+- Replaced `/wanderer exclude_sec_above` with `/wanderer space_type_toggle` — use this command to toggle per-map space-type filters so OnMap killmails can also be filtered by space type(s).
+- Added a `/wanderer refresh` command, which shouldn't be necessary but will cause Wanderer to fetch a fresh set of systems from the map.
+- altered `/filter_mode AND` to categorise filters into Who, What and Where. This should make it impossible to set up a breaking filter (e.g. Tama AND NullSec)
+- Better caching of ESI calls and fetches now wait for the servers to come back after downtime before giving up.
 
 v1.0.16 [11th July 2026]
 
