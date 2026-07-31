@@ -81,7 +81,7 @@ export async function fetchESINames(ids: number[]) {
   const path = '/universe/names/';
 
   return axios
-    .post<Name[]>(url + path, ids)
+    .post<Name[]>(url + path, ids.filter(Boolean))
     .then((response) => response.data)
     .catch((err: Error) => {
       if (err instanceof AxiosError) {

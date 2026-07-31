@@ -116,6 +116,9 @@ export class CachedESI {
   }
 
   public static getCharacterName(characterId: number) {
+    if (!characterId) {
+      return Promise.resolve('');
+    }
     return CachedESI.getInstance().characterNames.getOrDefault(
       characterId,
       (characterId) =>
