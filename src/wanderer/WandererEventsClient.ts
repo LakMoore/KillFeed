@@ -222,6 +222,32 @@ class WandererEventsClient {
     this.stopConnection(channelId);
   }
 
+  public async refreshWandererMap(channelId: string): Promise<{
+    mapPath: string;
+    systemCount: number;
+    connectionCount: number;
+  }> {
+    const cfg = Config.getInstance();
+    const ws = cfg.allSubscriptions.get(channelId)?.WandererSettings;
+    if (!ws?.Slug || !ws.Domain || !ws.EncryptedDetails) {
+      throw new Error('Wanderer is not configured on this channel.');
+    }
+
+    const mapPath = ws.Domain + '/' + ws.Slug;
+    await this.syncMapSystems({
+      domain: ws.Domain,
+      slug: ws.Slug,
+      EncryptedDetails: ws.EncryptedDetails,
+    });
+
+    const maps = WandererMaps.getInstance();
+    return {
+      mapPath,
+      systemCount: maps.getSystemCountForMap(mapPath),
+      connectionCount: maps.getConnectionsForMap(mapPath)?.length ?? 0,
+    };
+  }
+
   public getConnection(channelId: string): { mapPath?: string } | undefined {
     const cfg = Config.getInstance();
     const sub = cfg.allSubscriptions.get(channelId);
@@ -706,6 +732,14 @@ export async function connectWandererMap(params: {
 
 export async function disconnectWandererMap(channelId: string): Promise<void> {
   return wandererEventsClient.disconnectWandererMap(channelId);
+}
+
+export async function refreshWandererMap(channelId: string): Promise<{
+  mapPath: string;
+  systemCount: number;
+  connectionCount: number;
+}> {
+  return wandererEventsClient.refreshWandererMap(channelId);
 }
 
 export function getWandererSystemCount(mapId: string): number {
