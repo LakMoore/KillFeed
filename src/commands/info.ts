@@ -29,7 +29,7 @@ export const Info: Command = {
             + (await fetchESINames(Array.from(thisSubscription.Alliances)).then(
               (names) => {
                 return names
-                  .map((n) => n.name)
+                  .map((n) => `- ${n.name}`)
                   .sort((a, b) => a.localeCompare(b))
                   .join('\n');
               }
@@ -43,7 +43,7 @@ export const Info: Command = {
               Array.from(thisSubscription.Corporations)
             ).then((names) => {
               return names
-                .map((n) => n.name)
+                .map((n) => `- ${n.name}`)
                 .sort((a, b) => a.localeCompare(b))
                 .join('\n');
             }))
@@ -56,7 +56,7 @@ export const Info: Command = {
               Array.from(thisSubscription.Characters)
             ).then((names) => {
               return names
-                .map((n) => n.name)
+                .map((n) => `- ${n.name}`)
                 .sort((a, b) => a.localeCompare(b))
                 .join('\n');
             }))
@@ -68,7 +68,7 @@ export const Info: Command = {
             + (await fetchESINames(Array.from(thisSubscription.Ships)).then(
               (names) => {
                 return names
-                  .map((n) => n.name)
+                  .map((n) => `- ${n.name}`)
                   .sort((a, b) => a.localeCompare(b))
                   .join('\n');
               }
@@ -81,7 +81,7 @@ export const Info: Command = {
             + (await fetchESINames(Array.from(thisSubscription.Regions)).then(
               (names) => {
                 return names
-                  .map((n) => n.name)
+                  .map((n) => `- ${n.name}`)
                   .sort((a, b) => a.localeCompare(b))
                   .join('\n');
               }
@@ -95,7 +95,7 @@ export const Info: Command = {
               Array.from(thisSubscription.Constellations)
             ).then((names) => {
               return names
-                .map((n) => n.name)
+                .map((n) => `- ${n.name}`)
                 .sort((a, b) => a.localeCompare(b))
                 .join('\n');
             }))
@@ -106,7 +106,7 @@ export const Info: Command = {
           response
             += '**Space:**\n'
             + [...thisSubscription.SpaceTypes]
-              .map((spaceType) => SPACE_TYPE_LABELS[spaceType])
+              .map((spaceType) => `- ${SPACE_TYPE_LABELS[spaceType]}`)
               .join('\n')
             + '\n';
         }
@@ -117,7 +117,7 @@ export const Info: Command = {
             + (await fetchESINames(Array.from(thisSubscription.Systems)).then(
               (names) => {
                 return names
-                  .map((n) => n.name)
+                  .map((n) => `- ${n.name}`)
                   .sort((a, b) => a.localeCompare(b))
                   .join('\n');
               }
