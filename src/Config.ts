@@ -1,4 +1,5 @@
-import { TextChannel } from 'discord.js';
+import type { TextChannel } from 'discord.js';
+import { SpaceType } from './helpers/SpaceTypeHelpers';
 
 export interface SubscriptionSettings {
   Channel: TextChannel;
@@ -16,6 +17,8 @@ export interface SubscriptionSettings {
   Regions: Set<number>;
   Constellations: Set<number>;
   Systems: Set<number>;
+  // Kinds of space this channel wants killmails from. Empty means every kind.
+  SpaceTypes: Set<SpaceType>;
   WandererSettings?: {
     Slug: string;
     EncryptedDetails: string;
@@ -23,10 +26,8 @@ export interface SubscriptionSettings {
     createdAt?: string;
     ExcludeSystemIDs: Set<string>;
     PingRole?: string;
-    // When set to a numeric threshold, killmails originating from map systems
-    // whose `security_status` is greater than the configured value will be
-    // ignored for this channel. Example: `0.1`, `-0.5`, `0.0`.
-    ExcludeSecAbove?: number;
+    // Kinds of space this channel wants OnMap killmails from. Empty means every kind.
+    SpaceTypes: Set<SpaceType>;
   };
   MinISK: number | undefined;
   RoleToPing: string | undefined;
@@ -49,6 +50,7 @@ export class Config {
   public matchedRegions = new Map<number, Set<string>>();
   public matchedConstellations = new Map<number, Set<string>>();
   public matchedSystems = new Map<number, Set<string>>();
+  public matchedSpaceTypes = new Map<SpaceType, Set<string>>();
 
   // a set of channels that have requested a test killmail
   public testRequests = new Set<string>();

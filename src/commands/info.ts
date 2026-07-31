@@ -1,9 +1,10 @@
-import { CommandInteraction, Client } from 'discord.js';
+import type { CommandInteraction, Client } from 'discord.js';
 import { fetchESINames } from '../esi/fetch';
-import { Command } from '../Command';
+import type { Command } from '../Command';
 import { Config } from '../Config';
 import { canUseChannel } from '../helpers/DiscordHelper';
 import { formatISKValue } from '../helpers/JaniceHelper';
+import { SPACE_TYPE_LABELS } from '../helpers/SpaceTypeHelpers';
 
 export const Info: Command = {
   name: 'info',
@@ -29,7 +30,7 @@ export const Info: Command = {
               (names) => {
                 return names
                   .map((n) => n.name)
-                  .sort()
+                  .sort((a, b) => a.localeCompare(b))
                   .join('\n');
               }
             ))
@@ -43,7 +44,7 @@ export const Info: Command = {
             ).then((names) => {
               return names
                 .map((n) => n.name)
-                .sort()
+                .sort((a, b) => a.localeCompare(b))
                 .join('\n');
             }))
             + '\n';
@@ -56,7 +57,7 @@ export const Info: Command = {
             ).then((names) => {
               return names
                 .map((n) => n.name)
-                .sort()
+                .sort((a, b) => a.localeCompare(b))
                 .join('\n');
             }))
             + '\n';
@@ -68,7 +69,7 @@ export const Info: Command = {
               (names) => {
                 return names
                   .map((n) => n.name)
-                  .sort()
+                  .sort((a, b) => a.localeCompare(b))
                   .join('\n');
               }
             ))
@@ -81,7 +82,7 @@ export const Info: Command = {
               (names) => {
                 return names
                   .map((n) => n.name)
-                  .sort()
+                  .sort((a, b) => a.localeCompare(b))
                   .join('\n');
               }
             ))
@@ -95,9 +96,18 @@ export const Info: Command = {
             ).then((names) => {
               return names
                 .map((n) => n.name)
-                .sort()
+                .sort((a, b) => a.localeCompare(b))
                 .join('\n');
             }))
+            + '\n';
+        }
+
+        if (thisSubscription.SpaceTypes?.size) {
+          response
+            += '\n**Space:** '
+            + [...thisSubscription.SpaceTypes]
+              .map((spaceType) => SPACE_TYPE_LABELS[spaceType])
+              .join(', ')
             + '\n';
         }
 

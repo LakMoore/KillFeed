@@ -1,7 +1,9 @@
-import { Client, TextChannel } from 'discord.js';
-import { SubscriptionSettings, Config } from './Config';
+import type { Client, TextChannel } from 'discord.js';
+import type { SubscriptionSettings } from './Config';
+import { Config } from './Config';
 import { canUseChannel, getConfigMessage } from './helpers/DiscordHelper';
 import { addListener, parseConfigMessage } from './helpers/KillFeedHelpers';
+import type { SpaceType } from './helpers/SpaceTypeHelpers';
 import { savedData } from './Bot';
 import { LOGGER } from './helpers/Logger';
 
@@ -20,6 +22,9 @@ export async function updateChannel(
       channel.id
     );
     if (thisSubscription !== undefined) {
+      // upgrade the config if necessary
+      thisSubscription.SpaceTypes ??= new Set<SpaceType>();
+
       // If we already had a config loaded for this channel
       LOGGER.debug(`Clearing channel ${channel.name}`);
       // we need to clear this channel out of the all listeners
@@ -82,6 +87,10 @@ export async function updateChannel(
       thisSubscription.Systems.forEach((id) => {
         addListener(config.matchedSystems, id, channel.id);
       });
+
+      thisSubscription.SpaceTypes.forEach((spaceType) => {
+        addListener(config.matchedSpaceTypes, spaceType, channel.id);
+      });
     }
     else {
       LOGGER.debug(`No config message found in channel ${channel.name}`);
@@ -126,4 +135,11 @@ export function clearChannel(
     config.matchedSystems.get(systemId)?.delete(channel.id);
     LOGGER.info(`Deleted system ${systemId} from server ${channel.id}`);
   });
+
+  for (const spaceType of config.matchedSpaceTypes.keys()) {
+    if (config.matchedSpaceTypes.get(spaceType)?.has(channel.id)) {
+      config.matchedSpaceTypes.get(spaceType)?.delete(channel.id);
+      LOGGER.info(`Deleted space type ${spaceType} from server ${channel.id}`);
+    }
+  }
 }
